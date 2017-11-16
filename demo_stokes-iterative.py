@@ -29,10 +29,12 @@ if not df.has_linear_algebra_backend("PETSc") and not df.has_linear_algebra_back
     df.info("DOLFIN has not been configured with Trilinos or PETSc. Exiting.")
     exit()
 
+"""
 if not df.has_krylov_solver_preconditioner("amg"):
     df.info("Sorry, this demo is only available when DOLFIN is compiled with AMG "
 	 "preconditioner, Hypre or ML.")
     exit()
+"""
 
 if df.has_krylov_solver_method("minres"):
     krylov_method = "minres"
@@ -46,10 +48,18 @@ else:
 # Load mesh
 mesh = df.UnitCubeMesh(16, 16, 16)
 
+"""
 # Define function spaces
 V = df.VectorFunctionSpace(mesh, "CG", 2)
 Q = df.FunctionSpace(mesh, "CG", 1)
 W = V*Q
+"""
+
+# Define mixed function space
+P2 = df.VectorElement("CG", mesh.ufl_cell(), 2)
+P1 = df.FiniteElement("CG", mesh.ufl_cell(), 1)
+TH = P2 * P1
+W = df.FunctionSpace(mesh, TH)
 
 # Boundaries
 def right(x, on_boundary): return x[0] > (1.0 - df.DOLFIN_EPS)
