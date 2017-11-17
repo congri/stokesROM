@@ -49,6 +49,10 @@ else:
          "Krylov subspace method. Terminating.")
     exit()
 
+# Define physical parameters
+mu = 10  #viscosity
+
+
 # Load mesh
 nMesh = 32
 mesh = df.UnitSquareMesh(nMesh, nMesh)
@@ -73,12 +77,12 @@ noslip = df.Constant((0.0, 0.0))
 bc0 = df.DirichletBC(W.sub(0), noslip, top_bottom)
 
 # Inflow boundary condition for velocity
-inflow = df.Expression(("2*sin(2*pi*x[1])", "0.0"), degree=2)
+inflow = df.Expression(("mu*2*sin(2*pi*x[1])", "0.0"), degree=2, mu=mu)
 bc1 = df.DirichletBC(W.sub(0), inflow, right)
 
 # Boundary condition for pressure at outflow
 outflow_p = df.Constant(0)
-outflow = df.Expression(("sin(2*pi*x[1])", "0.0"), degree=2)
+outflow = df.Expression(("mu*sin(2*pi*x[1])", "0.0"), degree=2, mu=mu)
 bc2 = df.DirichletBC(W.sub(0), outflow, left)
 
 # Collect boundary conditions
@@ -88,7 +92,7 @@ bcs = [bc0, bc1, bc2]
 (u, p) = df.TrialFunctions(W)
 (v, q) = df.TestFunctions(W)
 f = df.Constant((0.0, 0.0))
-a = df.inner(df.grad(u), df.grad(v))*df.dx + df.div(v)*p*df.dx + q*df.div(u)*df.dx
+a = mu*df.inner(df.grad(u), df.grad(v))*df.dx + df.div(v)*p*df.dx + q*df.div(u)*df.dx
 L = df.inner(f, v)*df.dx
 
 # Form for use in constructing preconditioner matrix
