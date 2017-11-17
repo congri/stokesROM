@@ -23,6 +23,10 @@ Note that the sign for the pressure has been flipped for symmetry."""
 
 # Begin demo
 
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 import dolfin as df
 # Test for PETSc or Epetra
 if not df.has_linear_algebra_backend("PETSc") and not df.has_linear_algebra_backend("Epetra"):
@@ -46,20 +50,16 @@ else:
     exit()
 
 # Load mesh
-mesh = df.UnitCubeMesh(16, 16, 16)
+nMesh = 32
+mesh = df.UnitSquareMesh(nMesh, nMesh)
 
-"""
-# Define function spaces
-V = df.VectorFunctionSpace(mesh, "CG", 2)
-Q = df.FunctionSpace(mesh, "CG", 1)
-W = V*Q
-"""
 
 # Define mixed function space
-P2 = df.VectorElement("CG", mesh.ufl_cell(), 2)
-P1 = df.FiniteElement("CG", mesh.ufl_cell(), 1)
-TH = P2 * P1
-W = df.FunctionSpace(mesh, TH)
+u_e = df.VectorElement("CG", mesh.ufl_cell(), 2)
+p_e = df.FiniteElement("CG", mesh.ufl_cell(), 1)
+mixedEl = df.MixedElement([u_e, p_e])
+W = df.FunctionSpace(mesh, mixedEl)
+
 
 # Boundaries
 def right(x, on_boundary): return x[0] > (1.0 - df.DOLFIN_EPS)
@@ -67,17 +67,19 @@ def left(x, on_boundary): return x[0] < df.DOLFIN_EPS
 def top_bottom(x, on_boundary):
     return x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS
 
+
 # No-slip boundary condition for velocity
-noslip = df.Constant((0.0, 0.0, 0.0))
+noslip = df.Constant((0.0, 0.0))
 bc0 = df.DirichletBC(W.sub(0), noslip, top_bottom)
 
 # Inflow boundary condition for velocity
-inflow = df.Expression(("-sin(x[1]*pi)", "0.0", "0.0"))
+inflow = df.Expression(("2*sin(2*pi*x[1])", "0.0"), degree=2)
 bc1 = df.DirichletBC(W.sub(0), inflow, right)
 
 # Boundary condition for pressure at outflow
-zero = df.Constant(0)
-bc2 = df.DirichletBC(W.sub(1), zero, left)
+outflow_p = df.Constant(0)
+outflow = df.Expression(("sin(2*pi*x[1])", "0.0"), degree=2)
+bc2 = df.DirichletBC(W.sub(0), outflow, left)
 
 # Collect boundary conditions
 bcs = [bc0, bc1, bc2]
@@ -85,7 +87,7 @@ bcs = [bc0, bc1, bc2]
 # Define variational problem
 (u, p) = df.TrialFunctions(W)
 (v, q) = df.TestFunctions(W)
-f = df.Constant((0.0, 0.0, 0.0))
+f = df.Constant((0.0, 0.0))
 a = df.inner(df.grad(u), df.grad(v))*df.dx + df.div(v)*p*df.dx + q*df.div(u)*df.dx
 L = df.inner(f, v)*df.dx
 
@@ -99,7 +101,7 @@ A, bb = df.assemble_system(a, L, bcs)
 P, btmp = df.assemble_system(b, L, bcs)
 
 # Create Krylov solver and AMG preconditioner
-solver = df.KrylovSolver(krylov_method, "amg")
+solver = df.KrylovSolver(krylov_method)
 
 # Associate operator (A) and preconditioner matrix (P)
 solver.set_operators(A, P)
@@ -111,13 +113,34 @@ solver.solve(U.vector(), bb)
 # Get sub-functions
 u, p = U.split()
 
+pMesh = p.compute_vertex_values(mesh)
+uMesh = u.compute_vertex_values(mesh)
+x = mesh.coordinates()
+np.savetxt('pressureField', pMesh, delimiter=' ')
+np.savetxt('velocityField', uMesh, delimiter=' ')
+np.savetxt('coordinates', x, delimiter=' ')
+
+
 # Save solution in VTK format
 ufile_pvd = df.File("velocity.pvd")
 ufile_pvd << u
 pfile_pvd = df.File("pressure.pvd")
 pfile_pvd << p
 
+"""
 # Plot solution
 df.plot(u)
 df.plot(p)
 df.interactive()
+"""
+
+
+# Plot with matplotlib
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+X, Y = np.meshgrid(x[0:(nMesh + 1), 0], x[0:(nMesh + 1), 0])
+pMesh = np.reshape(pMesh, (nMesh + 1, nMesh + 1))
+
+ax.plot_surface(X, Y, pMesh, cmap=cm.inferno)
+
+plt.show()
