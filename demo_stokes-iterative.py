@@ -50,11 +50,11 @@ else:
     exit()
 
 # Define physical parameters
-mu = 10  #viscosity
+mu = 1  # viscosity
 
 
 # Load mesh
-nMesh = 32
+nMesh = 128
 mesh = df.UnitSquareMesh(nMesh, nMesh)
 
 
@@ -70,6 +70,7 @@ def right(x, on_boundary): return x[0] > (1.0 - df.DOLFIN_EPS)
 def left(x, on_boundary): return x[0] < df.DOLFIN_EPS
 def top_bottom(x, on_boundary):
     return x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS
+def middle(x, on_boundary): return df.near(x[0], .5, 0.02) and df.near(x[1], .5, 0.2)
 
 
 # No-slip boundary condition for velocity
@@ -77,16 +78,19 @@ noslip = df.Constant((0.0, 0.0))
 bc0 = df.DirichletBC(W.sub(0), noslip, top_bottom)
 
 # Inflow boundary condition for velocity
-inflow = df.Expression(("mu*2*sin(2*pi*x[1])", "0.0"), degree=2, mu=mu)
+inflow = df.Expression(("2*sin(2*pi*x[1])", "0.0"), degree=2, mu=mu)
 bc1 = df.DirichletBC(W.sub(0), inflow, right)
 
 # Boundary condition for pressure at outflow
 outflow_p = df.Constant(0)
-outflow = df.Expression(("mu*sin(2*pi*x[1])", "0.0"), degree=2, mu=mu)
+outflow = df.Expression(("sin(2*pi*x[1])", "0.0"), degree=2, mu=mu)
 bc2 = df.DirichletBC(W.sub(0), outflow, left)
 
+noflow = df.Expression(("0", "0.0"), degree=2)
+bc3 = df.DirichletBC(W.sub(0), noflow, middle)
+
 # Collect boundary conditions
-bcs = [bc0, bc1, bc2]
+bcs = [bc0, bc1, bc2, bc3]
 
 # Define variational problem
 (u, p) = df.TrialFunctions(W)
