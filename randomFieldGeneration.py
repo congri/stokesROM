@@ -11,7 +11,7 @@ class RandomField:
        sincSq:      (sin(r)/r)^2
        matern:      Matern"""
     _covarianceFunction = 'se'
-    _lengthScale = [.01, .01]
+    _lengthScale = [.04, .04]
     _params = []    # further covariance function parameters
     _nBasis = 1000  # number of basis functions of truncated random field
     _sigma = 1      # there should be no need to change this parameter
