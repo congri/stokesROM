@@ -3,15 +3,13 @@ Note that the sign for the pressure has been flipped for symmetry."""
 
 
 import matplotlib.pyplot as plt
-from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import dolfin as df
 from randomFieldGeneration import RandomField as rf
 import mshr
 import time
-import scipy.io as sio
-import isoContour as iso
+from skimage import measure
+
 
 
 
@@ -38,11 +36,11 @@ else:
 
 # Define physical parameters
 mu = 1  # viscosity
-cutoff = 0.5
+cutoff = 1.0
 
 randomFieldObj = rf()
 randomField = randomFieldObj.sample()
-
+'''
 print('Drawing polygones...')
 nMesh = 64
 x = np.linspace(0, 1, nMesh)
@@ -54,11 +52,33 @@ for i in range(0, nMesh):
 ic = iso.IsoContour()
 Objects, Vertices, _ = ic.isocontour(img, cutoff)
 print('done.')
+'''
+
+print('Drawing polygones...')
+nMesh = 128
+x = np.linspace(0, 1, nMesh)
+img = np.zeros([nMesh, nMesh])
+for i in range(0, nMesh):
+    for j in range(0, nMesh):
+        img[i, j] = randomField(np.array([x[i], x[j]]))
+contours = measure.find_contours(img, cutoff)
+print('done.')
+
+#  Show image
+showImg = True
+if showImg:
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    cax = ax.imshow(img >= cutoff, cmap=plt.cm.inferno)
+    for i in range(0, len(contours)):
+        contour = contours[i]
+        plt.plot(contour[:, 1], contour[:, 0])
+
 
 
 domain = mshr.Rectangle(df.Point(0.0, 0.0), df.Point(1.0, 1.0))
 
-
+'''
 print('Substracting polygones from domain...')
 for blob in range(0, len(Objects)):
     polygonVertices = np.flip(Objects[blob], axis=0)
@@ -78,6 +98,24 @@ for blob in range(0, len(Objects)):
         print('blob = ', blob)
         print('vertices = ', polygonVertices)
         print('coordinates = ', Vertices[polygonVertices])
+print('done.')
+'''
+
+print('Substracting polygones from domain...')
+for blob in range(0, len(contours)):
+    contour = contours[blob]
+    contour = np.flip(contour, axis=0)/(nMesh - 1)
+    vertexList = []
+    for i in range(0, contour.shape[0]):
+        # Construct list of df.Point's for polygon vertices
+        x = np.array([contour[i, 0], contour[i, 1]])
+        vertexList.append(df.Point(np.squeeze(x)))
+    # Substract polygon from domain
+    try:
+        domain -= mshr.Polygon(vertexList)
+    except RuntimeError:
+        print('blob = ', blob)
+        print('contour = ', contour)
 print('done.')
 
 
@@ -99,6 +137,14 @@ class DomainBoundary(df.SubDomain):
         return x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS \
                        or x[0] > (1.0 - df.DOLFIN_EPS) or x[0] < df.DOLFIN_EPS
 
+class UpDown(df.SubDomain):
+    def inside(self, x, on_boundary):
+        return x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS
+
+class LeftRight(df.SubDomain):
+    def inside(self, x, on_boundary):
+        return x[0] > (1.0 - df.DOLFIN_EPS) or x[0] < df.DOLFIN_EPS
+
 class RandField(df.SubDomain):
     def inside(self, x, on_boundary):
         outerBoundary = x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS \
@@ -108,19 +154,9 @@ class RandField(df.SubDomain):
 
 # Initialize sub-domain instances
 domainBoundary = DomainBoundary()
+upDown = UpDown()
+leftRight = LeftRight()
 solidPhase = RandField()
-
-
-refineMax = 0
-for i in range(0, refineMax):
-    cell_markers = df.CellFunction("bool", mesh)
-    cell_markers.set_all(False)
-    for cell in df.cells(mesh):
-        mp = cell.midpoint()
-        if randomField([mp.x(), mp.y()]) <= cutoff:
-            cell_markers[cell] = True
-    mesh = df.refine(mesh, cell_markers)
-
 
 
 # Initialize mesh function for interior domains
@@ -131,7 +167,9 @@ solidPhase.mark(domains, 1)
 # Initialize mesh function for boundary domains
 boundaries = df.FacetFunction("size_t", mesh)
 boundaries.set_all(0)
-domainBoundary.mark(boundaries, 1)
+# domainBoundary.mark(boundaries, 1)
+upDown.mark(boundaries, 1)
+leftRight.mark(boundaries, 2)
 
 
 # Define mixed function space
@@ -142,21 +180,23 @@ W = df.FunctionSpace(mesh, mixedEl)
 
 
 # Flow boundary condition for velocity on domain boundary
-flowField = df.Expression(("1.0", "0"), degree=2, mu=mu)
-pressureField = df.Expression("0", degree=2, mu=mu)
-bc1 = df.DirichletBC(W.sub(0), flowField, domainBoundary)
-bc2 = df.DirichletBC(W.sub(1), pressureField, domainBoundary)
+flowFieldLR = df.Expression(('1', '0'), degree=2, mu=mu)
+flowFieldUD = df.Expression(("0.0", "0.0"), degree=2, mu=mu)
+#pressureField = df.Expression("0.0", degree=2, mu=mu)
+bc1 = df.DirichletBC(W.sub(0), flowFieldLR, leftRight)
+bc2 = df.DirichletBC(W.sub(0), flowFieldUD, upDown)
+#bc3 = df.DirichletBC(W.sub(1), pressureField, domainBoundary)
 
 # No-slip boundary condition for velocity on material interfaces
 noslip = df.Constant((0.0, 0.0))
-zero_p = df.Constant(0)
+zero_p = df.Constant(0.0)
 
 # Boundary conditions for solid phase
-bc3 = df.DirichletBC(W.sub(0), noslip, solidPhase)
-bc4 = df.DirichletBC(W.sub(1), zero_p, solidPhase)
+bc4 = df.DirichletBC(W.sub(0), noslip, solidPhase)
+bc5 = df.DirichletBC(W.sub(1), zero_p, solidPhase)
 
 # Collect boundary conditions
-bcs = [bc1, bc2, bc3]
+bcs = [bc1, bc2, bc4]
 
 
 # Define variational problem

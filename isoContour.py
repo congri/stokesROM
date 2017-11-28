@@ -239,7 +239,7 @@ class IsoContour:
         Objects = sortLines2Objects(Lines)
 
         #  Show image
-        showImg = True
+        showImg = False
         if showImg:
             import matplotlib.pyplot as plt
             fig = plt.figure()
@@ -248,14 +248,11 @@ class IsoContour:
             for i in range(0, len(Objects)):
                 Points = Objects[i]
                 plt.plot(Vertices[Points, 1] - 1, Vertices[Points, 0] - 1)
-            plt.show(block=False)
 
 
-        print('Vertices = ', Vertices)
         # Normalize vertices
         Vertices[:, 0] = (Vertices[:, 0] - 1.0)/(img.shape[0] - 1.0)
         Vertices[:, 1] = (Vertices[:, 1] - 1.0)/(img.shape[1] - 1.0)
-        print('Normalized Vertices = ', Vertices)
         self.Objects = Objects
         self.Vertices = Vertices
         return Objects, Vertices, Lines
