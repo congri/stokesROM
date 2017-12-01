@@ -10,19 +10,13 @@ import mshr
 import time
 import scipy.stats as stats
 from skimage import measure
+import porousMedia as pm
 
 
 # Test for PETSc or Epetra
 if not df.has_linear_algebra_backend("PETSc") and not df.has_linear_algebra_backend("Epetra"):
     df.info("DOLFIN has not been configured with Trilinos or PETSc. Exiting.")
     exit()
-
-"""
-if not df.has_krylov_solver_preconditioner("amg"):
-    df.info("Sorry, this demo is only available when DOLFIN is compiled with AMG "
-	 "preconditioner, Hypre or ML.")
-    exit()
-"""
 
 if df.has_krylov_solver_method("minres"):
     krylov_method = "minres"
@@ -43,57 +37,39 @@ nMeshPolygon = 128   # image discretization of random material; needed for polyg
 
 
 randomFieldObj = rf()
-randomFieldObj.covarianceFunction = 'sincSq'
+randomFieldObj.covarianceFunction = 'matern'
 randomField = randomFieldObj.sample()
 
-print('Discretizing random field...')
-x = np.linspace(0, 1, nMeshPolygon)
-img = np.zeros([nMeshPolygon, nMeshPolygon])
-for i in range(0, nMeshPolygon):
-    for j in range(0, nMeshPolygon):
-        img[i, j] = randomField(np.array([x[i], x[j]]))
-print('done.')
 
-print('Drawing polygones...')
-contours = measure.find_contours(img, cutoff, positive_orientation='high', fully_connected='high')
-print('done.')
+def potential(x):
+    # Potential to avoid blobs on boundary
+    p = 0
+    # Penalty for boundaries at 0
+    sigma = 1e-2
+    prefactor = 1.0
+    p -= prefactor*stats.norm.pdf(x[0], 0, sigma)
+    p -= prefactor*stats.norm.pdf(x[1], 0, sigma)
+    p -= prefactor*stats.norm.pdf(x[0], 1, sigma)
+    p -= prefactor*stats.norm.pdf(x[1], 1, sigma)
+    return p
 
-#  Show image
-showImg = False
-if showImg:
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    cax = ax.imshow(img >= cutoff, cmap=plt.cm.inferno)
-    for i in range(0, len(contours)):
-        contour = contours[i]
-        plt.plot(contour[:, 1], contour[:, 0])
+def addfunctions(f, g):
+    # add functions f and g
+    def h(x):
+        return f(x) + g(x)
+    return h
 
+randomField = addfunctions(randomField, potential)
 
-domain = mshr.Rectangle(df.Point(0.0, 0.0), df.Point(1.0, 1.0))
-print('Substracting blobs as polygones from domain...')
-for blob in range(0, len(contours)):
-    contour = contours[blob]
-    contour = contour/(nMeshPolygon - 1)
-    vertexList = []
-    for i in range(0, contour.shape[0]):
-        # Construct list of df.Point's for polygon vertices
-        x = np.array([contour[i, 0], contour[i, 1]])
-        vertexList.append(df.Point(np.squeeze(x)))
-    # Substract polygon from domain
-    try:
-        mPolygon = mshr.Polygon(vertexList)
-    except RuntimeError:
-        print('Invalid blob at')
-        print('blob = ', blob)
-        print('contour = ', contour)
-    domain -= mPolygon
-print('done.')
+discretizedRandomField = pm.discretizeRandField(randomField,
+                                                nDiscretize=(nMeshPolygon, nMeshPolygon))
+contours = pm.findPolygones(discretizedRandomField, cutoff)
+contours = pm.rescalePolygones(contours, nDiscretize=(nMeshPolygon, nMeshPolygon))
+domain = pm.substractPores(contours)
 
-print('generating FE mesh...')
-t = time.time()
-mesh = mshr.generate_mesh(domain, 128)
-elapsed_time = time.time() - t
-print('done. Time: ', elapsed_time)
+# Generate mesh - this step is expensive
+mesh = pm.generateMesh(domain)
+
 
 
 
@@ -224,7 +200,7 @@ fig = plt.figure()
 df.plot(u, cmap=plt.cm.viridis, headwidth=0.005, headlength=0.005, scale=80.0, minlength=0.0001,
         width=0.0008, minshaft=0.01, headaxislength=0.1)
 for i in range(0, len(contours)):
-    contour = contours[i]/(nMeshPolygon - 1.0)
+    contour = contours[i]
     plt.plot(contour[:, 0], contour[:, 1], 'k')
 plt.xticks([])
 plt.yticks([])
