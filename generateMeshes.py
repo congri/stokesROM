@@ -31,7 +31,7 @@ volumeFraction = .7 # Volume fraction of voids
 cutoff = stats.norm.ppf(volumeFraction)
 print('cutoff = ', cutoff)
 nMeshPolygon = 64   # image discretization of random material; needed for polygones
-nMeshes = 16
+nMeshes = 128
 nElements = 128 # PDE discretization
 
 
@@ -41,7 +41,7 @@ randomFieldObj.covarianceFunction = 'matern'
 foldername = '/home/constantin/python/data/stokesEquation/meshes/meshSize=' + str(nElements) +\
     '/randFieldDiscretization=' + str(nMeshPolygon) + '/cov=' + randomFieldObj.covarianceFunction +\
     '/params=' + str(randomFieldObj.params) + '/l=' + str(randomFieldObj.lengthScale[0]) + '_' +\
-    str(randomFieldObj.lengthScale[1])
+    str(randomFieldObj.lengthScale[1]) + '/volfrac=' + str(volumeFraction)
 if not os.path.exists(foldername):
     os.makedirs(foldername)
 
