@@ -13,7 +13,7 @@ class RandomField:
     matern:      Matern
     """
     covarianceFunction = 'se'
-    lengthScale = [.02, .02]
+    lengthScale = [.008, .008]
     params = [5.0]    # further covariance function parameters
     nBasis = 1000  # number of basis functions of truncated random field
     sigma = 1.0      # there should be no need to change this parameter

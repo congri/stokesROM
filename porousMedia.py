@@ -90,10 +90,15 @@ def substractPores(contours, domain_a=(0.0, 0.0), domain_b=(1.0, 1.0)):
         # Substract polygon from domain
         try:
             mPolygon = mshr.Polygon(vertexList)
+            # print('good blob: ', contour)
         except RuntimeError:
-            print('Invalid blob at')
-            print('blob = ', blob)
-            print('contour = ', contour)
+            vertexList = vertexList[::-1]
+            try:
+                mPolygon = mshr.Polygon(vertexList)
+            except RuntimeError:
+                print('Invalid blob at')
+                print('blob = ', blob)
+                print('contour = ', contour)
         domain -= mPolygon
     print('done.')
 

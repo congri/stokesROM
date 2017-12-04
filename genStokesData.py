@@ -29,7 +29,7 @@ else:
 
 # Define physical parameters
 mu = 1  # viscosity
-volumeFraction = .7
+volumeFraction = .3
 cutoff = stats.norm.ppf(volumeFraction)
 print('cutoff = ', cutoff)
 nMeshPolygon = 128   # image discretization of random material; needed for polygones
@@ -45,12 +45,12 @@ def potential(x):
     # Potential to avoid blobs on boundary
     p = 0
     # Penalty for boundaries at 0
-    sigma = 1e-2
+    sigma = 1e-3
     prefactor = 1.0
-    p -= prefactor*stats.norm.pdf(x[0], 0, sigma)
-    p -= prefactor*stats.norm.pdf(x[1], 0, sigma)
-    p -= prefactor*stats.norm.pdf(x[0], 1, sigma)
-    p -= prefactor*stats.norm.pdf(x[1], 1, sigma)
+    p -= prefactor*stats.laplace.pdf(x[0], 0, sigma)
+    p -= prefactor*stats.laplace.pdf(x[1], 0, sigma)
+    p -= prefactor*stats.laplace.pdf(x[0], 1, sigma)
+    p -= prefactor*stats.laplace.pdf(x[1], 1, sigma)
     return p
 
 def addfunctions(f, g):
@@ -61,14 +61,18 @@ def addfunctions(f, g):
 
 randomField = addfunctions(randomField, potential)
 
+
 discretizedRandomField = pm.discretizeRandField(randomField,
                                                 nDiscretize=(nMeshPolygon, nMeshPolygon))
 contours = pm.findPolygones(discretizedRandomField, cutoff)
 contours = pm.rescalePolygones(contours, nDiscretize=(nMeshPolygon, nMeshPolygon))
 domain = pm.substractPores(contours)
 
+'''
 # Generate mesh - this step is expensive
 mesh = pm.generateMesh(domain)
+'''
+mesh = df.Mesh('mesh.xml')
 
 
 
