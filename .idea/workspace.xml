@@ -2,7 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9994e0a7-38f6-4996-b0fd-b80354c39d8e" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/generateMeshes.py" afterPath="$PROJECT_DIR$/generateMeshes.py" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change beforePath="$PROJECT_DIR$/data/coordinates" afterPath="$PROJECT_DIR$/data/coordinates" />
+      <change beforePath="$PROJECT_DIR$/data/pressure000000.vtu" afterPath="$PROJECT_DIR$/data/pressure000000.vtu" />
+      <change beforePath="$PROJECT_DIR$/data/pressureField" afterPath="$PROJECT_DIR$/data/pressureField" />
+      <change beforePath="$PROJECT_DIR$/data/velocity000000.vtu" afterPath="$PROJECT_DIR$/data/velocity000000.vtu" />
+      <change beforePath="$PROJECT_DIR$/data/velocityField" afterPath="$PROJECT_DIR$/data/velocityField" />
+      <change beforePath="$PROJECT_DIR$/genStokesData.py" afterPath="$PROJECT_DIR$/genStokesData.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -13,16 +19,16 @@
   </component>
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/stokesEquation$generateMeshes.coverage" NAME="generateMeshes Coverage Results" MODIFIED="1512383542457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/stokesEquation$genStokesData.coverage" NAME="genStokesData Coverage Results" MODIFIED="1512379493740" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/stokesEquation$loadMesh.coverage" NAME="loadMesh Coverage Results" MODIFIED="1512387800239" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/stokesEquation$genStokesData.coverage" NAME="genStokesData Coverage Results" MODIFIED="1512573787564" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="genStokesData.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="genStokesData.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/genStokesData.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="210">
-              <caret line="91" column="28" lean-forward="false" selection-start-line="91" selection-start-column="22" selection-end-line="91" selection-end-column="28" />
+            <state relative-caret-position="285">
+              <caret line="37" column="14" lean-forward="false" selection-start-line="37" selection-start-column="14" selection-end-line="37" selection-end-column="14" />
               <folding>
                 <element signature="e#147#178#0" expanded="true" />
               </folding>
@@ -30,11 +36,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="generateMeshes.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="generateMeshes.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/generateMeshes.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="270">
-              <caret line="43" column="73" lean-forward="false" selection-start-line="43" selection-start-column="73" selection-end-line="43" selection-end-column="73" />
+            <state relative-caret-position="615">
+              <caret line="41" column="67" lean-forward="false" selection-start-line="41" selection-start-column="67" selection-end-line="41" selection-end-column="67" />
               <folding>
                 <element signature="e#52#79#0" expanded="true" />
               </folding>
@@ -45,8 +51,8 @@
       <file leaf-file-name="loadMesh.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/loadMesh.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="120">
-              <caret line="8" column="0" lean-forward="true" selection-start-line="8" selection-start-column="0" selection-end-line="8" selection-end-column="0" />
+            <state relative-caret-position="105">
+              <caret line="8" column="0" lean-forward="false" selection-start-line="8" selection-start-column="0" selection-end-line="8" selection-end-column="0" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -57,7 +63,7 @@
       <file leaf-file-name="porousMedia.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/porousMedia.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1455">
+            <state relative-caret-position="1395">
               <caret line="97" column="32" lean-forward="false" selection-start-line="97" selection-start-column="32" selection-end-line="97" selection-end-column="32" />
               <folding>
                 <element signature="e#86#104#0" expanded="true" />
@@ -69,7 +75,7 @@
       <file leaf-file-name="randomFieldGeneration.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/randomFieldGeneration.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="225">
+            <state relative-caret-position="210">
               <caret line="15" column="23" lean-forward="false" selection-start-line="15" selection-start-column="23" selection-end-line="15" selection-end-column="23" />
               <folding>
                 <element signature="e#151#182#0" expanded="true" />
@@ -102,12 +108,12 @@
       <list>
         <option value="$PROJECT_DIR$/marchingSquares.py" />
         <option value="$PROJECT_DIR$/isoContour.py" />
-        <option value="$PROJECT_DIR$/genStokesData.py" />
         <option value="$PROJECT_DIR$/randomFieldGeneration.py" />
         <option value="$PROJECT_DIR$/loadMesh.ipynb" />
         <option value="$PROJECT_DIR$/porousMedia.py" />
         <option value="$PROJECT_DIR$/loadMesh.py" />
         <option value="$PROJECT_DIR$/generateMeshes.py" />
+        <option value="$PROJECT_DIR$/genStokesData.py" />
       </list>
     </option>
   </component>
@@ -157,7 +163,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.loadMesh">
+  <component name="RunManager" selected="Python.genStokesData">
     <configuration name="genStokesData" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -262,9 +268,9 @@
     </list>
     <recent_temporary>
       <list size="5">
-        <item index="0" class="java.lang.String" itemvalue="Python.loadMesh" />
-        <item index="1" class="java.lang.String" itemvalue="Python.generateMeshes" />
-        <item index="2" class="java.lang.String" itemvalue="Python.genStokesData" />
+        <item index="0" class="java.lang.String" itemvalue="Python.genStokesData" />
+        <item index="1" class="java.lang.String" itemvalue="Python.loadMesh" />
+        <item index="2" class="java.lang.String" itemvalue="Python.generateMeshes" />
         <item index="3" class="java.lang.String" itemvalue="Python.marchingSquares" />
         <item index="4" class="java.lang.String" itemvalue="Python.isoContour_test" />
       </list>
@@ -287,8 +293,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-1" y="0" width="1922" height="1173" extended-state="6" />
-    <editor active="true" />
+    <frame x="512" y="229" width="1922" height="1173" extended-state="6" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32986766" sideWeight="0.50208336" order="7" side_tool="true" content_ui="tabs" />
@@ -299,7 +304,7 @@
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.08020833" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Docker" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="SciView" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3296875" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" x="450" y="381" width="1269" height="749" />
+      <window_info id="SciView" active="true" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3296875" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" x="450" y="381" width="1269" height="749" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -607,19 +612,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/genStokesData.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="210">
-          <caret line="91" column="28" lean-forward="false" selection-start-line="91" selection-start-column="22" selection-end-line="91" selection-end-column="28" />
-          <folding>
-            <element signature="e#147#178#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/porousMedia.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1455">
+        <state relative-caret-position="1395">
           <caret line="97" column="32" lean-forward="false" selection-start-line="97" selection-start-column="32" selection-end-line="97" selection-end-column="32" />
           <folding>
             <element signature="e#86#104#0" expanded="true" />
@@ -629,7 +624,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/randomFieldGeneration.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
+        <state relative-caret-position="210">
           <caret line="15" column="23" lean-forward="false" selection-start-line="15" selection-start-column="23" selection-end-line="15" selection-end-column="23" />
           <folding>
             <element signature="e#151#182#0" expanded="true" />
@@ -639,8 +634,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/loadMesh.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="8" column="0" lean-forward="true" selection-start-line="8" selection-start-column="0" selection-end-line="8" selection-end-column="0" />
+        <state relative-caret-position="105">
+          <caret line="8" column="0" lean-forward="false" selection-start-line="8" selection-start-column="0" selection-end-line="8" selection-end-column="0" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
@@ -649,10 +644,20 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/generateMeshes.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="270">
-          <caret line="43" column="73" lean-forward="false" selection-start-line="43" selection-start-column="73" selection-end-line="43" selection-end-column="73" />
+        <state relative-caret-position="615">
+          <caret line="41" column="67" lean-forward="false" selection-start-line="41" selection-start-column="67" selection-end-line="41" selection-end-column="67" />
           <folding>
             <element signature="e#52#79#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/genStokesData.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="285">
+          <caret line="37" column="14" lean-forward="false" selection-start-line="37" selection-start-column="14" selection-end-line="37" selection-end-column="14" />
+          <folding>
+            <element signature="e#147#178#0" expanded="true" />
           </folding>
         </state>
       </provider>

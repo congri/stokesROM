@@ -29,50 +29,22 @@ else:
 
 # Define physical parameters
 mu = 1  # viscosity
-volumeFraction = .3
-cutoff = stats.norm.ppf(volumeFraction)
-print('cutoff = ', cutoff)
-nMeshPolygon = 128   # image discretization of random material; needed for polygones
+volumeFraction = .5
+nElements = 128
+nMeshPolygon = 64
+covarianceFunction = 'matern'
+randFieldParams = [5.0]
+lengthScale = [.008, .008]
+meshNumber = 2  #index, which random sample to load
 
+folderbase = '/home/constantin/cluster'
+foldername = folderbase + '/python/data/stokesEquation/meshes/meshSize=' + str(nElements) +\
+    '/randFieldDiscretization=' + str(nMeshPolygon) + '/cov=' + covarianceFunction +\
+    '/params=' + str(randFieldParams) + '/l=' + str(lengthScale[0]) + '_' +\
+    str(lengthScale[1]) + '/volfrac=' + str(volumeFraction)
 
-
-randomFieldObj = rf()
-randomFieldObj.covarianceFunction = 'matern'
-randomField = randomFieldObj.sample()
-
-
-def potential(x):
-    # Potential to avoid blobs on boundary
-    p = 0
-    # Penalty for boundaries at 0
-    sigma = 1e-3
-    prefactor = 1.0
-    p -= prefactor*stats.laplace.pdf(x[0], 0, sigma)
-    p -= prefactor*stats.laplace.pdf(x[1], 0, sigma)
-    p -= prefactor*stats.laplace.pdf(x[0], 1, sigma)
-    p -= prefactor*stats.laplace.pdf(x[1], 1, sigma)
-    return p
-
-def addfunctions(f, g):
-    # add functions f and g
-    def h(x):
-        return f(x) + g(x)
-    return h
-
-randomField = addfunctions(randomField, potential)
-
-
-discretizedRandomField = pm.discretizeRandField(randomField,
-                                                nDiscretize=(nMeshPolygon, nMeshPolygon))
-contours = pm.findPolygones(discretizedRandomField, cutoff)
-contours = pm.rescalePolygones(contours, nDiscretize=(nMeshPolygon, nMeshPolygon))
-domain = pm.substractPores(contours)
-
-'''
-# Generate mesh - this step is expensive
-mesh = pm.generateMesh(domain)
-'''
-mesh = df.Mesh('mesh.xml')
+mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
+df.plot(mesh)
 
 
 
@@ -125,8 +97,8 @@ mixedEl = df.MixedElement([u_e, p_e])
 W = df.FunctionSpace(mesh, mixedEl)
 
 # Flow boundary condition for velocity on domain boundary
-flowFieldLR = df.Expression(('0.0', '0.0'), degree=2, mu=mu)
-flowFieldUD = df.Expression(("0.0", "-1.0"), degree=2, mu=mu)
+flowFieldLR = df.Expression(('1.0', '0.0'), degree=2, mu=mu)
+flowFieldUD = df.Expression(('0.0', '0.0'), degree=2, mu=mu)
 # pressureField = df.Expression("0.0", degree=2, mu=mu)
 bc1 = df.DirichletBC(W.sub(0), flowFieldLR, leftRight)
 bc2 = df.DirichletBC(W.sub(0), flowFieldUD, upDown)
@@ -203,9 +175,11 @@ plt.colorbar(pp)
 fig = plt.figure()
 df.plot(u, cmap=plt.cm.viridis, headwidth=0.005, headlength=0.005, scale=80.0, minlength=0.0001,
         width=0.0008, minshaft=0.01, headaxislength=0.1)
+'''
 for i in range(0, len(contours)):
     contour = contours[i]
     plt.plot(contour[:, 0], contour[:, 1], 'k')
+'''
 plt.xticks([])
 plt.yticks([])
 fig.savefig('velocity.pdf')
