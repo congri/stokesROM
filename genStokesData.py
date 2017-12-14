@@ -11,6 +11,7 @@ import time
 import scipy.stats as stats
 from skimage import measure
 import porousMedia as pm
+import subprocess as sp
 
 
 # Test for PETSc or Epetra
@@ -29,13 +30,13 @@ else:
 
 # Define physical parameters
 mu = 1  # viscosity
-volumeFraction = .7
+volumeFraction = .9
 nElements = 128
 nMeshPolygon = 64
 covarianceFunction = 'matern'
 randFieldParams = [5.0]
 lengthScale = [.008, .008]
-meshes = np.arange(0, 1)  # vector of random meshes to load
+meshes = np.arange(0, 128)  # vector of random meshes to load
 
 folderbase = '/home/constantin/cluster'
 foldername = folderbase + '/python/data/stokesEquation/meshes/meshSize=' + str(nElements) +\
@@ -47,7 +48,7 @@ foldername = folderbase + '/python/data/stokesEquation/meshes/meshSize=' + str(n
 # Set external boundaries of domain
 class DomainBoundary(df.SubDomain):
     def inside(self, x, on_boundary):
-        return x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS \
+        return x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS\
                or x[0] > (1.0 - df.DOLFIN_EPS) or x[0] < df.DOLFIN_EPS
 
 
@@ -60,10 +61,17 @@ class LeftRight(df.SubDomain):
     def inside(self, x, on_boundary):
         return x[0] > (1.0 - df.DOLFIN_EPS) or x[0] < df.DOLFIN_EPS
 
+
+class Origin(df.SubDomain):
+    def inside(self, x, on_boundary):
+        return x[0] < df.DOLFIN_EPS and x[1] < df.DOLFIN_EPS
+
+
 # Initialize sub-domain instances for outer domain boundaries
 domainBoundary = DomainBoundary()
 upDown = UpDown()
 leftRight = LeftRight()
+origin = Origin()
 
 
 for meshNumber in meshes:
@@ -71,6 +79,7 @@ for meshNumber in meshes:
     mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
 
     print('Setting boundary conditions...')
+
     # Define interior boundaries
     class RandField(df.SubDomain):
         def inside(self, x, on_boundary):
@@ -81,28 +90,14 @@ for meshNumber in meshes:
     # Initialize sub-domain instance for interior boundaries
     solidPhase = RandField()
 
-    # Mark boundaries
-    boundaries = df.FacetFunction("size_t", mesh)
-    boundaries.set_all(0)
-    # domainBoundary.mark(boundaries, 1)
-    upDown.mark(boundaries, 1)
-    leftRight.mark(boundaries, 2)
-
-
-    vertices = df.VertexFunction('size_t', mesh)
-    vertices.set_all(0)
-    solidPhase.mark(vertices, 1)
-
-
     # Define mixed function space (Taylor-Hood)
     u_e = df.VectorElement("CG", mesh.ufl_cell(), 2)
     p_e = df.FiniteElement("CG", mesh.ufl_cell(), 1)
     mixedEl = df.MixedElement([u_e, p_e])
     W = df.FunctionSpace(mesh, mixedEl)
 
-
     # Flow boundary condition for velocity on domain boundary
-    flowFieldLR = df.Expression(('1.0', '0.0'), degree=2)
+    flowFieldLR = df.Expression(('(x[1] - .5)*(x[1] - .5) - .25', '0.0'), degree=2)
     flowFieldUD = df.Expression(('0.0', '0.0'), degree=2)
 
     bc1 = df.DirichletBC(W.sub(0), flowFieldLR, leftRight)
@@ -112,10 +107,14 @@ for meshNumber in meshes:
     noslip = df.Constant((0.0, 0.0))
 
     # Boundary conditions for solid phase
-    bc4 = df.DirichletBC(W.sub(0), noslip, solidPhase)
+    bc3 = df.DirichletBC(W.sub(0), noslip, solidPhase)
+
+    #pressure boundary condition
+    zero_p = df.Constant(0.0)
+    bc4 = df.DirichletBC(W.sub(1), zero_p, origin, method='pointwise')
 
     # Collect boundary conditions
-    bcs = [bc1, bc2, bc4]
+    bcs = [bc1, bc2, bc3, bc4]
     print('done.')
 
 
@@ -145,47 +144,56 @@ for meshNumber in meshes:
     print('Solving equation system...')
     t = time.time()
     U = df.Function(W)
-    solver.solve(U.vector(), bb)
-    elapsed_time = time.time() - t
-    print('done. Time: ', elapsed_time)
+    try:
+        solver.solve(U.vector(), bb)
+        elapsed_time = time.time() - t
+        print('done. Time: ', elapsed_time)
 
-    # Get sub-functions
-    u, p = U.split()
+        # Get sub-functions
+        u, p = U.split()
 
-    # Save solution as text files
-    pMesh = p.compute_vertex_values(mesh)
-    uMesh = u.compute_vertex_values(mesh)
-    print('uMesh vertices shape: ', uMesh.shape)
-    x = mesh.coordinates()
+        # Save solution in VTK format, same folder as mesh
+        saveVelocityFile = foldername + '/velocity' + str(meshNumber) + '.pvd'
+        savePressureFile = foldername + '/pressure' + str(meshNumber) + '.pvd'
+        ufile_pvd = df.File(saveVelocityFile)
+        ufile_pvd << u
+        pfile_pvd = df.File(savePressureFile)
+        pfile_pvd << p
 
-    np.savetxt('./data/pressureField', pMesh, delimiter=' ')
-    np.savetxt('./data/velocityField', uMesh, delimiter=' ')
-    np.savetxt('./data/coordinates', x, delimiter=' ')
+        # save full function space U to xml
+        saveFullSolutionFile = foldername + '/fullSolution' + str(meshNumber) + '.xml'
+        Ufile = df.File(saveFullSolutionFile)
+        Ufile << U
 
-    # Save solution in VTK format
-    ufile_pvd = df.File("./data/velocity.pvd")
-    ufile_pvd << u
-    pfile_pvd = df.File("./data/pressure.pvd")
-    pfile_pvd << p
+        plot_flag = True
+        if plot_flag:
+            '''
+            df.plot(mesh)
 
-    df.plot(mesh)
+            fig = plt.figure()
+            pp = df.plot(p)
+            plt.colorbar(pp)
+            '''
+            fig = plt.figure()
+            df.plot(u, cmap=plt.cm.viridis, headwidth=0.005, headlength=0.005, scale=80.0, minlength=0.0001,
+                    width=0.0008, minshaft=0.01, headaxislength=0.1)
+            # plot internal boundaries (boundary vertices
+            bmesh = df.BoundaryMesh(mesh, 'exterior')
+            xBoundary = bmesh.coordinates()
+            plt.plot(xBoundary[:, 0], xBoundary[:, 1], 'ko', ms=.5)
 
-    mx = np.max(pMesh)
-    mn = np.min(pMesh)
-    fig = plt.figure()
-    pp = df.plot(p)
-    plt.colorbar(pp)
-    fig = plt.figure()
-    df.plot(u, cmap=plt.cm.viridis, headwidth=0.005, headlength=0.005, scale=80.0, minlength=0.0001,
-            width=0.0008, minshaft=0.01, headaxislength=0.1)
-    # plot internal boundaries (boundary vertices
-    bmesh = df.BoundaryMesh(mesh, 'exterior')
-    xBoundary = bmesh.coordinates()
-    plt.plot(xBoundary[:, 0], xBoundary[:, 1], 'ko', ms=.5)
-    
 
-    plt.xticks([])
-    plt.yticks([])
-    fig.savefig('velocity.pdf')
+            plt.xticks([])
+            plt.yticks([])
+            velocityFigureFile = foldername + '/velocity' + str(meshNumber) + '.pdf'
+            fig.savefig(velocityFigureFile)
+            sp.run(['pdfcrop', velocityFigureFile, velocityFigureFile])
+            plt.close(fig)
+    except:
+        print('Solver failed to converge. Passing to next mesh')
 
-plt.show()
+
+'''
+if plot_flag:
+    plt.show()
+'''
