@@ -5,12 +5,7 @@ Note that the sign for the pressure has been flipped for symmetry."""
 import matplotlib.pyplot as plt
 import numpy as np
 import dolfin as df
-from randomFieldGeneration import RandomField as rf
-import mshr
 import time
-import scipy.stats as stats
-from skimage import measure
-import porousMedia as pm
 import subprocess as sp
 
 
@@ -28,21 +23,38 @@ else:
          "Krylov subspace method. Terminating.")
     exit()
 
+# general parameters
+meshes = np.arange(0, 8)  # vector of random meshes to load
+porousMedium = 'circles'
+nElements = 128
+
 # Define physical parameters
 mu = 1  # viscosity
+
+# For random fields
 volumeFraction = .9
-nElements = 128
 nMeshPolygon = 64
 covarianceFunction = 'matern'
 randFieldParams = [5.0]
 lengthScale = [.008, .008]
-meshes = np.arange(0, 128)  # vector of random meshes to load
 
-folderbase = '/home/constantin/cluster'
-foldername = folderbase + '/python/data/stokesEquation/meshes/meshSize=' + str(nElements) +\
-    '/randFieldDiscretization=' + str(nMeshPolygon) + '/cov=' + covarianceFunction +\
+# For circular exclusions
+nExclusions = 256
+coordinateDistribution = 'uniform'
+radiiDistribution = 'uniform'
+r_params = (.005, .03)
+
+
+
+folderbase = '/home/constantin'
+foldername = folderbase + '/python/data/stokesEquation/meshes/meshSize=' + str(nElements)
+if porousMedium == 'randomField':
+    foldername = foldername + '/randFieldDiscretization=' + str(nMeshPolygon) + '/cov=' + covarianceFunction +\
     '/params=' + str(randFieldParams) + '/l=' + str(lengthScale[0]) + '_' +\
     str(lengthScale[1]) + '/volfrac=' + str(volumeFraction)
+elif porousMedium == 'circles':
+    foldername = foldername + '/nCircExcl=' + str(nExclusions) + '/coordDist=' + coordinateDistribution +\
+        '/radiiDist=' + radiiDistribution + '_r_params=' + str(r_params)
 
 
 # Set external boundaries of domain
@@ -76,19 +88,21 @@ origin = Origin()
 
 for meshNumber in meshes:
     # load mesh from file
+    print('Loading mesh...')
     mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
+    print('mesh loaded.')
 
     print('Setting boundary conditions...')
 
     # Define interior boundaries
-    class RandField(df.SubDomain):
+    class InteriorBoundary(df.SubDomain):
         def inside(self, x, on_boundary):
             outerBoundary = x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS \
                 or x[0] > (1.0 - df.DOLFIN_EPS) or x[0] < df.DOLFIN_EPS
             return on_boundary and not outerBoundary
 
     # Initialize sub-domain instance for interior boundaries
-    solidPhase = RandField()
+    interiorBoundary = InteriorBoundary()
 
     # Define mixed function space (Taylor-Hood)
     u_e = df.VectorElement("CG", mesh.ufl_cell(), 2)
@@ -107,7 +121,7 @@ for meshNumber in meshes:
     noslip = df.Constant((0.0, 0.0))
 
     # Boundary conditions for solid phase
-    bc3 = df.DirichletBC(W.sub(0), noslip, solidPhase)
+    bc3 = df.DirichletBC(W.sub(0), noslip, interiorBoundary)
 
     #pressure boundary condition
     zero_p = df.Constant(0.0)
@@ -115,7 +129,7 @@ for meshNumber in meshes:
 
     # Collect boundary conditions
     bcs = [bc1, bc2, bc3, bc4]
-    print('done.')
+    print('boundary conditions set.')
 
 
     # Define variational problem
@@ -147,7 +161,7 @@ for meshNumber in meshes:
     try:
         solver.solve(U.vector(), bb)
         elapsed_time = time.time() - t
-        print('done. Time: ', elapsed_time)
+        print('equation system solved. Time: ', elapsed_time)
 
         # Get sub-functions
         u, p = U.split()

@@ -73,7 +73,7 @@ def rescalePolygones(contours, domain_a=(0.0, 0.0), domain_b=(1.0, 1.0), nDiscre
     return contours
 
 
-def substractPores(contours, domain_a=(0.0, 0.0), domain_b=(1.0, 1.0)):
+def substractPolygones(contours, domain_a=(0.0, 0.0), domain_b=(1.0, 1.0)):
     """Substracting polygones of pores of dolfin.domain"""
 
     domain = mshr.Rectangle(df.Point(domain_a[0], domain_a[1]),
@@ -100,6 +100,22 @@ def substractPores(contours, domain_a=(0.0, 0.0), domain_b=(1.0, 1.0)):
                 print('blob = ', blob)
                 print('contour = ', contour)
         domain -= mPolygon
+    print('done.')
+
+    return domain
+
+
+def substractCircles(coordinates, radii, domain_a=(0.0, 0.0), domain_b=(1.0, 1.0)):
+    """Substracting circles of pores of dolfin.domain"""
+
+    domain = mshr.Rectangle(df.Point(domain_a[0], domain_a[1]),
+                            df.Point(domain_b[0], domain_b[1]))
+
+    nCircles = coordinates.shape[0]
+    print('Substracting circular blobs from domain...')
+    for blob in range(0, nCircles):
+        c = df.Point(coordinates[blob, 0], coordinates[blob, 1])
+        domain -= mshr.Circle(c, radii[blob])
     print('done.')
 
     return domain

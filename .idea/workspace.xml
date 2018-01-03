@@ -2,13 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9994e0a7-38f6-4996-b0fd-b80354c39d8e" name="Default" comment="">
-      <change beforePath="" afterPath="$PROJECT_DIR$/plotStokes.py" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change beforePath="$PROJECT_DIR$/data/pressure000000.vtu" afterPath="$PROJECT_DIR$/data/pressure000000.vtu" />
-      <change beforePath="$PROJECT_DIR$/data/velocity000000.vtu" afterPath="$PROJECT_DIR$/data/velocity000000.vtu" />
       <change beforePath="$PROJECT_DIR$/genStokesData.py" afterPath="$PROJECT_DIR$/genStokesData.py" />
-      <change beforePath="$PROJECT_DIR$/img.mat" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/loadMesh.ipynb" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/generateMeshes.py" afterPath="$PROJECT_DIR$/generateMeshes.py" />
+      <change beforePath="$PROJECT_DIR$/plotStokes.py" afterPath="$PROJECT_DIR$/plotStokes.py" />
+      <change beforePath="$PROJECT_DIR$/porousMedia.py" afterPath="$PROJECT_DIR$/porousMedia.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -18,18 +16,18 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/stokesEquation$plotStokes.coverage" NAME="plotStokes Coverage Results" MODIFIED="1513258207124" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/stokesEquation$generateMeshes.coverage" NAME="generateMeshes Coverage Results" MODIFIED="1512383542457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/stokesEquation$plotStokes.coverage" NAME="plotStokes Coverage Results" MODIFIED="1514995043232" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/stokesEquation$generateMeshes.coverage" NAME="generateMeshes Coverage Results" MODIFIED="1514988546135" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/stokesEquation$loadMesh.coverage" NAME="loadMesh Coverage Results" MODIFIED="1512387800239" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/stokesEquation$genStokesData.coverage" NAME="genStokesData Coverage Results" MODIFIED="1513254521750" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/stokesEquation$genStokesData.coverage" NAME="genStokesData Coverage Results" MODIFIED="1514990925766" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="genStokesData.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="genStokesData.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/genStokesData.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="480">
-              <caret line="32" column="19" lean-forward="false" selection-start-line="32" selection-start-column="19" selection-end-line="32" selection-end-column="19" />
+            <state relative-caret-position="-1542">
+              <caret line="44" column="21" lean-forward="false" selection-start-line="44" selection-start-column="21" selection-end-line="44" selection-end-column="21" />
               <folding>
                 <element signature="e#147#178#0" expanded="true" />
               </folding>
@@ -37,11 +35,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="plotStokes.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="plotStokes.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/plotStokes.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="225">
-              <caret line="15" column="14" lean-forward="false" selection-start-line="15" selection-start-column="14" selection-end-line="15" selection-end-column="14" />
+            <state relative-caret-position="1080">
+              <caret line="87" column="0" lean-forward="false" selection-start-line="87" selection-start-column="0" selection-end-line="87" selection-end-column="0" />
               <folding>
                 <element signature="e#60#79#0" expanded="true" />
               </folding>
@@ -52,10 +50,22 @@
       <file leaf-file-name="generateMeshes.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/generateMeshes.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="198">
-              <caret line="37" column="21" lean-forward="false" selection-start-line="37" selection-start-column="21" selection-end-line="37" selection-end-column="21" />
+            <state relative-caret-position="438">
+              <caret line="93" column="62" lean-forward="false" selection-start-line="93" selection-start-column="62" selection-end-line="93" selection-end-column="62" />
               <folding>
                 <element signature="e#52#79#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="porousMedia.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/porousMedia.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="603">
+              <caret line="121" column="0" lean-forward="false" selection-start-line="121" selection-start-column="0" selection-end-line="121" selection-end-column="0" />
+              <folding>
+                <element signature="e#86#104#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -76,8 +86,8 @@
       <file leaf-file-name="randomFieldGeneration.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/randomFieldGeneration.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="239">
-              <caret line="21" column="22" lean-forward="false" selection-start-line="21" selection-start-column="22" selection-end-line="21" selection-end-column="22" />
+            <state relative-caret-position="223">
+              <caret line="20" column="0" lean-forward="false" selection-start-line="20" selection-start-column="0" selection-end-line="20" selection-end-column="0" />
               <folding>
                 <element signature="e#151#182#0" expanded="true" />
               </folding>
@@ -110,10 +120,10 @@
       <list>
         <option value="$PROJECT_DIR$/marchingSquares.py" />
         <option value="$PROJECT_DIR$/isoContour.py" />
-        <option value="$PROJECT_DIR$/randomFieldGeneration.py" />
         <option value="$PROJECT_DIR$/loadMesh.ipynb" />
-        <option value="$PROJECT_DIR$/porousMedia.py" />
         <option value="$PROJECT_DIR$/loadMesh.py" />
+        <option value="$PROJECT_DIR$/randomFieldGeneration.py" />
+        <option value="$PROJECT_DIR$/porousMedia.py" />
         <option value="$PROJECT_DIR$/generateMeshes.py" />
         <option value="$PROJECT_DIR$/genStokesData.py" />
         <option value="$PROJECT_DIR$/plotStokes.py" />
@@ -151,7 +161,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="editor.preferences.smartKeys" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/loadMesh.ipynb" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/porousMedia.py" />
     <property name="WebServerToolWindowFactoryState" value="false" />
   </component>
   <component name="RunDashboard">
@@ -273,8 +283,8 @@
       <list size="5">
         <item index="0" class="java.lang.String" itemvalue="Python.plotStokes" />
         <item index="1" class="java.lang.String" itemvalue="Python.genStokesData" />
-        <item index="2" class="java.lang.String" itemvalue="Python.loadMesh" />
-        <item index="3" class="java.lang.String" itemvalue="Python.generateMeshes" />
+        <item index="2" class="java.lang.String" itemvalue="Python.generateMeshes" />
+        <item index="3" class="java.lang.String" itemvalue="Python.loadMesh" />
         <item index="4" class="java.lang.String" itemvalue="Python.marchingSquares" />
       </list>
     </recent_temporary>
@@ -602,13 +612,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/loadMesh.ipynb">
-      <provider selected="true" editor-type-id="ipnb-editor">
-        <state>
-          <selected id="0" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/loadMesh.ipynb" />
     <entry file="file://$PROJECT_DIR$/loadMesh.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="105">
@@ -619,52 +623,52 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/generateMeshes.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="198">
-          <caret line="37" column="21" lean-forward="false" selection-start-line="37" selection-start-column="21" selection-end-line="37" selection-end-column="21" />
-          <folding>
-            <element signature="e#52#79#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/porousMedia.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="468">
-          <caret line="97" column="32" lean-forward="false" selection-start-line="97" selection-start-column="32" selection-end-line="97" selection-end-column="32" />
-          <folding>
-            <element signature="e#86#104#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/randomFieldGeneration.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="239">
-          <caret line="21" column="22" lean-forward="false" selection-start-line="21" selection-start-column="22" selection-end-line="21" selection-end-column="22" />
+        <state relative-caret-position="223">
+          <caret line="20" column="0" lean-forward="false" selection-start-line="20" selection-start-column="0" selection-end-line="20" selection-end-column="0" />
           <folding>
             <element signature="e#151#182#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plotStokes.py">
+    <entry file="file://$PROJECT_DIR$/porousMedia.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
-          <caret line="15" column="14" lean-forward="false" selection-start-line="15" selection-start-column="14" selection-end-line="15" selection-end-column="14" />
+        <state relative-caret-position="603">
+          <caret line="121" column="0" lean-forward="false" selection-start-line="121" selection-start-column="0" selection-end-line="121" selection-end-column="0" />
           <folding>
-            <element signature="e#60#79#0" expanded="true" />
+            <element signature="e#86#104#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/generateMeshes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="438">
+          <caret line="93" column="62" lean-forward="false" selection-start-line="93" selection-start-column="62" selection-end-line="93" selection-end-column="62" />
+          <folding>
+            <element signature="e#52#79#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/genStokesData.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="480">
-          <caret line="32" column="19" lean-forward="false" selection-start-line="32" selection-start-column="19" selection-end-line="32" selection-end-column="19" />
+        <state relative-caret-position="-1542">
+          <caret line="44" column="21" lean-forward="false" selection-start-line="44" selection-start-column="21" selection-end-line="44" selection-end-column="21" />
           <folding>
             <element signature="e#147#178#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plotStokes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1080">
+          <caret line="87" column="0" lean-forward="false" selection-start-line="87" selection-start-column="0" selection-end-line="87" selection-end-column="0" />
+          <folding>
+            <element signature="e#60#79#0" expanded="true" />
           </folding>
         </state>
       </provider>
