@@ -5,10 +5,11 @@ import dolfin as df
 from matplotlib import pyplot as plt
 import subprocess as sp
 import numpy as np
+import scipy.io as sio
 
 # global params
 porousMedium = 'circles'
-meshes = np.arange(0, 8)  # vector of random meshes to load
+meshes = np.arange(0, 4)  # vector of random meshes to load
 
 
 # parameters for random field
@@ -24,6 +25,7 @@ nExclusions = 256
 coordinateDistribution = 'uniform'
 radiiDistribution = 'uniform'
 r_params = (0.005, 0.03)
+c_params = (.032, .968)
 
 
 folderbase = '/home/constantin'
@@ -34,7 +36,7 @@ if porousMedium == 'randomField':
     str(lengthScale[1]) + '/volfrac=' + str(volumeFraction)
 elif porousMedium == 'circles':
     foldername = foldername + '/nCircExcl=' + str(nExclusions) + '/coordDist=' + coordinateDistribution +\
-        '/radiiDist=' + radiiDistribution + '_r_params=' + str(r_params)
+        '_c_params=' + str(c_params) + '/radiiDist=' + radiiDistribution + '_r_params=' + str(r_params)
 
 for meshNumber in meshes:
 
@@ -53,7 +55,10 @@ for meshNumber in meshes:
 
         # Get sub-functions
         u, p = U.split()
-
+        uval = u.compute_vertex_values()
+        pval = p.compute_vertex_values()
+        sio.savemat('u_' + str(meshNumber) + '.mat', {'u': uval})
+        sio.savemat('p_' + str(meshNumber) + '.mat', {'p': pval})
 
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
         plt.axes(ax1)

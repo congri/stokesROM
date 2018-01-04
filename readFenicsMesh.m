@@ -38,7 +38,7 @@ end
 cllIndices = cllIndices + 1;    %conversion to matlab indices
 
 
-debug = true;
+debug = false;
 if debug
     %plot loaded mesh
     figure

@@ -10,7 +10,7 @@ import numpy as np
 # Global parameters
 mode = 'circles'
 nMeshes = 8
-nElements = 128  # PDE discretization
+nElements = 15  # PDE discretization
 foldername1 = '/home/constantin/python/data/stokesEquation/meshes/meshSize=' + str(nElements)
 
 if mode == 'randomField':
@@ -74,19 +74,21 @@ if mode == 'randomField':
 elif mode == 'circles':
     print('Generating mesh with circular exclusions...')
 
-    nExclusions = 256
+    nExclusions = 512
     coordinateDist = 'uniform'
+    c_params = (.022, .978)
     radiiDist = 'uniform'
-    r_params = (.005, .03)
+    r_params = (.005, .02)
 
-    foldername = foldername1 + '/nCircExcl=' + str(nExclusions) + '/coordDist=' + \
-                 coordinateDist + '/radiiDist=' + radiiDist + '_r_params=' + str(r_params)
+    foldername = foldername1 + '/nCircExcl=' + str(nExclusions) + '/coordDist=' +\
+                 coordinateDist + '_c_params=' + str(c_params) +\
+                 '/radiiDist=' + radiiDist + '_r_params=' + str(r_params)
     if not os.path.exists(foldername):
         os.makedirs(foldername)
 
     for i in range(0, nMeshes):
         if coordinateDist == 'uniform':
-            exclusionCoordinates = np.random.rand(nExclusions, 2)
+            exclusionCoordinates = (c_params[1] - c_params[0])*np.random.rand(nExclusions, 2) + c_params[0]
 
         if radiiDist == 'uniform':
             exclusionRadii = (r_params[1] - r_params[0]) * np.random.rand(nExclusions) + r_params[0]

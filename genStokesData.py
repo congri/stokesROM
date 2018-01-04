@@ -7,6 +7,7 @@ import numpy as np
 import dolfin as df
 import time
 import subprocess as sp
+import scipy.io as sio
 
 
 # Test for PETSc or Epetra
@@ -24,7 +25,7 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(0, 8)  # vector of random meshes to load
+meshes = np.arange(0, 4)  # vector of random meshes to load
 porousMedium = 'circles'
 nElements = 128
 
@@ -43,6 +44,7 @@ nExclusions = 256
 coordinateDistribution = 'uniform'
 radiiDistribution = 'uniform'
 r_params = (.005, .03)
+c_params = (.032, .968)
 
 
 
@@ -54,7 +56,7 @@ if porousMedium == 'randomField':
     str(lengthScale[1]) + '/volfrac=' + str(volumeFraction)
 elif porousMedium == 'circles':
     foldername = foldername + '/nCircExcl=' + str(nExclusions) + '/coordDist=' + coordinateDistribution +\
-        '/radiiDist=' + radiiDistribution + '_r_params=' + str(r_params)
+        '_c_params=' + str(c_params) + '/radiiDist=' + radiiDistribution + '_r_params=' + str(r_params)
 
 
 # Set external boundaries of domain
@@ -114,14 +116,13 @@ for meshNumber in meshes:
     flowFieldLR = df.Expression(('(x[1] - .5)*(x[1] - .5) - .25', '0.0'), degree=2)
     flowFieldUD = df.Expression(('0.0', '0.0'), degree=2)
 
-    bc1 = df.DirichletBC(W.sub(0), flowFieldLR, leftRight)
-    bc2 = df.DirichletBC(W.sub(0), flowFieldUD, upDown)
-
     # No-slip boundary condition for velocity on material interfaces
     noslip = df.Constant((0.0, 0.0))
-
     # Boundary conditions for solid phase
-    bc3 = df.DirichletBC(W.sub(0), noslip, interiorBoundary)
+    bc1 = df.DirichletBC(W.sub(0), noslip, interiorBoundary)
+
+    bc2 = df.DirichletBC(W.sub(0), flowFieldUD, upDown)
+    bc3 = df.DirichletBC(W.sub(0), flowFieldLR, leftRight)
 
     #pressure boundary condition
     zero_p = df.Constant(0.0)
@@ -165,6 +166,12 @@ for meshNumber in meshes:
 
         # Get sub-functions
         u, p = U.split()
+
+        # Save solution to mat file for easy read-in in matlab
+        uval = u.compute_vertex_values()
+        pval = p.compute_vertex_values()
+        sio.savemat('u_' + str(meshNumber) + '.mat', {'u': uval})
+        sio.savemat('p_' + str(meshNumber) + '.mat', {'p': pval})
 
         # Save solution in VTK format, same folder as mesh
         saveVelocityFile = foldername + '/velocity' + str(meshNumber) + '.pvd'
