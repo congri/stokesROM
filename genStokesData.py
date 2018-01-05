@@ -26,7 +26,7 @@ else:
 
 # general parameters
 meshes = np.arange(0, 1)  # vector of random meshes to load
-porousMedium = 'circles'    #circles or randomField
+porousMedium = 'nonOverlappingCircles'    #circles or randomField
 nElements = 128
 
 # Define physical parameters
@@ -40,11 +40,12 @@ randFieldParams = [5.0]
 lengthScale = [.008, .008]
 
 # For circular exclusions
-nExclusions = 512
+nExclusionsMin = 256
+nExclusionsMax = 2049
 coordinateDistribution = 'uniform'
 radiiDistribution = 'uniform'
 r_params = (.005, .025)
-c_params = (.022, .978)
+c_params = (.025, .975)
 
 
 
@@ -55,8 +56,13 @@ if porousMedium == 'randomField':
     '/params=' + str(randFieldParams) + '/l=' + str(lengthScale[0]) + '_' +\
     str(lengthScale[1]) + '/volfrac=' + str(volumeFraction)
 elif porousMedium == 'circles':
-    foldername = foldername + '/nCircExcl=' + str(nExclusions) + '/coordDist=' + coordinateDistribution +\
-        '_c_params=' + str(c_params) + '/radiiDist=' + radiiDistribution + '_r_params=' + str(r_params)
+    foldername = foldername + '/nCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) +\
+                 '/coordDist=' + coordinateDistribution + '_c_params=' + str(c_params) + '/radiiDist=' +\
+                 radiiDistribution + '_r_params=' + str(r_params)
+elif porousMedium == 'nonOverlappingCircles':
+    foldername = foldername + '/nNonOverlapCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) +\
+        '/coordDist=' + coordinateDistribution + '_c_params=' + str(c_params) + '/radiiDist=' +\
+        radiiDistribution + '_r_params=' + str(r_params)
 
 
 # Set external boundaries of domain

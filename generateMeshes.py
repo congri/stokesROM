@@ -12,15 +12,16 @@ import time
 
 # Global parameters
 mode = 'nonOverlappingCircles'
-nMeshes = 1
+nMeshes = 1024
 nElements = 128  # PDE discretization
 foldername1 = '/home/constantin/python/data/stokesEquation/meshes/meshSize=' + str(nElements)
 
 
 #Parameters only for 'circles' mode
-nExclusions = 512
+nExclusionsMin = 256
+nExclusionsMax = 2049
 coordinateDist = 'uniform'
-c_params = (.022, .978)  # to avoid circles on boundaries
+c_params = (.025, .975)  # to avoid circles on boundaries
 radiiDist = 'uniform'
 r_params = (.005, .025)
 
@@ -144,13 +145,15 @@ if mode == 'randomField':
 elif mode == 'circles':
     print('Generating mesh with circular exclusions...')
 
-    foldername = foldername1 + '/nCircExcl=' + str(nExclusions) + '/coordDist=' +\
+    foldername = foldername1 + '/nCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) + '/coordDist=' +\
                  coordinateDist + '_c_params=' + str(c_params) +\
                  '/radiiDist=' + radiiDist + '_r_params=' + str(r_params)
     if not os.path.exists(foldername):
         os.makedirs(foldername)
 
     for i in range(0, nMeshes):
+        nExclusions = np.random.randint(nExclusionsMin, nExclusionsMax)
+        print('nExclusions = ', nExclusions)
         if coordinateDist == 'uniform':
             exclusionCenters = (c_params[1] - c_params[0])*np.random.rand(nExclusions, 2) + c_params[0]
 
@@ -177,20 +180,21 @@ elif mode == 'circles':
 elif mode == 'nonOverlappingCircles':
     print('Generating mesh with non-overlapping circular exclusions...')
 
-    foldername = foldername1 + '/nNonOverlapCircExcl=' + str(nExclusions) + '/coordDist=' +\
-                 coordinateDist + '_c_params=' + str(c_params) +\
-                 '/radiiDist=' + radiiDist + '_r_params=' + str(r_params)
+    foldername = foldername1 + '/nNonOverlapCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) +\
+        '/coordDist=' + coordinateDist + '_c_params=' + str(c_params) +\
+        '/radiiDist=' + radiiDist + '_r_params=' + str(r_params)
     if not os.path.exists(foldername):
         os.makedirs(foldername)
 
     for i in range(0, nMeshes):
-
+        nExclusions = np.random.randint(nExclusionsMin, nExclusionsMax)
+        print('nExclusions = ', nExclusions)
         exclusionCenters = np.empty((0, 2))
         exclusionRadii = np.empty((0, 1))
         currentExclusions = 0
         t_start = time.time()
         t_elapsed = 0
-        t_lim = 10.0
+        t_lim = 60.0
         while currentExclusions < nExclusions and t_elapsed < t_lim:
             if coordinateDist == 'uniform':
                 exclusionCenter = (c_params[1] - c_params[0])*np.random.rand(1, 2) + c_params[0]
