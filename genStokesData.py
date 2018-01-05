@@ -25,26 +25,26 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(0, 4)  # vector of random meshes to load
-porousMedium = 'circles'
+meshes = np.arange(0, 1)  # vector of random meshes to load
+porousMedium = 'circles'    #circles or randomField
 nElements = 128
 
 # Define physical parameters
 mu = 1  # viscosity
 
 # For random fields
-volumeFraction = .9
+volumeFraction = .8
 nMeshPolygon = 64
-covarianceFunction = 'matern'
+covarianceFunction = 'se'
 randFieldParams = [5.0]
 lengthScale = [.008, .008]
 
 # For circular exclusions
-nExclusions = 256
+nExclusions = 512
 coordinateDistribution = 'uniform'
 radiiDistribution = 'uniform'
-r_params = (.005, .03)
-c_params = (.032, .968)
+r_params = (.005, .025)
+c_params = (.022, .978)
 
 
 
@@ -93,6 +93,10 @@ for meshNumber in meshes:
     print('Loading mesh...')
     mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
     print('mesh loaded.')
+
+    df.plot(mesh)
+    fig = plt.figure()
+
 
     print('Setting boundary conditions...')
 
@@ -167,12 +171,6 @@ for meshNumber in meshes:
         # Get sub-functions
         u, p = U.split()
 
-        # Save solution to mat file for easy read-in in matlab
-        uval = u.compute_vertex_values()
-        pval = p.compute_vertex_values()
-        sio.savemat('u_' + str(meshNumber) + '.mat', {'u': uval})
-        sio.savemat('p_' + str(meshNumber) + '.mat', {'p': pval})
-
         # Save solution in VTK format, same folder as mesh
         saveVelocityFile = foldername + '/velocity' + str(meshNumber) + '.pvd'
         savePressureFile = foldername + '/pressure' + str(meshNumber) + '.pvd'
@@ -182,15 +180,20 @@ for meshNumber in meshes:
         pfile_pvd << p
 
         # save full function space U to xml
-        saveFullSolutionFile = foldername + '/fullSolution' + str(meshNumber) + '.xml'
-        Ufile = df.File(saveFullSolutionFile)
+        saveSolutionFile = foldername + '/solution' + str(meshNumber) + '.xml'
+        Ufile = df.File(saveSolutionFile)
         Ufile << U
+
+        # Save solution to mat file for easy read-in in matlab
+        sio.savemat(foldername + '/solution' + str(meshNumber) + '.mat',
+                    {'u': np.reshape(u.compute_vertex_values(), (2, -1)), 'p': p.compute_vertex_values(),
+                     'x': mesh.coordinates()})
 
         plot_flag = True
         if plot_flag:
             '''
             df.plot(mesh)
-
+    
             fig = plt.figure()
             pp = df.plot(p)
             plt.colorbar(pp)
@@ -214,7 +217,3 @@ for meshNumber in meshes:
         print('Solver failed to converge. Passing to next mesh')
 
 
-'''
-if plot_flag:
-    plt.show()
-'''

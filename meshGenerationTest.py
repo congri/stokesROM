@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from randomFieldGeneration import RandomField as rf
 
 
-mesh = df.UnitSquareMesh(256, 256)
+mesh = df.UnitSquareMesh(8, 8, 'right/left')
 
 
 cells = mesh.cells()
@@ -13,7 +13,7 @@ vtx_coord = mesh.coordinates()
 
 class CenterSq(df.SubDomain):
     def inside(self, x, on_boundary):
-        return 0.4 < x[0] < .6 and 0.4 < x[1] < .6
+        return 0.3 < x[0] < .7 and 0.3 < x[1] < .7
 
 
 randomFieldObj = rf()
@@ -25,7 +25,7 @@ class RandField(df.SubDomain):
         return randomField(x) > 0
 
 
-rff = RandField()
+rff = CenterSq()
 subdomains = df.CellFunction('size_t', mesh)
 subdomains.set_all(0)
 rff.mark(subdomains, 1)
@@ -38,6 +38,8 @@ marked_cells = df.SubsetIterator(subdomains, 1)
 cell_to_delete = []
 for cell in marked_cells:
     cell_to_delete.append(cell.index())
+
+print('cells to delete: ', cell_to_delete)
 
 
 
@@ -59,7 +61,12 @@ for c in range(len(cells)):
     editor.add_cell(cell_id, cells[c][0], cells[c][1], cells[c][2])
     cell_id += 1 
 
-editor.close()
+print('cell_id: ', cell_id)
+print('cell connectivity: ', cells)
 
+print('vert_id: ', vert_id)
+print('vertex coordinates: ', vtx_coord)
+
+editor.close()
 df.plot(new_mesh)
 plt.show()
