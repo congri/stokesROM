@@ -25,7 +25,7 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(0, 1)  # vector of random meshes to load
+meshes = np.arange(0, 35)  # vector of random meshes to load
 porousMedium = 'nonOverlappingCircles'    #circles or randomField
 nElements = 128
 
@@ -49,7 +49,7 @@ c_params = (.025, .975)
 
 
 
-folderbase = '/home/constantin'
+folderbase = '/home/constantin/cluster'
 foldername = folderbase + '/python/data/stokesEquation/meshes/meshSize=' + str(nElements)
 if porousMedium == 'randomField':
     foldername = foldername + '/randFieldDiscretization=' + str(nMeshPolygon) + '/cov=' + covarianceFunction +\
@@ -99,10 +99,6 @@ for meshNumber in meshes:
     print('Loading mesh...')
     mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
     print('mesh loaded.')
-
-    df.plot(mesh)
-    fig = plt.figure()
-
 
     print('Setting boundary conditions...')
 
