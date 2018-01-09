@@ -12,16 +12,17 @@ import time
 
 # Global parameters
 mode = 'nonOverlappingCircles'
-nMeshes = 1024
+nMeshes = 3
 nElements = 128  # PDE discretization
 foldername1 = '/home/constantin/python/data/stokesEquation/meshes/meshSize=' + str(nElements)
 
 
 #Parameters only for 'circles' mode
 nExclusionsMin = 256
-nExclusionsMax = 2049
+nExclusionsMax = 257
 coordinateDist = 'uniform'
-c_params = (.025, .975)  # to avoid circles on boundaries
+# to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
+margins = (0, .025, 0, .025)
 radiiDist = 'uniform'
 r_params = (.005, .025)
 
@@ -146,8 +147,7 @@ elif mode == 'circles':
     print('Generating mesh with circular exclusions...')
 
     foldername = foldername1 + '/nCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) + '/coordDist=' +\
-                 coordinateDist + '_c_params=' + str(c_params) +\
-                 '/radiiDist=' + radiiDist + '_r_params=' + str(r_params)
+                 coordinateDist + '_margins=' + str(margins) + '/radiiDist=' + radiiDist + '_r_params=' + str(r_params)
     if not os.path.exists(foldername):
         os.makedirs(foldername)
 
@@ -155,8 +155,9 @@ elif mode == 'circles':
         nExclusions = np.random.randint(nExclusionsMin, nExclusionsMax)
         print('nExclusions = ', nExclusions)
         if coordinateDist == 'uniform':
-            exclusionCenters = (c_params[1] - c_params[0])*np.random.rand(nExclusions, 2) + c_params[0]
-
+            exclusionCentersX = (1.0 - margins[1] - margins[3])*np.random.rand(nExclusions, 1) + margins[3]
+            exclusionCentersY = (1.0 - margins[0] - margins[2])*np.random.rand(nExclusions, 1) + margins[0]
+            exclusionCenters = np.concatenate((exclusionCentersX, exclusionCentersY), axis=1)
         if radiiDist == 'uniform':
             exclusionRadii = (r_params[1] - r_params[0]) * np.random.rand(nExclusions) + r_params[0]
         elif radiiDist == 'exponential':
@@ -181,7 +182,7 @@ elif mode == 'nonOverlappingCircles':
     print('Generating mesh with non-overlapping circular exclusions...')
 
     foldername = foldername1 + '/nNonOverlapCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) +\
-        '/coordDist=' + coordinateDist + '_c_params=' + str(c_params) +\
+        '/coordDist=' + coordinateDist + '_margins=' + str(margins) +\
         '/radiiDist=' + radiiDist + '_r_params=' + str(r_params)
     if not os.path.exists(foldername):
         os.makedirs(foldername)
@@ -197,8 +198,9 @@ elif mode == 'nonOverlappingCircles':
         t_lim = 60.0
         while currentExclusions < nExclusions and t_elapsed < t_lim:
             if coordinateDist == 'uniform':
-                exclusionCenter = (c_params[1] - c_params[0])*np.random.rand(1, 2) + c_params[0]
-
+                exclusionCenterX = (1.0 - margins[1] - margins[3]) * np.random.rand(1, 1) + margins[3]
+                exclusionCenterY = (1.0 - margins[0] - margins[2]) * np.random.rand(1, 1) + margins[0]
+                exclusionCenter = np.concatenate((exclusionCenterX, exclusionCenterY), axis=1)
             if radiiDist == 'uniform':
                 exclusionRadius = (r_params[1] - r_params[0]) * np.random.rand(1) + r_params[0]
             elif radiiDist == 'exponential':
@@ -233,3 +235,6 @@ elif mode == 'nonOverlappingCircles':
         #save vertex coordinates and cell connectivity to mat file for easy read-in to matlab
         sio.savemat(foldername + '/mesh' + str(i) + '.mat',
                     {'x': mesh.coordinates(), 'cells': mesh.cells() + 1.0})
+        #save microstructural information, i.e. centers and radii of disks
+        sio.savemat(foldername + '/microstructureInformation' + str(i) + '.mat',
+                    {'diskCenters': exclusionCenters, 'diskRadii': exclusionRadii})
