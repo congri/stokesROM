@@ -12,7 +12,7 @@ classdef ModelParams
         sigma_cf
         
         %% Model hyperparameters
-        prior_theta_c = 'RVM'
+        prior_theta_c = 'none'
         gamma   %Gaussian precision of prior on theta_c
         
         %% Parameters of variational distributions
@@ -41,6 +41,8 @@ classdef ModelParams
             %Initialize hyperparameters
             if strcmp(self.prior_theta_c, 'RVM')
                 self.gamma = ones(size(self.theta_c));
+            elseif strcmp(self.prior_theta_c, 'none')
+                self.gamma = [];
             else
                 error('What prior model for theta_c?')
             end
