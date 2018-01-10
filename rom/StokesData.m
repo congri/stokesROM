@@ -7,6 +7,7 @@ classdef StokesData
         nExclusions = [256, 257]   %[min, max] pos. number of circ. exclusions
         margins = [0, .025, 0, .025]    %[l., u.] margin for impermeable phase
         r_params = [.005, .025]    %[lo., up.] bound on random blob radius
+        samples
         %base name of file path
         pathname = []
         
@@ -18,9 +19,19 @@ classdef StokesData
         
         %Microstructural data, e.g. centers & radii of circular inclusions
         microstructData
+        %Design matrix
+        designMatrix
     end
     
     methods
+        function [self] = StokesData(samples)
+            %constructor
+            self.samples = samples;
+            for n = 1:numel(samples)
+                self.designMatrix{n} = [];
+            end
+        end
+        
         function [self] = setPathName(self)
             if isempty(self.pathname)
                 self.pathname = strcat('/home/constantin/cluster/python/',...
@@ -39,7 +50,7 @@ classdef StokesData
             end
         end
         
-        function [self] = readData(self, samples, quantities)
+        function [self] = readData(self, quantities)
             %Reads in Stokes equation data from fenics
             %samples:          samples to load
             %quantities:       identifier for the quantities to load,
@@ -52,7 +63,7 @@ classdef StokesData
             self = self.setPathName;
             
             cellIndex = 1;
-            for n = samples
+            for n = self.samples
                 file = matfile(char(strcat(self.pathname, 'solution',...
                     num2str(n), '.mat')));
                 
@@ -61,7 +72,7 @@ classdef StokesData
                 end
                 
                 if any(quantities == 'p')
-                    self.P{cellIndex} = file.p;
+                    self.P{cellIndex} = file.p';
                 end
                 
                 if any(quantities == 'u')
@@ -83,8 +94,33 @@ classdef StokesData
             end
         end
         
-        function [self] = evaluateFeatures(self)
+        function [self] = evaluateFeatures(self, gridX, gridY)
             %Evaluates the feature functions
+            if isempty(self.microstructData)
+                self = self.readData('m');
+            end
+            
+            %constant 1
+            for n = 1:numel(self.samples)
+                self.designMatrix{n} = [self.designMatrix{n},...
+                    ones(numel(gridX)*numel(gridY), 1)];
+            end
+            
+            %pore fraction
+            for n = 1:numel(self.samples)
+                phi = volumeFractionCircExclusions(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %log pore fraction
+            for n = 1:numel(self.samples)
+                phi = log(volumeFractionCircExclusions(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY));
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
         end
         
         function [triHandles, pltHandles, figHandle] = plotData(self, samples)
@@ -92,16 +128,16 @@ classdef StokesData
             
             %Load data if not yet loaded
             if isempty(self.cells)
-                self = self.readData(samples, 'c');
+                self = self.readData('c');
             end
             if isempty(self.X)
-                self = self.readData(samples, 'x');
+                self = self.readData('x');
             end
             if isempty(self.P)
-                self = self.readData(samples, 'p');
+                self = self.readData('p');
             end
             if isempty(self.U)
-                self = self.readData(samples, 'u');
+                self = self.readData('u');
             end
             
             
