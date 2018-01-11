@@ -11,12 +11,12 @@ beta2 = .8;                    %curvature parameter
 epsilon = 1e-8;                  %curvature stabilization parameter
 
 stepOffset = 10000;                %Robbins-Monro step offset
-nSamples = 10;                  %gradient samples per iteration
+nSamples = 20;                  %gradient samples per iteration
 
 converged = false;
 steps = 0;
 maxIterations = 10000;
-maxCompTime = 5;
+maxCompTime = 10;
 tic;
 
 if strcmp(variationalDist, 'diagonalGauss')

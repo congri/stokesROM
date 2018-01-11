@@ -25,7 +25,7 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(0, 225)  # vector of random meshes to load
+meshes = np.arange(17, 650)  # vector of random meshes to load
 porousMedium = 'nonOverlappingCircles'    #circles or randomField
 nElements = 128
 
@@ -40,11 +40,11 @@ randFieldParams = [5.0]
 lengthScale = [.008, .008]
 
 # For circular exclusions
-nExclusionsMin = 256
-nExclusionsMax = 513
+nExclusionsMin = 16
+nExclusionsMax = 257
 coordinateDistribution = 'uniform'
 radiiDistribution = 'uniform'
-r_params = (.005, .025)
+r_params = (.005, .015)
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 margins = (0, .025, 0, .025)
 #c_params = (0.025, 0.975)

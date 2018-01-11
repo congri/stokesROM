@@ -42,7 +42,7 @@ classdef ModelParams
             if strcmp(self.prior_theta_c, 'RVM')
                 self.gamma = ones(size(self.theta_c));
             elseif strcmp(self.prior_theta_c, 'none')
-                self.gamma = [];
+                self.gamma = NaN;
             else
                 error('What prior model for theta_c?')
             end
@@ -68,7 +68,7 @@ classdef ModelParams
                 thetaArray, SigmaArray, coarseMesh)
             %Plots the current theta_c
             
-           figure(figHandle);
+            %figure(figHandle);
             sb = subplot(3, 2, 1, 'Parent', figHandle);
             plot(thetaArray, 'linewidth', 1, 'Parent', sb)
             axis tight;

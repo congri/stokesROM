@@ -50,9 +50,10 @@ classdef StokesROM
                 nElements, nData);
         end
         
-        function self = M_step(self, XMean, XSqMean)
+        function self = M_step(self, XMean, XSqMean, sqDist_p_cf)
             %Update parameters in p_c
             self = self.update_p_c(XMean, XSqMean);
+            self = self.update_p_cf(sqDist_p_cf);
         end
         
         function self = update_p_c(self, XMean, XSqMean)
@@ -265,6 +266,12 @@ classdef StokesROM
             %Assign final values
             self.modelParams.theta_c = curr_theta_c;
             self.modelParams.Sigma_c = Sigma_c;
+        end
+        
+        function self = update_p_cf(self, sqDist_p_cf)
+            s0 = (1/self.trainingData.N_vertices_tot)*sum(sqDist_p_cf)
+            self.modelParams.sigma_cf.s0 =...
+                @(x) (1/self.trainingData.N_vertices_tot)*sum(sqDist_p_cf);
         end
     end
 end

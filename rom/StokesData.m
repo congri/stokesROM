@@ -4,9 +4,9 @@ classdef StokesData
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 128
-        nExclusions = [256, 257]   %[min, max] pos. number of circ. exclusions
+        nExclusions = [16, 257]   %[min, max] pos. number of circ. exclusions
         margins = [0, .025, 0, .025]    %[l., u.] margin for impermeable phase
-        r_params = [.005, .025]    %[lo., up.] bound on random blob radius
+        r_params = [.005, .015]    %[lo., up.] bound on random blob radius
         samples
         %base name of file path
         pathname = []
@@ -16,6 +16,7 @@ classdef StokesData
         P       %pressure at vertices
         U       %velocity at vertices
         cells   %cell-to-vertex map
+        N_vertices_tot  %total number of vertices in data
         
         %Microstructural data, e.g. centers & radii of circular inclusions
         microstructData
@@ -94,6 +95,19 @@ classdef StokesData
             end
         end
         
+        function self = countVertices(self)
+            cellIndex = 1;
+            self.N_vertices_tot = 0;
+            if isempty(self.P)
+                self = self.readData('p');
+            end
+            for n = self.samples
+                self.N_vertices_tot = self.N_vertices_tot +...
+                    numel(self.P{cellIndex});
+                cellIndex = cellIndex + 1;
+            end
+        end
+        
         function [self] = evaluateFeatures(self, gridX, gridY)
             %Evaluates the feature functions
             if isempty(self.microstructData)
@@ -119,6 +133,22 @@ classdef StokesData
                 phi = log(volumeFractionCircExclusions(...
                     self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridX, gridY));
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %Interface area
+            for n = 1:numel(self.samples)
+                phi = interfacePerVolume(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %log interface area
+            for n = 1:numel(self.samples)
+                phi = log(interfacePerVolume(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
         end
