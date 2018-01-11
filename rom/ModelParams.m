@@ -12,7 +12,7 @@ classdef ModelParams
         sigma_cf
         
         %% Model hyperparameters
-        prior_theta_c = 'none'
+        prior_theta_c = 'RVM'
         gamma   %Gaussian precision of prior on theta_c
         
         %% Parameters of variational distributions
@@ -25,22 +25,23 @@ classdef ModelParams
             %Constructor
         end
         
-        function self = initialize(self, nFeatures, nElements, nData)
+        function self = initialize(self, nFeatures, nElements, nData, nSCells)
             %Initialize model parameters
             %   nFeatures:      number of feature functions
             %   nElements:      number of macro elements
+            %   nSCells:        number of cells in S-grid
             
             %Initialize theta_c to 0
             self.theta_c = zeros(nFeatures, 1);
             %Initialize sigma_c to I
-            self.Sigma_c = eye(nElements);
+            self.Sigma_c = 1e-4*eye(nElements);
                         
             self.sigma_cf.type = 'delta';
-            self.sigma_cf.s0 = @(x) 1;  %standard deviation field of p_cf
+            self.sigma_cf.s0 = ones(nSCells, 1);  %variance field of p_cf
             
             %Initialize hyperparameters
             if strcmp(self.prior_theta_c, 'RVM')
-                self.gamma = ones(size(self.theta_c));
+                self.gamma = 1e-4*ones(size(self.theta_c));
             elseif strcmp(self.prior_theta_c, 'none')
                 self.gamma = NaN;
             else
@@ -48,7 +49,7 @@ classdef ModelParams
             end
             
             %Initialize parameters of variational approximate distributions
-            self.variational_mu{1} = zeros(1, nElements);
+            self.variational_mu{1} = 0*ones(1, nElements);
             self.variational_mu = repmat(self.variational_mu, nData, 1);
             
             self.variational_sigma{1} = 1e0*ones(1, nElements);
@@ -65,7 +66,7 @@ classdef ModelParams
         end
         
         function self = plot_params(self, figHandle,...
-                thetaArray, SigmaArray, coarseMesh)
+                thetaArray, SigmaArray, coarseMesh, nSX, nSY)
             %Plots the current theta_c
             
             %figure(figHandle);
@@ -90,7 +91,12 @@ classdef ModelParams
             sb = subplot(3,2,5, 'Parent', figHandle);
             bar(self.gamma, 'linewidth', 1, 'Parent', sb)
             axis tight;
-            drawnow
+            
+            sb = subplot(3, 2, 6, 'Parent', figHandle);
+            imagesc(reshape(sqrt(self.sigma_cf.s0), nSX, nSY), 'Parent', sb)
+            title('S')
+            colorbar
+            grid off;
         end
     end
 end

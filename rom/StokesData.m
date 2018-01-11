@@ -6,7 +6,7 @@ classdef StokesData
         meshSize = 128
         nExclusions = [16, 257]   %[min, max] pos. number of circ. exclusions
         margins = [0, .025, 0, .025]    %[l., u.] margin for impermeable phase
-        r_params = [.005, .015]    %[lo., up.] bound on random blob radius
+        r_params = [.005, .025]    %[lo., up.] bound on random blob radius
         samples
         %base name of file path
         pathname = []
@@ -16,6 +16,7 @@ classdef StokesData
         P       %pressure at vertices
         U       %velocity at vertices
         cells   %cell-to-vertex map
+        cellOfVertex   %Mapping from vertex to sq. (macro-)cell
         N_vertices_tot  %total number of vertices in data
         
         %Microstructural data, e.g. centers & radii of circular inclusions
@@ -82,7 +83,7 @@ classdef StokesData
                 
                 if any(quantities == 'c')
                     cellfile = matfile(char(strcat(self.pathname, 'mesh',...
-                    num2str(n), '.mat')));
+                        num2str(n), '.mat')));
                     self.cells{cellIndex} = cellfile.cells;
                 end
                 
@@ -105,6 +106,35 @@ classdef StokesData
                 self.N_vertices_tot = self.N_vertices_tot +...
                     numel(self.P{cellIndex});
                 cellIndex = cellIndex + 1;
+            end
+        end
+        
+        function self = vtxToCell(self, gridX, gridY)
+            %Mapping from vertex to macro-cell given by grid vectors gridX,
+            %gridY
+            cumsumX = cumsum(gridX);
+            cumsumY = cumsum(gridY);
+            
+            Nx = numel(gridX);
+            Ny = numel(gridY);
+            
+            if isempty(self.X)
+                self = self.readData('x');
+            end
+            
+            for n = 1:numel(self.X)
+                self.cellOfVertex{n} = zeros(size(self.X{n}, 1), 1);
+                for vtx = 1:size(self.X{n}, 1)
+                    nx = 1;
+                    while(self.X{n}(vtx, 1) > cumsumX(nx))
+                        nx = nx + 1;
+                    end
+                    ny = 1;
+                    while(self.X{n}(vtx, 2) > cumsumY(ny))
+                        ny = ny + 1;
+                    end
+                    self.cellOfVertex{n}(vtx) = nx + (ny - 1)*Nx;
+                end
             end
         end
         

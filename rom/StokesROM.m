@@ -7,6 +7,10 @@ classdef StokesROM
         gridY = .25*ones(1, 4)
         coarseMesh      %mesh object
         
+        %Grid of p_cf variance
+        gridSX
+        gridSY
+        
         %StokesData object
         trainingData
         
@@ -15,10 +19,13 @@ classdef StokesROM
     end
     
     methods
-        function [self] = StokesROM(gridX, gridY, p_bc, u_bc)
+        function [self] = StokesROM(gridX, gridY, gridSX, gridSY, p_bc, u_bc)
             %Constructor
             self.gridX = gridX; nX = length(gridX);
             self.gridY = gridY; nY = length(gridY);
+            
+            self.gridSX = gridSX;
+            self.gridSY = gridSY;
             
             %Coarse mesh object
             self.coarseMesh = Mesh(gridX, gridY);
@@ -45,9 +52,10 @@ classdef StokesROM
             nFeatures = size(self.trainingData.designMatrix{1}, 2);
             nElements = numel(self.gridX)*numel(self.gridY);
             nData = numel(self.trainingData.samples);
+            nSCells = numel(self.gridSX)*numel(self.gridSY);
             
             self.modelParams = self.modelParams.initialize(nFeatures,...
-                nElements, nData);
+                nElements, nData, nSCells);
         end
         
         function self = M_step(self, XMean, XSqMean, sqDist_p_cf)
@@ -269,9 +277,18 @@ classdef StokesROM
         end
         
         function self = update_p_cf(self, sqDist_p_cf)
-            s0 = (1/self.trainingData.N_vertices_tot)*sum(sqDist_p_cf)
-            self.modelParams.sigma_cf.s0 =...
-                @(x) (1/self.trainingData.N_vertices_tot)*sum(sqDist_p_cf);
+            
+            Ncells_gridS = numel(self.gridSX)*numel(self.gridSY);
+            self.modelParams.sigma_cf.s0 = zeros(Ncells_gridS, 1);
+            for j = 1:Ncells_gridS
+                for n = 1:numel(self.trainingData.samples)
+                    self.modelParams.sigma_cf.s0(j) =...
+                        (1/n)*((n - 1)*self.modelParams.sigma_cf.s0(j) + ...
+                        mean(sqDist_p_cf{n}(j ==...
+                        self.trainingData.cellOfVertex{n})));
+                end
+            end
+            mean_s0 = mean(self.modelParams.sigma_cf.s0)
         end
     end
 end

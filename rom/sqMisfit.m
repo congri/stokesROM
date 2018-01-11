@@ -18,7 +18,7 @@ FEMout = heat2d(mesh, D);
 Tc = FEMout.Tff';
 Tc = Tc(:);
 
-p_cf_exp = sum((Tf_n_minus_mu - W_cf_n*Tc).^2);
+p_cf_exp = (Tf_n_minus_mu - W_cf_n*Tc).^2;
 
 if nargout > 2
     TcTcT = Tc*Tc';
