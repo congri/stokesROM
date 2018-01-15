@@ -70,33 +70,39 @@ classdef ModelParams
             %Plots the current theta_c
             
             %figure(figHandle);
-            sb = subplot(3, 2, 1, 'Parent', figHandle);
-            plot(thetaArray, 'linewidth', 1, 'Parent', sb)
-            axis tight;
-            ylim([(min(thetaArray(end, :)) - 1) (max(thetaArray(end, :)) + 1)]);
-            sb = subplot(3,2,2, 'Parent', figHandle);
-            bar(self.theta_c, 'linewidth', 1, 'Parent', sb)
-            axis tight;
-            sb = subplot(3,2,3, 'Parent', figHandle);
-            semilogy(sqrt(SigmaArray), 'linewidth', 1, 'Parent', sb)
-            axis tight;
-            sb = subplot(3,2,4, 'Parent', figHandle);
+            sb1 = subplot(3, 2, 1, 'Parent', figHandle);
+            plot(thetaArray, 'linewidth', 1, 'Parent', sb1)
+            axis(sb1, 'tight');
+            sb1.YLim = [(min(thetaArray(end, :)) - 1),...
+                (max(thetaArray(end, :)) + 1)];
+            
+            sb2 = subplot(3, 2, 2, 'Parent', figHandle);
+            bar(self.theta_c, 'linewidth', 1, 'Parent', sb2)
+            axis(sb2, 'tight');
+            
+            sb3 = subplot(3,2,3, 'Parent', figHandle);
+            semilogy(sqrt(SigmaArray), 'linewidth', 1, 'Parent', sb3)
+            axis(sb3, 'tight');
+            
+            sb4 = subplot(3, 2, 4, 'Parent', figHandle);
             imagesc(reshape(diag(sqrt(self.Sigma_c(1:coarseMesh.nEl,...
                 1:coarseMesh.nEl))),...
-                coarseMesh.nElX, coarseMesh.nElY), 'Parent', sb)
-            title('\sigma_k')
-            colorbar
-            grid off;
-            axis tight;
-            sb = subplot(3,2,5, 'Parent', figHandle);
-            bar(self.gamma, 'linewidth', 1, 'Parent', sb)
-            axis tight;
+                coarseMesh.nElX, coarseMesh.nElY), 'Parent', sb4)
+            sb4.Title.String = '\sigma_k';
+            colorbar('Parent', figHandle);
+            sb4.GridLineStyle = 'none';
+            axis(sb4, 'square');
             
-            sb = subplot(3, 2, 6, 'Parent', figHandle);
-            imagesc(reshape(sqrt(self.sigma_cf.s0), nSX, nSY), 'Parent', sb)
-            title('S')
-            colorbar
-            grid off;
+            sb5 = subplot(3, 2, 5, 'Parent', figHandle);
+            bar(self.gamma, 'linewidth', 1, 'Parent', sb5)
+            axis(sb5, 'tight');
+            
+            sb6 = subplot(3, 2, 6, 'Parent', figHandle);
+            imagesc(reshape(sqrt(self.sigma_cf.s0), nSX, nSY), 'Parent', sb6)
+            sb6.Title.String = 'S';
+            colorbar('Parent', figHandle);
+            sb6.GridLineStyle = 'none';
+            axis(sb6, 'square');
         end
     end
 end

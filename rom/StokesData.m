@@ -4,9 +4,9 @@ classdef StokesData
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 128
-        nExclusions = [16, 257]   %[min, max] pos. number of circ. exclusions
-        margins = [0, .025, 0, .025]    %[l., u.] margin for impermeable phase
-        r_params = [.005, .025]    %[lo., up.] bound on random blob radius
+        nExclusions = [2048, 2049]   %[min, max] pos. number of circ. exclusions
+        margins = [0, .03, 0, .03]    %[l., u.] margin for impermeable phase
+        r_params = [.001, .01]    %[lo., up.] bound on random blob radius
         samples
         %base name of file path
         pathname = []
@@ -21,14 +21,17 @@ classdef StokesData
         
         %Microstructural data, e.g. centers & radii of circular inclusions
         microstructData
+        %Flow boundary conditions; C++ string
+        u_bc
         %Design matrix
         designMatrix
     end
     
     methods
-        function [self] = StokesData(samples)
+        function [self] = StokesData(samples, u_bc)
             %constructor
             self.samples = samples;
+            self.u_bc = u_bc;
             for n = 1:numel(samples)
                 self.designMatrix{n} = [];
             end
@@ -66,46 +69,61 @@ classdef StokesData
             
             cellIndex = 1;
             for n = self.samples
-                file = matfile(char(strcat(self.pathname, 'solution',...
-                    num2str(n), '.mat')));
+                foldername = char(strcat(self.pathname, self.u_bc{1}, '_',...
+                    self.u_bc{2}));
+                filename = char(strcat(foldername, '/solution',...
+                    num2str(n), '.mat'));
+                file = matfile(filename);
                 
-                if any(quantities == 'x')
-                    self.X{cellIndex} = file.x;
+                if exist(filename, 'file')
+                    
+                    if any(quantities == 'x')
+                        self.X{cellIndex} = file.x;
+                    end
+                    
+                    if any(quantities == 'p')
+                        rescale_p = true;
+                        if rescale_p
+                            p_temp = file.p';
+                            p_origin = p_temp(all((file.x == [0, 0])'));
+                            p_temp = p_temp - p_origin;
+                        else
+                            p_temp = file.p';
+                        end
+                        self.P{cellIndex} = p_temp;
+                    end
+                    
+                    if any(quantities == 'u')
+                        self.U{cellIndex} = file.u;
+                    end
+                    
+                    if any(quantities == 'c')
+                        cellfile = matfile(char(strcat(self.pathname, 'mesh',...
+                            num2str(n), '.mat')));
+                        self.cells{cellIndex} = cellfile.cells;
+                    end
+                    
+                    if any(quantities == 'm')
+                        datafile = char(strcat(self.pathname,...
+                            'microstructureInformation', num2str(n), '.mat'));
+                        self.microstructData{cellIndex} = load(datafile);
+                    end
+                    cellIndex = cellIndex + 1;
+                else
+                    self.samples(self.samples == n) = [];
+                    warning(strcat(filename, 'not found. Skipping sample.'))
                 end
-                
-                if any(quantities == 'p')
-                    self.P{cellIndex} = file.p';
-                end
-                
-                if any(quantities == 'u')
-                    self.U{cellIndex} = file.u;
-                end
-                
-                if any(quantities == 'c')
-                    cellfile = matfile(char(strcat(self.pathname, 'mesh',...
-                        num2str(n), '.mat')));
-                    self.cells{cellIndex} = cellfile.cells;
-                end
-                
-                if any(quantities == 'm')
-                    datafile = char(strcat(self.pathname,...
-                        'microstructureInformation', num2str(n), '.mat'));
-                    self.microstructData{cellIndex} = load(datafile);
-                end
-                cellIndex = cellIndex + 1;
             end
         end
         
         function self = countVertices(self)
-            cellIndex = 1;
             self.N_vertices_tot = 0;
             if isempty(self.P)
                 self = self.readData('p');
             end
-            for n = self.samples
+            for cellIndex = 1:numel(self.P)
                 self.N_vertices_tot = self.N_vertices_tot +...
                     numel(self.P{cellIndex});
-                cellIndex = cellIndex + 1;
             end
         end
         
@@ -205,6 +223,7 @@ classdef StokesData
             pltIndex = 1;
             N = numel(samples);
             for n = samples
+                figure(figHandle);
                 %pressure field
                 pltHandles(1, pltIndex) = subplot(2, N, pltIndex);
                 triHandles(1, pltIndex) =...
@@ -218,6 +237,7 @@ classdef StokesData
                 xticks({});
                 yticks({});
                 cbp = colorbar;
+                cbp.Label.String = 'pressure p';
                 
                 %velocity field (norm)
                 u_norm = sqrt(sum(self.U{pltIndex}.^2));
@@ -232,6 +252,7 @@ classdef StokesData
                 xticks({});
                 yticks({});
                 cbu = colorbar;
+                cbu.Label.String = 'velocity u';
                 
                 pltIndex = pltIndex + 1;
             end

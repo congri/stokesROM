@@ -27,15 +27,29 @@ classdef StokesROM
             self.gridSX = gridSX;
             self.gridSY = gridSY;
             
+            %Convert flow bc string to handle functions
+            u_x_temp = strrep(u_bc{1}(5:end), 'x[1]', 'y');
+            %This is only valid for unit square domain!!
+            u_x_temp_le = strrep(u_x_temp, 'x[0]', '0');
+            u_x_temp_r = strrep(u_x_temp, 'x[0]', '1');
+            
+            u_y_temp = strrep(u_bc{2}(5:end), 'x[0]', 'x');
+            u_y_temp_lo = strrep(u_y_temp, 'x[1]', '0');
+            u_y_temp_u = strrep(u_y_temp, 'x[1]', '1');
+            u_bc_handle{1} = str2func(strcat('@(x)', '-(', u_y_temp_lo, ')'));
+            u_bc_handle{2} = str2func(strcat('@(y)', u_x_temp_r));
+            u_bc_handle{3} = str2func(strcat('@(x)', u_y_temp_u));
+            u_bc_handle{4} = str2func(strcat('@(y)', '-(', u_x_temp_le, ')'));
+                        
             %Coarse mesh object
             self.coarseMesh = Mesh(gridX, gridY);
             self.coarseMesh = self.coarseMesh.setBoundaries(2:(2*nX + 2*nY),...
-                p_bc, u_bc);
+                p_bc, u_bc_handle);
         end
         
-        function [self] = readTrainingData(self, samples)
+        function [self] = readTrainingData(self, samples, u_bc)
             %Sets trainingData to StokesData object
-            self.trainingData = StokesData(samples);
+            self.trainingData = StokesData(samples, u_bc);
             self.trainingData = self.trainingData.readData('px');
         end
         
