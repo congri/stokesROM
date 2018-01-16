@@ -2,12 +2,12 @@ NMESHES=1024
 NELEMENTS=128
 NEXMIN=128
 NEXMAX=129
-RPARAMSLO=0.003
-RPARAMSHI=0.015
-MARGIN_LO=0
-MARGIN_R=0.03
-MARGIN_U=0
-MARGIN_LE=0.03
+RPARAMSLO=-4.6
+RPARAMSHI=0.15
+MARGIN_LO=-1
+MARGIN_R=0.02
+MARGIN_U=-1
+MARGIN_LE=0.02
 
 
 CORES=1
@@ -42,8 +42,8 @@ sed -i \"15s/.*/nMeshes = $NMESHES/\" ./generateMeshes.py
 sed -i \"16s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./generateMeshes.py
 sed -i \"21s/.*/nExclusionsMin = $NEXMIN/\" ./generateMeshes.py
 sed -i \"22s/.*/nExclusionsMax = $NEXMAX/\" ./generateMeshes.py
-sed -i \"25s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./generateMeshes.py
-sed -i \"27s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./generateMeshes.py
+sed -i \"26s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./generateMeshes.py
+sed -i \"28s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./generateMeshes.py
 
 
 

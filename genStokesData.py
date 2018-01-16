@@ -8,6 +8,7 @@ import dolfin as df
 import time
 import subprocess as sp
 import scipy.io as sio
+import os
 
 
 # Test for PETSc or Epetra
@@ -25,7 +26,7 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(0, 3)  # vector of random meshes to load
+meshes = np.arange(0, 128)  # vector of random meshes to load
 porousMedium = 'nonOverlappingCircles'    #circles or randomField
 nElements = 128
 
@@ -41,12 +42,18 @@ lengthScale = [.008, .008]
 
 # For circular exclusions
 nExclusionsMin = 256
-nExclusionsMax = 257
+nExclusionsMax = 1025
 coordinateDistribution = 'uniform'
 radiiDistribution = 'uniform'
-r_params = (.005, .025)
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
-margins = (0, .025, 0, .025)
+margins = (0, .03, 0, .03)
+r_params = (.003, .015)
+
+
+# Flow boundary condition for velocity on domain boundary
+u_x = '0.25 - (x[1] - 0.5)*(x[1] - 0.5)'
+u_y = '0.0'
+flowField = df.Expression((u_x, u_y), degree=2)
 
 
 folderbase = '/home/constantin'
@@ -118,24 +125,18 @@ for meshNumber in meshes:
     mixedEl = df.MixedElement([u_e, p_e])
     W = df.FunctionSpace(mesh, mixedEl)
 
-    # Flow boundary condition for velocity on domain boundary
-    flowFieldLR = df.Expression(('(x[1] - .5)*(x[1] - .5) - .25', '0.0'), degree=2)
-    flowFieldUD = df.Expression(('0.0', '0.0'), degree=2)
 
     # No-slip boundary condition for velocity on material interfaces
     noslip = df.Constant((0.0, 0.0))
     # Boundary conditions for solid phase
     bc1 = df.DirichletBC(W.sub(0), noslip, interiorBoundary)
 
-    bc2 = df.DirichletBC(W.sub(0), flowFieldUD, upDown)
-    bc3 = df.DirichletBC(W.sub(0), flowFieldLR, leftRight)
+    # BC's on domain boundary
+    bc2 = df.DirichletBC(W.sub(0), flowField, domainBoundary)
 
-    #pressure boundary condition
-    zero_p = df.Constant(0.0)
-    bc4 = df.DirichletBC(W.sub(1), zero_p, origin, method='pointwise')
 
     # Collect boundary conditions
-    bcs = [bc1, bc2, bc3, bc4]
+    bcs = [bc1, bc2]
     print('boundary conditions set.')
 
 
@@ -169,10 +170,12 @@ for meshNumber in meshes:
         solver.solve(U.vector(), bb)
         elapsed_time = time.time() - t
         print('equation system solved. Time: ', elapsed_time)
+        print('sample: ', meshNumber)
 
         # Get sub-functions
         u, p = U.split()
 
+        '''
         # Save solution in VTK format, same folder as mesh
         saveVelocityFile = foldername + '/velocity' + str(meshNumber) + '.pvd'
         savePressureFile = foldername + '/pressure' + str(meshNumber) + '.pvd'
@@ -180,22 +183,28 @@ for meshNumber in meshes:
         ufile_pvd << u
         pfile_pvd = df.File(savePressureFile)
         pfile_pvd << p
+        '''
 
         # save full function space U to xml
-        saveSolutionFile = foldername + '/solution' + str(meshNumber) + '.xml'
-        Ufile = df.File(saveSolutionFile)
+        '''
+        Ufile = df.File(foldername + '/u_x=' + u_x + '_u_y=' + u_y + '/solution' + str(meshNumber) + '.xml')
         Ufile << U
+        '''
 
         # Save solution to mat file for easy read-in in matlab
-        sio.savemat(foldername + '/solution' + str(meshNumber) + '.mat',
+        solutionfolder = foldername + '/u_x=' + u_x + '_u_y=' + u_y
+        if not os.path.exists(solutionfolder):
+            os.makedirs(solutionfolder)
+
+        sio.savemat(solutionfolder + '/solution' + str(meshNumber) + '.mat',
                     {'u': np.reshape(u.compute_vertex_values(), (2, -1)), 'p': p.compute_vertex_values(),
                      'x': mesh.coordinates()})
 
-        plot_flag = True
+        plot_flag = False
         if plot_flag:
             '''
             df.plot(mesh)
-    
+        
             fig = plt.figure()
             pp = df.plot(p)
             plt.colorbar(pp)

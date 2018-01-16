@@ -22,9 +22,10 @@ nExclusionsMin = 256
 nExclusionsMax = 257
 coordinateDist = 'uniform'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
-margins = (0, .025, 0, .025)
-radiiDist = 'uniform'
-r_params = (.005, .025)
+# negative margin means no margin
+margins = (-1, .025, -1, .025)
+radiiDist = 'logn'
+r_params = (-4.6, .15)
 
 
 #parameters only for 'randomField' mode
@@ -162,6 +163,9 @@ elif mode == 'circles':
             exclusionRadii = (r_params[1] - r_params[0]) * np.random.rand(nExclusions) + r_params[0]
         elif radiiDist == 'exponential':
             exclusionRadii = np.random.exponential(r_params, nExclusions)
+        elif radiiDist == 'logn':
+            # log normal radii distribution
+            exclusionRadii = np.random.lognormal(r_params[0], r_params[1], nExclusions)
 
         domain = pm.substractCircles(exclusionCenters, exclusionRadii)
 
@@ -196,16 +200,23 @@ elif mode == 'nonOverlappingCircles':
         t_start = time.time()
         t_elapsed = 0
         t_lim = 60.0
+        print('Drawing non-overlapping disks...')
         while currentExclusions < nExclusions and t_elapsed < t_lim:
             if coordinateDist == 'uniform':
-                exclusionCenterX = (1.0 - margins[1] - margins[3]) * np.random.rand(1, 1) + margins[3]
-                exclusionCenterY = (1.0 - margins[0] - margins[2]) * np.random.rand(1, 1) + margins[0]
+                exclusionCenterX = np.random.rand(1, 1)
+                exclusionCenterY = np.random.rand(1, 1)
                 exclusionCenter = np.concatenate((exclusionCenterX, exclusionCenterY), axis=1)
+            elif coordinateDist == 'gauss':
+                exclusionCenter = np.random.multivariate_normal(r_params[0], r_params[1])
+
             if radiiDist == 'uniform':
                 exclusionRadius = (r_params[1] - r_params[0]) * np.random.rand(1) + r_params[0]
             elif radiiDist == 'exponential':
                 exclusionRadius = np.random.exponential(r_params, 1)
+            elif radiiDist == 'logn':
+                exclusionRadius = np.random.lognormal(r_params[0], r_params[1])
 
+            # check for overlap with other disks
             overlap = False
             iter = 0
             for x_circ in exclusionCenters:
@@ -216,16 +227,26 @@ elif mode == 'nonOverlappingCircles':
                     break
                 iter += 1
 
-            if not overlap:
+            # check for overlap with domain boundary
+            onBoundary = False
+            if (((exclusionCenter[0, 1] - exclusionRadius) < margins[0]) and margins[0] >= 0) or \
+                (((exclusionCenter[0, 0] + exclusionRadius) > (1 - margins[1])) and margins[1] >= 0) or \
+                (((exclusionCenter[0, 1] + exclusionRadius) > (1 - margins[2])) and margins[2] >= 0) or \
+                    (((exclusionCenter[0, 0] - exclusionRadius) < margins[3]) and margins[3] >= 0):
+                onBoundary = True
+
+            if (not overlap) and (not onBoundary):
                 exclusionCenters = np.append(exclusionCenters, exclusionCenter, axis=0)
                 exclusionRadii = np.append(exclusionRadii, exclusionRadius)
                 currentExclusions += 1
-
+        print('Non-overlapping disks drawn.')
 
         domain = pm.substractCircles(exclusionCenters, exclusionRadii)
 
         # Generate mesh - this step is expensive
+        print('Disks substracted.')
         mesh = pm.generateMesh(domain)
+        print('mesh generated.')
 
         #save mesh in xml format for later use
         filename = foldername + '/mesh' + str(i) + '.xml'
