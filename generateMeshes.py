@@ -20,12 +20,13 @@ foldername1 = '/home/constantin/python/data/stokesEquation/meshes/meshSize=' + s
 #Parameters only for 'circles' mode
 nExclusionsMin = 256
 nExclusionsMax = 257
-coordinateDist = 'uniform'
+coordinateDist = 'gauss'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 # negative margin means no margin
 margins = (-1, .025, -1, .025)
 radiiDist = 'logn'
 r_params = (-4.6, .15)
+c_params = [[.5, .5], np.array([[1/25, 0], [0, 100]])]
 
 
 #parameters only for 'randomField' mode
@@ -194,8 +195,8 @@ elif mode == 'nonOverlappingCircles':
     for i in range(0, nMeshes):
         nExclusions = np.random.randint(nExclusionsMin, nExclusionsMax)
         print('nExclusions = ', nExclusions)
-        exclusionCenters = np.empty((0, 2))
-        exclusionRadii = np.empty((0, 1))
+        exclusionCenters = np.empty([0, 2])
+        exclusionRadii = np.empty([0, 1])
         currentExclusions = 0
         t_start = time.time()
         t_elapsed = 0
@@ -203,11 +204,15 @@ elif mode == 'nonOverlappingCircles':
         print('Drawing non-overlapping disks...')
         while currentExclusions < nExclusions and t_elapsed < t_lim:
             if coordinateDist == 'uniform':
+                '''
                 exclusionCenterX = np.random.rand(1, 1)
                 exclusionCenterY = np.random.rand(1, 1)
                 exclusionCenter = np.concatenate((exclusionCenterX, exclusionCenterY), axis=1)
+                '''
+                exclusionCenter = np.random.rand(1, 2)
             elif coordinateDist == 'gauss':
-                exclusionCenter = np.random.multivariate_normal(r_params[0], r_params[1])
+                exclusionCenter = np.empty([1, 2])
+                exclusionCenter[0] = np.random.multivariate_normal(c_params[0], c_params[1])
 
             if radiiDist == 'uniform':
                 exclusionRadius = (r_params[1] - r_params[0]) * np.random.rand(1) + r_params[0]
@@ -235,7 +240,15 @@ elif mode == 'nonOverlappingCircles':
                     (((exclusionCenter[0, 0] - exclusionRadius) < margins[3]) and margins[3] >= 0):
                 onBoundary = True
 
-            if (not overlap) and (not onBoundary):
+            # check if disk is out of domain
+            outOfDomain = False
+            if (exclusionCenter[0, 1] + exclusionRadius) < 0 or \
+                (exclusionCenter[0, 0] - exclusionRadius) > 1 or \
+                (exclusionCenter[0, 1] - exclusionRadius) > 1 or \
+                    (exclusionCenter[0, 0] + exclusionRadius) < 0:
+                outOfDomain = True
+
+            if (not overlap) and (not onBoundary) and (not outOfDomain):
                 exclusionCenters = np.append(exclusionCenters, exclusionCenter, axis=0)
                 exclusionRadii = np.append(exclusionRadii, exclusionRadius)
                 currentExclusions += 1

@@ -41,7 +41,7 @@ randFieldParams = [5.0]
 lengthScale = [.008, .008]
 
 # For circular exclusions
-nExclusionsMin = 256
+nExclusionsMin = 128
 nExclusionsMax = 1025
 coordinateDistribution = 'uniform'
 radiiDistribution = 'uniform'
