@@ -25,7 +25,7 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(0, 35)  # vector of random meshes to load
+meshes = np.arange(0, 3)  # vector of random meshes to load
 porousMedium = 'nonOverlappingCircles'    #circles or randomField
 nElements = 128
 
@@ -41,15 +41,15 @@ lengthScale = [.008, .008]
 
 # For circular exclusions
 nExclusionsMin = 256
-nExclusionsMax = 2049
+nExclusionsMax = 257
 coordinateDistribution = 'uniform'
 radiiDistribution = 'uniform'
 r_params = (.005, .025)
-c_params = (.025, .975)
+# to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
+margins = (0, .025, 0, .025)
 
 
-
-folderbase = '/home/constantin/cluster'
+folderbase = '/home/constantin'
 foldername = folderbase + '/python/data/stokesEquation/meshes/meshSize=' + str(nElements)
 if porousMedium == 'randomField':
     foldername = foldername + '/randFieldDiscretization=' + str(nMeshPolygon) + '/cov=' + covarianceFunction +\
@@ -57,11 +57,11 @@ if porousMedium == 'randomField':
     str(lengthScale[1]) + '/volfrac=' + str(volumeFraction)
 elif porousMedium == 'circles':
     foldername = foldername + '/nCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) +\
-                 '/coordDist=' + coordinateDistribution + '_c_params=' + str(c_params) + '/radiiDist=' +\
+                 '/coordDist=' + coordinateDistribution + '_margins=' + str(margins) + '/radiiDist=' +\
                  radiiDistribution + '_r_params=' + str(r_params)
 elif porousMedium == 'nonOverlappingCircles':
     foldername = foldername + '/nNonOverlapCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) +\
-        '/coordDist=' + coordinateDistribution + '_c_params=' + str(c_params) + '/radiiDist=' +\
+        '/coordDist=' + coordinateDistribution + '_margins=' + str(margins) + '/radiiDist=' +\
         radiiDistribution + '_r_params=' + str(r_params)
 
 
