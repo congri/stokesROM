@@ -8,6 +8,7 @@ import dolfin as df
 import time
 import subprocess as sp
 import scipy.io as sio
+import os
 
 
 # Test for PETSc or Epetra
@@ -29,12 +30,6 @@ meshes = np.arange(0, 128)  # vector of random meshes to load
 porousMedium = 'nonOverlappingCircles'    #circles or randomField
 nElements = 128
 
-# Boundary condition parameters
-BC = np.array([0.0, 1.0, 0.0, 0.0])
-pField = str(BC[0]) + ' + ' + str(BC[1]) + '*x[0] + ' + str(BC[2]) + '*x[1] + ' + str(BC[3]) + '*x[0]*x[1]'
-uxField = str(BC[1]) + ' + ' + str(BC[3]) + '*x[1]'
-uyField = str(BC[2]) + ' + ' + str(BC[3]) + '*x[0]'
-
 # Define physical parameters
 mu = 1  # viscosity
 
@@ -46,13 +41,14 @@ randFieldParams = [5.0]
 lengthScale = [.008, .008]
 
 # For circular exclusions
-nExclusionsMin = 2048
-nExclusionsMax = 2049
+nExclusionsMin = 256
+nExclusionsMax = 1025
 coordinateDistribution = 'uniform'
 radiiDistribution = 'uniform'
-r_params = (.001, .01)
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 margins = (0, .03, 0, .03)
+r_params = (.003, .015)
+
 
 # Flow boundary condition for velocity on domain boundary
 u_x = '0.25 - (x[1] - 0.5)*(x[1] - 0.5)'
@@ -196,7 +192,11 @@ for meshNumber in meshes:
         '''
 
         # Save solution to mat file for easy read-in in matlab
-        sio.savemat(foldername + '/u_x=' + u_x + '_u_y=' + u_y + '/solution' + str(meshNumber) + '.mat',
+        solutionfolder = foldername + '/u_x=' + u_x + '_u_y=' + u_y
+        if not os.path.exists(solutionfolder):
+            os.makedirs(solutionfolder)
+
+        sio.savemat(solutionfolder + '/solution' + str(meshNumber) + '.mat',
                     {'u': np.reshape(u.compute_vertex_values(), (2, -1)), 'p': p.compute_vertex_values(),
                      'x': mesh.coordinates()})
 
@@ -204,7 +204,7 @@ for meshNumber in meshes:
         if plot_flag:
             '''
             df.plot(mesh)
-    
+        
             fig = plt.figure()
             pp = df.plot(p)
             plt.colorbar(pp)
@@ -225,6 +225,6 @@ for meshNumber in meshes:
             sp.run(['pdfcrop', velocityFigureFile, velocityFigureFile])
             plt.close(fig)
     except:
-       print('Solver failed to converge. Passing to next mesh')
+        print('Solver failed to converge. Passing to next mesh')
 
 

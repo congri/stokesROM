@@ -4,9 +4,9 @@ classdef StokesData
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 128
-        nExclusions = [2048, 2049]   %[min, max] pos. number of circ. exclusions
+        nExclusions = [256, 1025]   %[min, max] pos. number of circ. exclusions
         margins = [0, .03, 0, .03]    %[l., u.] margin for impermeable phase
-        r_params = [.001, .01]    %[lo., up.] bound on random blob radius
+        r_params = [.003, .015]    %[lo., up.] bound on random blob radius
         samples
         %base name of file path
         pathname = []

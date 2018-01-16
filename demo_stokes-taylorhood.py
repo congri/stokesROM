@@ -28,22 +28,22 @@ src/demo/mesh/subdomains."""
 # Begin demo
 
 from __future__ import print_function
-from dolfin import *
+import dolfin as df
 import matplotlib.pyplot as plt
 import scipy.io as sio
 import numpy as np
 
 
 # Load mesh and subdomains
-mesh = Mesh("./dolfin_fine.xml.gz")
-sub_domains = MeshFunction("size_t", mesh, "./dolfin_fine_subdomains.xml.gz")
+mesh = df.Mesh("./dolfin_fine.xml.gz")
+sub_domains = df.MeshFunction("size_t", mesh, "./dolfin_fine_subdomains.xml.gz")
 
-plot(mesh)
-plot(sub_domains)
+df.plot(mesh)
+df.plot(sub_domains)
 
-class UpDown(SubDomain):
+class UpDown(df.SubDomain):
     def inside(self, x, on_boundary):
-        return x[1] > 1.0 - DOLFIN_EPS or x[1] < DOLFIN_EPS
+        return x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS
 
 upDown = UpDown()
 '''
@@ -54,39 +54,39 @@ W = V * Q
 '''
 
 # Define mixed function space (Taylor-Hood)
-u_e = VectorElement("CG", mesh.ufl_cell(), 2)
-p_e = FiniteElement("CG", mesh.ufl_cell(), 1)
-mixedEl = MixedElement([u_e, p_e])
-W = FunctionSpace(mesh, mixedEl)
+u_e = df.VectorElement("CG", mesh.ufl_cell(), 2)
+p_e = df.FiniteElement("CG", mesh.ufl_cell(), 1)
+mixedEl = df.MixedElement([u_e, p_e])
+W = df.FunctionSpace(mesh, mixedEl)
 
 # No-slip boundary condition for velocity 
 # x1 = 0, x1 = 1 and around the dolphin
-noslip = Constant((0, 0))
-bc0 = DirichletBC(W.sub(0), noslip, sub_domains, 0)
+noslip = df.Constant((0, 0))
+bc0 = df.DirichletBC(W.sub(0), noslip, sub_domains, 0)
 
 # Inflow boundary condition for velocity
 # x0 = 1
-inflow = Expression(("-sin(x[1]*pi)", "0.0"), degree=2)
-bc1 = DirichletBC(W.sub(0), inflow, sub_domains, 1)
+inflow = df.Expression(("-sin(x[1]*pi)", "0.0"), degree=2)
+bc1 = df.DirichletBC(W.sub(0), inflow, sub_domains, 1)
 
 # Boundary condition for pressure at outflow
 # x0 = 0
-zero = Constant(0)
-bc2 = DirichletBC(W.sub(1), zero, sub_domains, 2)
+zero = df.Constant(0)
+bc2 = df.DirichletBC(W.sub(1), zero, sub_domains, 2)
 
 # Collect boundary conditions
 bcs = [bc0, bc1]
 
 # Define variational problem
-(u, p) = TrialFunctions(W)
-(v, q) = TestFunctions(W)
-f = Constant((0, 0))
-a = (inner(grad(u), grad(v)) - div(v)*p + q*div(u))*dx
-L = inner(f, v)*dx
+(u, p) = df.TrialFunctions(W)
+(v, q) = df.TestFunctions(W)
+f = df.Constant((0, 0))
+a = (df.inner(df.grad(u), df.grad(v)) - df.div(v)*p + q*df.div(u))*df.dx
+L = df.inner(f, v)*df.dx
 
 # Compute solution
-w = Function(W)
-solve(a == L, w, bcs)
+w = df.Function(W)
+df.solve(a == L, w, bcs)
 
 # Split the mixed solution using deepcopy
 # (needed for further computation on coefficient vector)
@@ -116,3 +116,4 @@ plot(u)
 plot(p)
 interactive()
 plt.show()
+'''
