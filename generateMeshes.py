@@ -18,15 +18,16 @@ foldername1 = '/home/constantin/python/data/stokesEquation/meshes/meshSize=' + s
 
 
 #Parameters only for 'circles' mode
-nExclusionsMin = 256
-nExclusionsMax = 257
+nExclusionsDist='logn'
+nExclusionParams = (5.5, .5)
 coordinateDist = 'gauss'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 # negative margin means no margin
 margins = (-1, .025, -1, .025)
 radiiDist = 'logn'
 r_params = (-4.6, .15)
-c_params = [[.5, .5], np.array([[1/25, 0], [0, 100]])]
+coordinate_cov = [[0.04, 0], [0, 100]]
+c_params = [[.5, .5], np.array(coordinate_cov)]
 
 
 #parameters only for 'randomField' mode
@@ -148,13 +149,13 @@ if mode == 'randomField':
 elif mode == 'circles':
     print('Generating mesh with circular exclusions...')
 
-    foldername = foldername1 + '/nCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) + '/coordDist=' +\
+    foldername = foldername1 + '/nCircExcl=' + str(nExclusionParams[0]) + '-' + str(nExclusionParams[1]) + '/coordDist=' +\
                  coordinateDist + '_margins=' + str(margins) + '/radiiDist=' + radiiDist + '_r_params=' + str(r_params)
     if not os.path.exists(foldername):
         os.makedirs(foldername)
 
     for i in range(0, nMeshes):
-        nExclusions = np.random.randint(nExclusionsMin, nExclusionsMax)
+        nExclusions = np.random.randint(nExclusionParams[0], nExclusionParams[1])
         print('nExclusions = ', nExclusions)
         if coordinateDist == 'uniform':
             exclusionCentersX = (1.0 - margins[1] - margins[3])*np.random.rand(nExclusions, 1) + margins[3]
@@ -186,14 +187,26 @@ elif mode == 'circles':
 elif mode == 'nonOverlappingCircles':
     print('Generating mesh with non-overlapping circular exclusions...')
 
-    foldername = foldername1 + '/nNonOverlapCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) +\
-        '/coordDist=' + coordinateDist + '_margins=' + str(margins) +\
+    if nExclusionsDist == 'uniform':
+        foldername = foldername1 + '/nNonOverlapCircExcl=' + str(nExclusionParams[0]) + '-' + str(nExclusionParams[1]) +\
+            '/coordDist=' + coordinateDist
+    elif nExclusionsDist == 'logn':
+        foldername = foldername1 + '/nNonOverlapCircExcl=logn' + str(nExclusionParams[0]) + '-' + str(nExclusionParams[1]) + \
+                     '/coordDist=' + coordinateDist
+
+    if coordinateDist == 'gauss':
+        foldername += '_mu=' + str(c_params[0]) + 'cov=' + str(coordinate_cov)
+
+    foldername += '_margins=' + str(margins) +\
         '/radiiDist=' + radiiDist + '_r_params=' + str(r_params)
     if not os.path.exists(foldername):
         os.makedirs(foldername)
 
     for i in range(0, nMeshes):
-        nExclusions = np.random.randint(nExclusionsMin, nExclusionsMax)
+        if nExclusionsDist == 'uniform':
+            nExclusions = np.random.randint(nExclusionParams[0], nExclusionParams[1])
+        elif nExclusionsDist == 'logn':
+            nExclusions = np.random.lognormal(nExclusionParams[0], nExclusionParams[1])
         print('nExclusions = ', nExclusions)
         exclusionCenters = np.empty([0, 2])
         exclusionRadii = np.empty([0, 1])

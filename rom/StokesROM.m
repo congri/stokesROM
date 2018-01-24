@@ -40,7 +40,7 @@ classdef StokesROM
             u_bc_handle{2} = str2func(strcat('@(y)', u_x_temp_r));
             u_bc_handle{3} = str2func(strcat('@(x)', u_y_temp_u));
             u_bc_handle{4} = str2func(strcat('@(y)', '-(', u_x_temp_le, ')'));
-                        
+            
             %Coarse mesh object
             self.coarseMesh = Mesh(gridX, gridY);
             self.coarseMesh = self.coarseMesh.setBoundaries(2:(2*nX + 2*nY),...
@@ -79,7 +79,7 @@ classdef StokesROM
         end
         
         function self = update_p_c(self, XMean, XSqMean)
-            %% Find optimal theta_c and Sigma_c self-consistently: 
+            %% Find optimal theta_c and Sigma_c self-consistently:
             %update theta_c, then Sigma_c, then theta_c and so on
             
             %short-hand notation
@@ -169,7 +169,7 @@ classdef StokesROM
                     end
                     crit = norm(1./self.modelParams.gamma -...
                         1./theta_prior_hyperparam_old)/...
-                            norm(1./self.modelParams.gamma);
+                        norm(1./self.modelParams.gamma);
                     if(crit < 1e-5 || iter >= 10)
                         converged = true;
                     elseif(any(~isfinite(self.modelParams.gamma)) ||...
@@ -224,7 +224,7 @@ classdef StokesROM
                         'adaptiveGaussian'))
                     theta_temp = sumPhiTSigmaInvPhi\sumPhiTSigmaInvXmean;
                     converged = true;   %is this true? We do not need to
-                                        %iteratively maximize theta
+                    %iteratively maximize theta
                 else
                     theta_temp = U*linsolve((U*sumPhiTSigmaInvPhi*U + I), U,...
                         linsolveOpts)*sumPhiTSigmaInvXmean;
@@ -254,13 +254,13 @@ classdef StokesROM
                         self.trainingData.designMatrix{n}*curr_theta_c;
                 end
                 
-
+                
                 Sigma_c = sparse(1:nElc, 1:nElc,...
                     mean(XSqMean - 2*(PhiThetaMat.*XMean) + PhiThetaMat.^2, 2));
                 %Variances must be positive
                 Sigma_c(logical(eye(size(Sigma_c)))) =...
                     abs(Sigma_c(logical(eye(size(Sigma_c)))));
-                                
+                
                 
                 %% Recompute changed quantities
                 Sigma_c_inv = inv(Sigma_c);
@@ -303,6 +303,79 @@ classdef StokesROM
                 end
             end
             mean_s0 = mean(self.modelParams.sigma_cf.s0)
+        end
+        
+        function [] = plotCurrentState(self, fig, dataOffset, condTransOpts)
+            %Plots the current modal effective property and the modal
+            %reconstruction for 2 -training- samples
+            for i = 1:2
+                Lambda_eff_mode = conductivityBackTransform(...
+                    self.trainingData.designMatrix{i + dataOffset}*...
+                    self.modelParams.theta_c, condTransOpts);
+                sb1 = subplot(2, 3, 1 + (i - 1)*3, 'Parent', fig);
+                imagesc(reshape(Lambda_eff_mode, self.coarseMesh.nElX,...
+                    self.coarseMesh.nElY)', 'Parent', sb1)
+                sb1.YDir = 'normal';
+                axis(sb1, 'tight');
+                axis(sb1, 'square');
+                sb1.GridLineStyle = 'none';
+                sb1.XTick = [];
+                sb1.YTick = [];
+                cbp_lambda = colorbar('Parent', fig);
+                sb2 = subplot(2, 3, 2 + (i - 1)*3, 'Parent', fig);
+                if isempty(self.trainingData.cells)
+                    self.trainingData = self.trainingData.readData('c');
+                end
+                trihandle = trisurf(self.trainingData.cells{i + dataOffset},...
+                    self.trainingData.X{i + dataOffset}(:, 1),...
+                    self.trainingData.X{i + dataOffset}(:, 2),...
+                    self.trainingData.P{i + dataOffset}, 'Parent', sb2);
+                trihandle.LineStyle = 'none';
+                axis(sb2, 'tight');
+                axis(sb2, 'square');
+                sb2.View = [0, 90];
+                sb2.GridLineStyle = 'none';
+                sb2.XTick = [];
+                sb2.YTick = [];
+                sb2.Box = 'on';
+                sb2.BoxStyle = 'full';
+                
+                cbp_true = colorbar('Parent', fig);
+                
+                sb3 = subplot(2, 3, 3 + (i - 1)*3, 'Parent', fig);
+                D = zeros(2, 2, self.coarseMesh.nEl);
+                for j = 1:self.coarseMesh.nEl
+                    D(:, :, j) =  Lambda_eff_mode(j)*eye(2);
+                end
+                
+                coarseFEMout = heat2d(self.coarseMesh, D);
+                
+                Tc = coarseFEMout.Tff';
+                Tc = Tc(:);
+                reconstruction = self.modelParams.W_cf{i + dataOffset}*Tc;
+                
+                trihandle2 = trisurf(self.trainingData.cells{i + dataOffset},...
+                    self.trainingData.X{i + dataOffset}(:, 1),...
+                    self.trainingData.X{i + dataOffset}(:, 2),...
+                    reconstruction, 'Parent', sb3);
+                trihandle2.LineStyle = 'none';
+                trihandle2.FaceColor = 'b';
+                hold(sb3, 'on');
+                trihandle3 = trisurf(self.trainingData.cells{i + dataOffset},...
+                    self.trainingData.X{i + dataOffset}(:, 1),...
+                    self.trainingData.X{i + dataOffset}(:, 2),...
+                    self.trainingData.P{i + dataOffset}, 'Parent', sb3);
+                trihandle3.LineStyle = 'none';
+                hold(sb3, 'off');
+                axis(sb3, 'tight');
+                axis(sb3, 'square');
+                sb3.Box = 'on';
+                sb3.BoxStyle = 'full';
+                sb3.XTick = [];
+                sb3.YTick = [];
+                cbp_reconst = colorbar('Parent', fig);
+            end
+            drawnow
         end
     end
 end

@@ -87,9 +87,9 @@ classdef ModelParams
             sb4 = subplot(3, 2, 4, 'Parent', figHandle);
             im = imagesc(reshape(diag(sqrt(self.Sigma_c(1:coarseMesh.nEl,...
                 1:coarseMesh.nEl))),...
-                coarseMesh.nElX, coarseMesh.nElY), 'Parent', sb4);
+                coarseMesh.nElX, coarseMesh.nElY)', 'Parent', sb4);
             sb4.YDir = 'normal';
-            sb4.Title.String = '\sigma_k';
+            sb4.Title.String = '$\sigma_k$';
             colorbar('Parent', figHandle);
             sb4.GridLineStyle = 'none';
             axis(sb4, 'square');
@@ -99,7 +99,7 @@ classdef ModelParams
             axis(sb5, 'tight');
             
             sb6 = subplot(3, 2, 6, 'Parent', figHandle);
-            imagesc(reshape(sqrt(self.sigma_cf.s0), nSX, nSY), 'Parent', sb6)
+            imagesc(reshape(sqrt(self.sigma_cf.s0), nSX, nSY)', 'Parent', sb6)
             sb6.Title.String = 'S';
             colorbar('Parent', figHandle);
             sb6.GridLineStyle = 'none';

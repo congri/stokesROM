@@ -4,9 +4,11 @@ classdef StokesData
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 128
-        nExclusions = [256, 1025]   %[min, max] pos. number of circ. exclusions
-        margins = [0, .03, 0, .03]    %[l., u.] margin for impermeable phase
-        r_params = [.003, .015]    %[lo., up.] bound on random blob radius
+        nExclusions = [128, 1025]   %[min, max] pos. number of circ. exclusions
+        margins = [-1, .02, -1, .02]    %[l., u.] margin for impermeable phase
+        r_params = [-4.6, .15]    %[lo., up.] bound on random blob radius
+        coordDist = 'gauss'
+        radiiDist = 'logn'
         samples
         %base name of file path
         pathname = []
@@ -45,12 +47,12 @@ classdef StokesData
                     num2str(self.meshSize), '/nNonOverlapCircExcl=',...
                     num2str(self.nExclusions(1)), '-',...
                     num2str(self.nExclusions(2)),...
-                    '/coordDist=uniform_margins=(',...
+                    '/coordDist=', self.coordDist, '_margins=(',...
                     num2str(self.margins(1)), {', '},...
                     num2str(self.margins(2)), {', '},...
                     num2str(self.margins(3)), {', '},...
-                    num2str(self.margins(4)), ')/radiiDist=uniform_',...
-                    'r_params=(', num2str(self.r_params(1)),...
+                    num2str(self.margins(4)), ')/radiiDist=', self.radiiDist,...
+                    '_r_params=(', num2str(self.r_params(1)),...
                     {', '}, num2str(self.r_params(2)), ')/'));
             end
         end
@@ -134,7 +136,6 @@ classdef StokesData
             cumsumY = cumsum(gridY);
             
             Nx = numel(gridX);
-            Ny = numel(gridY);
             
             if isempty(self.X)
                 self = self.readData('x');
@@ -180,7 +181,7 @@ classdef StokesData
             for n = 1:numel(self.samples)
                 phi = log(volumeFractionCircExclusions(...
                     self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY));
+                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
@@ -199,6 +200,65 @@ classdef StokesData
                     self.microstructData{n}.diskRadii, gridX, gridY) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
+            
+            %mean distance between disk edges
+            for n = 1:numel(self.samples)
+                phi = diskDistance(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY, 'mean',...
+                    'edge2edge');
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %mean distance between disks
+            for n = 1:numel(self.samples)
+                phi = diskDistance(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY, 'mean', 2);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %min distance between disks
+            for n = 1:numel(self.samples)
+                phi = diskDistance(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY, 'min', 2);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %specific surface of non-overlap. polydis. spheres
+            for n = 1:numel(self.samples)
+                phi = specificSurface(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %log specific surface of non-overlap. polydis. spheres
+            for n = 1:numel(self.samples)
+                phi = log(specificSurface(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %pore lin. path for non-overlap. polydis. spheres
+            %last entry is distance
+            for n = 1:numel(self.samples)
+                phi = matrixLinealPath(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY, .02);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %mean pore chord length non-overlap. polydis. spheres
+            for n = 1:numel(self.samples)
+                phi = meanChordLength(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %log mean pore chord length non-overlap. polydis. spheres
+            for n = 1:numel(self.samples)
+                phi = log(meanChordLength(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
         end
         
         function [triHandles, pltHandles, figHandle] = plotData(self, samples)
