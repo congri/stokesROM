@@ -11,6 +11,9 @@ classdef ModelParams
         W_cf
         sigma_cf
         
+        %Surrogate FEM mesh
+        coarseMesh
+        
         %% Model hyperparameters
         prior_theta_c = 'RVM'
         gamma   %Gaussian precision of prior on theta_c
@@ -56,17 +59,19 @@ classdef ModelParams
             self.variational_sigma = repmat(self.variational_sigma, nData, 1);
         end
         
-        function self = fineScaleInterp(self, X, coarseMesh)
+        function self = fineScaleInterp(self, X)
             %Precompute shape function interp. on every fine scale vertex
             
             nData = numel(X);
             for n = 1:nData
-                self.W_cf{n} = shapeInterp(coarseMesh, X{n});
+                self.W_cf{n} = shapeInterp(self.coarseMesh, X{n});
             end
+            
+            self.saveParams('W');
         end
         
         function self = plot_params(self, figHandle,...
-                thetaArray, SigmaArray, coarseMesh, nSX, nSY)
+                thetaArray, SigmaArray, nSX, nSY)
             %Plots the current theta_c
             
             %figure(figHandle);
@@ -85,9 +90,9 @@ classdef ModelParams
             axis(sb3, 'tight');
             
             sb4 = subplot(3, 2, 4, 'Parent', figHandle);
-            im = imagesc(reshape(diag(sqrt(self.Sigma_c(1:coarseMesh.nEl,...
-                1:coarseMesh.nEl))),...
-                coarseMesh.nElX, coarseMesh.nElY)', 'Parent', sb4);
+            im = imagesc(reshape(diag(sqrt(self.Sigma_c(1:self.coarseMesh.nEl,...
+                1:self.coarseMesh.nEl))),...
+                self.coarseMesh.nElX, self.coarseMesh.nElY)', 'Parent', sb4);
             sb4.YDir = 'normal';
             sb4.Title.String = '$\sigma_k$';
             colorbar('Parent', figHandle);
@@ -105,6 +110,57 @@ classdef ModelParams
             sb6.GridLineStyle = 'none';
             axis(sb6, 'square');
             sb6.YDir = 'normal';
+        end
+                
+        function [] = saveParams(self, params)
+            if ~exist('./data/', 'dir')
+                mkdir('./data/');
+            end
+            
+            %Optimal params
+            %W matrices
+            if any(params == 'W')
+                for i = 1:numel(self.W_cf)
+                    filename = strcat('./data/Wmat', num2str(i));
+                    [rowW, colW, valW] = find(self.W_cf{i});
+                    WArray = [rowW, colW, valW]';
+                    save(filename, 'WArray', '-ascii')
+                end
+            end
+            
+            %gamma
+            if any(params == 'g')
+                filename = './data/thetaPriorHyperparam';
+                thetaPriorHyperparam = self.gamma';
+                save(filename, 'thetaPriorHyperparam', '-ascii', '-append');
+            end
+            
+            %theta_c
+            if contains(params, 'tc')
+                filename = './data/theta_c';
+                tc = self.theta_c';
+                save(filename, 'tc', '-ascii', '-append');
+            end
+            
+            %sigma
+            if contains(params, 'sc')
+                filename = './data/sigma_c';
+                sc = full(diag(self.Sigma_c))';
+                save(filename, 'sc', '-ascii', '-append');
+            end
+            
+            %S
+            if contains(params, 'scf')
+                filename = './data/sigma_cf';
+                scf = self.sigma_cf.s0';
+                onlyFinal = true;
+                if onlyFinal
+                    save(filename, 'scf', '-ascii');
+                else
+                    save(filename, 'scf', '-ascii', '-append');
+                end
+            end
+            
         end
     end
 end

@@ -30,7 +30,7 @@ classdef StokesData
     end
     
     methods
-        function [self] = StokesData(samples, u_bc)
+        function self = StokesData(samples, u_bc)
             %constructor
             self.samples = samples;
             self.u_bc = u_bc;
@@ -39,7 +39,7 @@ classdef StokesData
             end
         end
         
-        function [self] = setPathName(self)
+        function self = setPathName(self)
             if isempty(self.pathname)
                 self.pathname = strcat('/home/constantin/cluster/python/',...
                     'data/stokesEquation/meshes/');
@@ -57,7 +57,7 @@ classdef StokesData
             end
         end
         
-        function [self] = readData(self, quantities)
+        function self = readData(self, quantities)
             %Reads in Stokes equation data from fenics
             %samples:          samples to load
             %quantities:       identifier for the quantities to load,
@@ -157,7 +157,7 @@ classdef StokesData
             end
         end
         
-        function [self] = evaluateFeatures(self, gridX, gridY)
+        function self = evaluateFeatures(self, gridX, gridY)
             %Evaluates the feature functions
             if isempty(self.microstructData)
                 self = self.readData('m');

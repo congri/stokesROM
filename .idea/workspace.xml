@@ -1,17 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="9994e0a7-38f6-4996-b0fd-b80354c39d8e" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change beforePath="$PROJECT_DIR$/genStokesData.py" afterPath="$PROJECT_DIR$/genStokesData.py" />
-      <change beforePath="$PROJECT_DIR$/generateMeshes.py" afterPath="$PROJECT_DIR$/generateMeshes.py" />
-      <change beforePath="$PROJECT_DIR$/rom/ModelParams.m" afterPath="$PROJECT_DIR$/rom/ModelParams.m" />
-      <change beforePath="$PROJECT_DIR$/rom/StokesData.m" afterPath="$PROJECT_DIR$/rom/StokesData.m" />
-      <change beforePath="$PROJECT_DIR$/rom/StokesROM.m" afterPath="$PROJECT_DIR$/rom/StokesROM.m" />
-      <change beforePath="$PROJECT_DIR$/rom/featureFunctions/interfacePerVolume.m" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/rom/featureFunctions/volumeFractionCircExclusions.m" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/rom/trainModel.mlx" afterPath="$PROJECT_DIR$/rom/trainModel.mlx" />
-    </list>
+    <list default="true" id="9994e0a7-38f6-4996-b0fd-b80354c39d8e" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -68,7 +58,7 @@
       <file leaf-file-name="generateMeshes.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/generateMeshes.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="305">
+            <state relative-caret-position="3105">
               <caret line="207" column="39" lean-forward="true" selection-start-line="207" selection-start-column="39" selection-end-line="207" selection-end-column="39" />
               <folding>
                 <element signature="e#52#79#0" expanded="true" />
@@ -721,7 +711,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/generateMeshes.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="305">
+        <state relative-caret-position="3105">
           <caret line="207" column="39" lean-forward="true" selection-start-line="207" selection-start-column="39" selection-end-line="207" selection-end-column="39" />
           <folding>
             <element signature="e#52#79#0" expanded="true" />

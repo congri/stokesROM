@@ -5,7 +5,6 @@ classdef StokesROM
         %ROM FEM grid vectors of rectangular mesh
         gridX = .25*ones(1, 4)
         gridY = .25*ones(1, 4)
-        coarseMesh      %mesh object
         
         %Grid of p_cf variance
         gridSX
@@ -19,13 +18,29 @@ classdef StokesROM
     end
     
     methods
-        function [self] = StokesROM(gridX, gridY, gridSX, gridSY, p_bc, u_bc)
+        function [self] = StokesROM(gridX, gridY, gridSX, gridSY)
             %Constructor
             self.gridX = gridX; nX = length(gridX);
             self.gridY = gridY; nY = length(gridY);
             
             self.gridSX = gridSX;
             self.gridSY = gridSY;
+        end
+        
+        function [self] = readTrainingData(self, samples, u_bc)
+            %Sets trainingData to StokesData object
+            self.trainingData = StokesData(samples, u_bc);
+            self.trainingData = self.trainingData.readData('px');
+        end
+        
+        function [self] = initializeModelParams(self, p_bc, u_bc)
+            %Initialize params theta_c, theta_cf
+            
+            self.modelParams = ModelParams;
+            
+            %Coarse mesh object
+            self.modelParams.coarseMesh = Mesh(self.gridX, self.gridY);
+            nX = length(self.gridX); nY = length(self.gridY);
             
             %Convert flow bc string to handle functions
             u_x_temp = strrep(u_bc{1}(5:end), 'x[1]', 'y');
@@ -41,20 +56,9 @@ classdef StokesROM
             u_bc_handle{3} = str2func(strcat('@(x)', u_y_temp_u));
             u_bc_handle{4} = str2func(strcat('@(y)', '-(', u_x_temp_le, ')'));
             
-            %Coarse mesh object
-            self.coarseMesh = Mesh(gridX, gridY);
-            self.coarseMesh = self.coarseMesh.setBoundaries(2:(2*nX + 2*nY),...
+            self.modelParams.coarseMesh =...
+                self.modelParams.coarseMesh.setBoundaries(2:(2*nX + 2*nY),...
                 p_bc, u_bc_handle);
-        end
-        
-        function [self] = readTrainingData(self, samples, u_bc)
-            %Sets trainingData to StokesData object
-            self.trainingData = StokesData(samples, u_bc);
-            self.trainingData = self.trainingData.readData('px');
-        end
-        
-        function [self] = initializeModelParams(self)
-            %Initialize params theta_c, theta_cf
             
             if isempty(self.trainingData.designMatrix)
                 self.trainingData = self.trainingData.evaluateFeatures(...
@@ -62,7 +66,6 @@ classdef StokesROM
             end
             
             %Initialize theta_c to 0
-            self.modelParams = ModelParams;
             nFeatures = size(self.trainingData.designMatrix{1}, 2);
             nElements = numel(self.gridX)*numel(self.gridY);
             nData = numel(self.trainingData.samples);
@@ -85,7 +88,7 @@ classdef StokesROM
             %short-hand notation
             dim_theta_c = numel(self.modelParams.theta_c);
             N_train = numel(self.trainingData.samples);
-            nElc = self.coarseMesh.nEl;
+            nElc = self.modelParams.coarseMesh.nEl;
             nFeatures = dim_theta_c/nElc; %for shared RVM only!
             
             %Start from previous best estimate
@@ -313,8 +316,9 @@ classdef StokesROM
                     self.trainingData.designMatrix{i + dataOffset}*...
                     self.modelParams.theta_c, condTransOpts);
                 sb1 = subplot(2, 3, 1 + (i - 1)*3, 'Parent', fig);
-                imagesc(reshape(Lambda_eff_mode, self.coarseMesh.nElX,...
-                    self.coarseMesh.nElY)', 'Parent', sb1)
+                imagesc(reshape(Lambda_eff_mode,...
+                    self.modelParams.coarseMesh.nElX,...
+                    self.modelParams.coarseMesh.nElY)', 'Parent', sb1)
                 sb1.YDir = 'normal';
                 axis(sb1, 'tight');
                 axis(sb1, 'square');
@@ -343,12 +347,12 @@ classdef StokesROM
                 cbp_true = colorbar('Parent', fig);
                 
                 sb3 = subplot(2, 3, 3 + (i - 1)*3, 'Parent', fig);
-                D = zeros(2, 2, self.coarseMesh.nEl);
-                for j = 1:self.coarseMesh.nEl
+                D = zeros(2, 2, self.modelParams.coarseMesh.nEl);
+                for j = 1:self.modelParams.coarseMesh.nEl
                     D(:, :, j) =  Lambda_eff_mode(j)*eye(2);
                 end
                 
-                coarseFEMout = heat2d(self.coarseMesh, D);
+                coarseFEMout = heat2d(self.modelParams.coarseMesh, D);
                 
                 Tc = coarseFEMout.Tff';
                 Tc = Tc(:);
@@ -376,6 +380,30 @@ classdef StokesROM
                 cbp_reconst = colorbar('Parent', fig);
             end
             drawnow
+        end
+        
+        function [predMean, predStd] = predict(self, testStokesData, mode)
+            %Function to predict finescale output from generative model
+            %stokesData is a StokesData object of fine scale data
+            
+            if(nargin < 3)
+                mode = 'test';
+            end
+            
+            %Load test file
+            if isempty(testStokesData.X)
+                testStokesData = testStokesData.readData('x');
+            end
+            if isempty(testStokesData.P)
+                testStokesData = testStokesData.readData('p');
+            end
+            
+            testStokesData
+            
+            if isempty(self.modelParams)
+                %Read in trained params form ./data folder
+            end
+
         end
     end
 end
