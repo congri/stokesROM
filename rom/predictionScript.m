@@ -22,7 +22,7 @@ p_bc = @(x) 0;
 u_bc{1} = 'u_x=0.25 - (x[1] - 0.5)*(x[1] - 0.5)';
 u_bc{2} = 'u_y=0.0';
 
-rom = StokesROM(gridX, gridY, gridSX, gridSY, p_bc, u_bc);
-testSamples = 128:143;
+rom = StokesROM(gridX, gridY, gridSX, gridSY);
+testSamples = 128:135;
 testData = StokesData(testSamples, u_bc);
-rom.predict(testData);
+[~, ~, effDiff] = rom.predict(testData);

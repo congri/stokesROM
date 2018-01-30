@@ -14,6 +14,9 @@ classdef ModelParams
         %Surrogate FEM mesh
         coarseMesh
         
+        %Transformation options of diffusivity parameter
+        condTransOpts
+        
         %% Model hyperparameters
         prior_theta_c = 'RVM'
         gamma   %Gaussian precision of prior on theta_c
@@ -21,6 +24,12 @@ classdef ModelParams
         %% Parameters of variational distributions
         variational_mu
         variational_sigma
+        
+        %% Parameters to rescale features
+        featureFunctionMean
+        featureFunctionSqMean
+        featureFunctionMin
+        featureFunctionMax
     end
     
     methods
@@ -28,35 +37,101 @@ classdef ModelParams
             %Constructor
         end
         
-        function self = initialize(self, nFeatures, nElements, nData, nSCells)
+        function self = initialize(self, nFeatures, nElements, nData,...
+                nSCells, mode)
             %Initialize model parameters
             %   nFeatures:      number of feature functions
             %   nElements:      number of macro elements
             %   nSCells:        number of cells in S-grid
             
-            %Initialize theta_c to 0
-            self.theta_c = zeros(nFeatures, 1);
-            %Initialize sigma_c to I
-            self.Sigma_c = 1e-4*eye(nElements);
-                        
-            self.sigma_cf.type = 'delta';
-            self.sigma_cf.s0 = ones(nSCells, 1);  %variance field of p_cf
-            
-            %Initialize hyperparameters
-            if strcmp(self.prior_theta_c, 'RVM')
-                self.gamma = 1e-4*ones(size(self.theta_c));
-            elseif strcmp(self.prior_theta_c, 'none')
-                self.gamma = NaN;
+            if strcmp(mode, 'load')
+                self = self.loadModelParams;
+                
+                %Initialize parameters of variational approximate distributions
+                load('./data/vardistparams.mat');
+                self.variational_mu{1} = varmu;
+                self.variational_mu = varsigma;
+                
+                self.variational_sigma{1} = 1e0*ones(1, nElements);
+                self.variational_sigma =...
+                    repmat(self.variational_sigma, nData, 1);
             else
-                error('What prior model for theta_c?')
+                %Initialize theta_c to 0
+                self.theta_c = zeros(nFeatures, 1);
+                %Initialize sigma_c to I
+                self.Sigma_c = 1e-4*eye(nElements);
+                
+                self.sigma_cf.s0 = ones(nSCells, 1);  %variance field of p_cf
+                
+                %Initialize hyperparameters
+                if strcmp(self.prior_theta_c, 'RVM')
+                    self.gamma = 1e-4*ones(size(self.theta_c));
+                elseif strcmp(self.prior_theta_c, 'none')
+                    self.gamma = NaN;
+                else
+                    error('What prior model for theta_c?')
+                end
+                
+                %Initialize parameters of variational approximate distributions
+                self.variational_mu{1} = 0*ones(1, nElements);
+                self.variational_mu = repmat(self.variational_mu, nData, 1);
+                
+                self.variational_sigma{1} = 1e0*ones(1, nElements);
+                self.variational_sigma =...
+                    repmat(self.variational_sigma, nData, 1);
+            end
+        end
+        
+        function [self] = loadModelParams(self)
+            %Initialize params theta_c, theta_cf
+                        
+            %Coarse mesh object
+            if exist('./data/coarseMesh.mat', 'file')
+                load('./data/coarseMesh.mat', 'coarseMesh');
+                self.coarseMesh = coarseMesh;
+            else
+                error('No coarseMesh found. Gen. Mesh obj. and save to ./data')
             end
             
-            %Initialize parameters of variational approximate distributions
-            self.variational_mu{1} = 0*ones(1, nElements);
-            self.variational_mu = repmat(self.variational_mu, nData, 1);
+            %Load trained params from disk
+            disp('Loading trained parameters from disk...')
+            self.gamma = dlmread('./data/thetaPriorHyperparam');
+            self.gamma = self.gamma(end, :);
+            load('./data/prior_theta_c');
+            self.prior_theta_c = priortype;
+            self.theta_c = dlmread('./data/theta_c');
+            self.theta_c = self.theta_c(end, :)';
+            self.Sigma_c = dlmread('./data/sigma_c');
+            self.Sigma_c = diag(self.Sigma_c(end, :));
+            load('./data/condTransOpts.mat');
+            self.condTransOpts = condTransOpts;
+
+            self.sigma_cf.s0 = dlmread('./data/sigma_cf')';
+            disp('done')
             
-            self.variational_sigma{1} = 1e0*ones(1, nElements);
-            self.variational_sigma = repmat(self.variational_sigma, nData, 1);
+            disp('Loading data normalization data...')
+            try
+                self.featureFunctionMean =...
+                    dlmread('./data/featureFunctionMean');
+                self.featureFunctionSqMean =...
+                    dlmread('./data/featureFunctionSqMean');
+            catch
+                warning(strcat('featureFunctionMean, featureFunctionSqMean',...
+                    'not found, setting it to 0.'))
+                self.featureFunctionMean = 0;
+                self.featureFunctionSqMean = 0;
+            end
+            
+            try
+                self.featureFunctionMin = dlmread('./data/featureFunctionMin');
+                self.featureFunctionMax = dlmread('./data/featureFunctionMax');
+            catch
+                warning(strcat('featureFunctionMin, featureFunctionMax', ...
+                    'not found, setting it to 0.'))
+                self.featureFunctionMin = 0;
+                self.featureFunctionMax = 0;
+            end
+            disp('done')
         end
         
         function self = fineScaleInterp(self, X)
@@ -117,6 +192,13 @@ classdef ModelParams
                 mkdir('./data/');
             end
             
+            %coarseMesh
+            if contains(params, 'coarseMesh')
+                %save coarseMesh to file
+                coarseMesh = self.coarseMesh;
+                save('./data/coarseMesh.mat', 'coarseMesh');
+            end
+            
             %Optimal params
             %W matrices
             if any(params == 'W')
@@ -126,6 +208,18 @@ classdef ModelParams
                     WArray = [rowW, colW, valW]';
                     save(filename, 'WArray', '-ascii')
                 end
+            end
+            
+            %prior type
+            if contains(params, 'priorType')
+                priortype = self.prior_theta_c;
+                save('./data/prior_theta_c.mat', 'priortype');
+            end
+            
+            %transformation options of effective diffusion field
+            if contains(params, 'condTransOpts')
+                condTransOpts = self.condTransOpts;
+                save('./data/condTransOpts.mat', 'condTransOpts');
             end
             
             %gamma
@@ -159,6 +253,13 @@ classdef ModelParams
                 else
                     save(filename, 'scf', '-ascii', '-append');
                 end
+            end
+            
+            %Parameters of variational distributions on log lambda_c
+            if contains(params, 'vardist')
+                varmu = self.variational_mu;
+                varsigma = self.variational_sigma;
+                save('./data/vardistparams.mat', 'varmu', 'varsigma');
             end
             
         end

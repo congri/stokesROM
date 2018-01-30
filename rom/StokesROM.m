@@ -33,7 +33,7 @@ classdef StokesROM
             self.trainingData = self.trainingData.readData('px');
         end
         
-        function [self] = initializeModelParams(self, p_bc, u_bc)
+        function [self] = initializeModelParams(self, p_bc, u_bc, mode)
             %Initialize params theta_c, theta_cf
             
             self.modelParams = ModelParams;
@@ -65,14 +65,18 @@ classdef StokesROM
                     self.gridX, self.gridY);
             end
             
-            %Initialize theta_c to 0
             nFeatures = size(self.trainingData.designMatrix{1}, 2);
             nElements = numel(self.gridX)*numel(self.gridY);
             nData = numel(self.trainingData.samples);
             nSCells = numel(self.gridSX)*numel(self.gridSY);
             
             self.modelParams = self.modelParams.initialize(nFeatures,...
-                nElements, nData, nSCells);
+                nElements, nData, nSCells, mode);
+            
+            %Parameters from previous runs can be deleted here
+            if exist('./data/', 'dir')
+                rmdir('./data', 's'); %delete old params
+            end
         end
         
         function self = M_step(self, XMean, XSqMean, sqDist_p_cf)
@@ -382,15 +386,22 @@ classdef StokesROM
             drawnow
         end
         
-        function [predMean, predStd] = predict(self, testStokesData, mode)
+        function [predMean, predStd, meanEffCond] =...
+                predict(self, testStokesData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
+            
+            %Some hard-coded prediction params
+            nSamples_p_c = 1000;    %Samples
+            useLaplaceApproximation = false;
+            
+            
             
             if(nargin < 3)
                 mode = 'test';
             end
             
-            %Load test file
+            %Load test data
             if isempty(testStokesData.X)
                 testStokesData = testStokesData.readData('x');
             end
@@ -398,12 +409,201 @@ classdef StokesROM
                 testStokesData = testStokesData.readData('p');
             end
             
-            testStokesData
+            testStokesData = testStokesData.evaluateFeatures(...
+                self.gridX, self.gridY);
             
             if isempty(self.modelParams)
                 %Read in trained params form ./data folder
+                self.modelParams = ModelParams;
+                self.modelParams = self.modelParams.loadModelParams;
             end
+            
+            %% Sample from p_c
+            disp('Sampling from p_c...')
+            nTest = numel(testStokesData.samples);
+            
+            %short hand notation/avoiding broadcast overhead
+            nElc = self.modelParams.coarseMesh.nEl;
+            
+            Xsamples = zeros(nElc, nSamples_p_c, nTest);
+            %Lambda as cell array for parallelization
+            LambdaSamples{1} = zeros(nElc, nSamples_p_c);
+            LambdaSamples = repmat(LambdaSamples, nTest, 1);
+            
+            meanEffCond = zeros(nElc, nTest);
+            
+            if useLaplaceApproximation
+                [precisionTheta, precisionLogS, precisionLogSigma] =...
+                    self.laplaceApproximation;
+                SigmaTheta = inv(precisionTheta) +...
+                    eps*eye(numel(self.theta_c.theta));
+                stdLogS = 0;
+                stdLogSigma = 0;
+            else
+                stdLogS = [];   %for parfor
+            end
+            
+            for i = 1:nTest
+                %Samples from p_c
+                if useLaplaceApproximation
+                    %First sample theta from Laplace approx, then sample X
+                    theta = mvnrnd(self.modelParams.theta_c',...
+                        SigmaTheta, nSamples_p_c)';
+                    for j = 1:nSamples_p_c
+                        Sigma2 = exp(normrnd(log(...
+                            diag(self.modelParams.Sigma_c))', stdLogSigma));
+                        Sigma2 = diag(self.modelParams.Sigma_c);
+                        Xsamples(:, j, i) = mvnrnd((...
+                            testStokesData.designMatrix{i}*...
+                            theta(:, j))', Sigma2)';
+                    end
+                else
+                    Xsamples(:, :, i) = mvnrnd((...
+                        testStokesData.designMatrix{i}*...
+                        self.modelParams.theta_c)',...
+                        self.modelParams.Sigma_c, nSamples_p_c)';
+                end
+                %Conductivities
+                LambdaSamples{i} = conductivityBackTransform(...
+                    Xsamples(:, :, i), self.modelParams.condTransOpts);
+                if(strcmp(self.modelParams.condTransOpts.type, 'log'))
+                    meanEffCond(:, i) = ...
+                        exp(testStokesData.designMatrix{i}*...
+                        self.modelParams.theta_c +...
+                        .5*diag(self.modelParams.Sigma_c));
+                else
+                    meanEffCond(:, i) = mean(LambdaSamples{i}, 2);
+                end
 
+            end
+            disp('Sampling from p_c done.')
+            
+            
+            %% Run coarse model and sample from p_cf
+            disp('Solving coarse model and sample from p_cf...')
+            for n = 1:nTest
+                predMeanArray{n} = zeros(size(testStokesData.P{n}));
+            end
+            predVarArray = predMeanArray;
+            mean_P_sq = predMeanArray;
+            
+            cm = self.modelParams.coarseMesh;
+            %Compute shape function interpolation matrices W
+            self.modelParams =...
+                self.modelParams.fineScaleInterp(testStokesData.X);
+            W_cf = self.modelParams.W_cf;
+            %S_n is a vector of variances at vertices
+            testStokesData = testStokesData.vtxToCell(self.gridX, self.gridY);
+            P = testStokesData.P;
+            for n = 1:nTest
+                S{n} = self.modelParams.sigma_cf.s0(...
+                    testStokesData.cellOfVertex{n});
+            end
+            
+            parfor n = 1:nTest
+                
+                for i = 1:nSamples_p_c
+                    D = zeros(2, 2, cm.nEl);
+                    for e = 1:cm.nEl
+                        D(:, :, e) = LambdaSamples{n}(e, i)*eye(2);
+                    end
+                    FEMout = heat2d(cm, D);
+                    Tctemp = FEMout.Tff';
+                    
+                    %sample from p_cf
+                    mu_cf = W_cf{n}*Tctemp(:);
+                    %only for diagonal S!!
+                    %Sequentially compute mean and <Tf^2> to save memory
+                    predMeanArray{n} = ((i - 1)/i)*predMeanArray{n}...
+                        + (1/i)*mu_cf;  %U_f-integration can be done analyt.
+                    mean_P_sq{n} = ((i - 1)/i)*mean_P_sq{n} + (1/i)*mu_cf.^2;
+                end
+
+                mean_P_sq{n} = mean_P_sq{n} + S{n};
+                %abs to avoid negative variance due to numerical error
+                predVarArray{n} = abs(mean_P_sq{n} - predMeanArray{n}.^2);
+                %meanTf_meanMCErr = mean(sqrt(predVarArray{n}/nSamples))
+                
+                meanMahaErrTemp{n} = mean(sqrt(abs((1./(predVarArray{n})).*...
+                    (P{n} - predMeanArray{n}).^2)));
+                sqDist{n} = (P{n} - predMeanArray{n}).^2;
+                meanSqDistTemp{n} = mean(sqDist{n});
+                
+                logLikelihood{n} = -.5*numel(P{n})*log(2*pi) -...
+                    .5*sum(log(predVarArray{n}), 'omitnan') - ...
+                    .5*sum(sqDist{n}./predVarArray{n}, 'omitnan');
+                logPerplexity{n} = -(1/(numel(P{n})))*logLikelihood{n};
+            end
+            
+            meanMahalanobisError = mean(cell2mat(meanMahaErrTemp));
+            meanSquaredDistance = mean(cell2mat(meanSqDistTemp));
+            meanSqDistSq = mean(cell2mat(meanSqDistTemp).^2);
+            meanSquaredDistanceError =...
+                sqrt((meanSqDistSq - meanSquaredDistance^2)/nTest);
+            meanLogPerplexity = mean(cell2mat(logPerplexity));
+            meanPerplexity = exp(meanLogPerplexity);
+            
+            plotPrediction = true;
+            if plotPrediction
+                fig = figure('units','normalized','outerposition',[0 0 1 1]);
+                pltstart = 0;
+                if isempty(testStokesData.cells)
+                    testStokesData = testStokesData.readData('c');
+                end
+                for i = 1:6
+                    %truth
+                    splt(i) = subplot(2, 3, i);
+                    thdl = trisurf(testStokesData.cells{i + pltstart},...
+                        testStokesData.X{i + pltstart}(:, 1),...
+                        testStokesData.X{i + pltstart}(:, 2),...
+                        testStokesData.P{i + pltstart}, 'Parent', splt(i));
+                    thdl.LineStyle = 'none';
+                    axis(splt(i), 'tight');
+                    axis(splt(i), 'square');
+                    splt(i).View = [10, 20];
+                    splt(i).GridLineStyle = 'none';
+                    splt(i).XTick = [];
+                    splt(i).YTick = [];
+                    splt(i).Box = 'on';
+                    splt(i).BoxStyle = 'full';
+                    cbp_true = colorbar('Parent', fig);
+                    
+                    %predictive mean
+                    hold on;
+                    thdlpred = trisurf(testStokesData.cells{i + pltstart},...
+                        testStokesData.X{i + pltstart}(:, 1),...
+                        testStokesData.X{i + pltstart}(:, 2),...
+                        predMeanArray{i + pltstart}, 'Parent', splt(i));
+                    thdlpred.LineStyle = 'none';
+                    thdlpred.FaceColor = 'b';
+                    
+                    %predictive mean + std
+                    thdlpstd = trisurf(testStokesData.cells{i + pltstart},...
+                        testStokesData.X{i + pltstart}(:, 1),...
+                        testStokesData.X{i + pltstart}(:, 2),...
+                        predMeanArray{i + pltstart} +...
+                        sqrt(predVarArray{i + pltstart}), 'Parent', splt(i));
+                    thdlpstd.LineStyle = 'none';
+                    thdlpstd.FaceColor = [.85 .85 .85];
+                    
+                    %predictive mean - std
+                    thdlmstd = trisurf(testStokesData.cells{i + pltstart},...
+                        testStokesData.X{i + pltstart}(:, 1),...
+                        testStokesData.X{i + pltstart}(:, 2),...
+                        predMeanArray{i + pltstart} -...
+                        sqrt(predVarArray{i + pltstart}), 'Parent', splt(i));
+                    thdlmstd.LineStyle = 'none';
+                    thdlmstd.FaceColor = [.85 .85 .85];
+                    
+                    
+                end
+            end
+            
+            
+            
+            
+            predMean = 0;
+            predStd = 0;
         end
     end
 end
