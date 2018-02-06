@@ -6,6 +6,8 @@ classdef ModelParams
         %p_c
         theta_c
         Sigma_c
+        %posterior variance of theta_c, given a prior model
+        Sigma_theta_c
         
         %p_cf
         W_cf
@@ -18,8 +20,15 @@ classdef ModelParams
         condTransOpts
         
         %% Model hyperparameters
-        prior_theta_c = 'RVM'
+        prior_theta_c = 'sharedVRVM'
         gamma   %Gaussian precision of prior on theta_c
+        VRVM_a = 1e-10;
+        VRVM_b = 1e-10;
+        VRVM_c = 1e-10;
+        VRVM_d = 1e-10;
+        VRVM_e = 1e-10;
+        VRVM_f = 1e-10;
+        VRVM_iter = 5; %iterations with fixed q(lambda_c)
         
         %% Parameters of variational distributions
         variational_mu
@@ -66,6 +75,10 @@ classdef ModelParams
                 %Initialize hyperparameters
                 if strcmp(self.prior_theta_c, 'RVM')
                     self.gamma = 1e-4*ones(size(self.theta_c));
+                elseif strcmp(self.prior_theta_c, 'VRVM')
+                    self.gamma = 1e-2*ones(size(self.theta_c));
+                elseif strcmp(self.prior_theta_c, 'sharedVRVM')
+                    self.gamma = 1e-2*ones(size(self.theta_c));
                 elseif strcmp(self.prior_theta_c, 'none')
                     self.gamma = NaN;
                 else
@@ -107,6 +120,15 @@ classdef ModelParams
             self.condTransOpts = condTransOpts;
 
             self.sigma_cf.s0 = dlmread('./data/sigma_cf')';
+            
+            try
+                self.Sigma_theta_c = dlmread('./data/Sigma_theta_c');
+                self.Sigma_theta_c = reshape(self.Sigma_theta_c,...
+                    sqrt(numel(self.Sigma_theta_c)),...
+                    sqrt(numel(self.Sigma_theta_c)));
+            catch
+                warning('Sigma_theta_c not found.');
+            end
             disp('done')
             
             disp('Loading data normalization data...')
@@ -134,6 +156,29 @@ classdef ModelParams
             disp('done')
         end
         
+        function [] = printCurrentParams(self, mode)
+            %Print current model params on screen
+            
+            if strcmp(mode, 'local')
+                disp('theta_c: row = feature, column = macro-cell:')
+                curr_theta_c = reshape(self.theta_c,...
+                    numel(self.theta_c)/self.coarseMesh.nEl,...
+                    self.coarseMesh.nEl)
+                curr_Sigma_c = full(diag(self.Sigma_c))
+                if strcmp(self.prior_theta_c, 'sharedVRVM')
+                    curr_gamma = self.gamma(1:...
+                        (numel(self.theta_c)/self.coarseMesh.nEl))
+                else
+                    curr_gamma = self.gamma
+                end
+            else
+                curr_theta_c = self.theta_c
+                curr_Sigma_c = full(diag(self.Sigma_c))
+                curr_gamma = self.gamma
+            end
+            
+        end
+        
         function self = fineScaleInterp(self, X)
             %Precompute shape function interp. on every fine scale vertex
             
@@ -149,7 +194,6 @@ classdef ModelParams
                 thetaArray, SigmaArray, nSX, nSY)
             %Plots the current theta_c
             
-            %figure(figHandle);
             sb1 = subplot(3, 2, 1, 'Parent', figHandle);
             plot(thetaArray, 'linewidth', 1, 'Parent', sb1)
             axis(sb1, 'tight');
@@ -163,6 +207,8 @@ classdef ModelParams
             sb3 = subplot(3,2,3, 'Parent', figHandle);
             semilogy(sqrt(SigmaArray), 'linewidth', 1, 'Parent', sb3)
             axis(sb3, 'tight');
+            sb3.XLabel.String = 'iter';
+            sb3.YLabel.String = '$\sigma_k$';
             
             sb4 = subplot(3, 2, 4, 'Parent', figHandle);
             im = imagesc(reshape(diag(sqrt(self.Sigma_c(1:self.coarseMesh.nEl,...
@@ -177,6 +223,8 @@ classdef ModelParams
             sb5 = subplot(3, 2, 5, 'Parent', figHandle);
             bar(self.gamma, 'linewidth', 1, 'Parent', sb5)
             axis(sb5, 'tight');
+            sb5.YLabel.String = '$\gamma$';
+            sb5.YScale = 'log';
             
             sb6 = subplot(3, 2, 6, 'Parent', figHandle);
             imagesc(reshape(sqrt(self.sigma_cf.s0), nSX, nSY)', 'Parent', sb6)
@@ -234,6 +282,13 @@ classdef ModelParams
                 filename = './data/theta_c';
                 tc = self.theta_c';
                 save(filename, 'tc', '-ascii', '-append');
+            end
+            
+            %Sigma_theta_c (variance of posterior on theta_c)
+            if contains(params, 'stc')
+                filename = './data/Sigma_theta_c';
+                stc = self.Sigma_theta_c(:)';
+                save(filename, 'stc', '-ascii', '-append');
             end
             
             %sigma

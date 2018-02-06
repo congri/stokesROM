@@ -8,10 +8,6 @@ gridY = (1/4)*ones(1, 4);
 gridSX = (1/32)*ones(1, 32);
 gridSY = (1/32)*ones(1, 32);
 
-%Step width for stochastic optimization in VI
-sw = [4e-2*ones(1, numel(gridX)*numel(gridY)),...
-    1e-3*ones(1, numel(gridX)*numel(gridY))];
-
 %Boundary condition fields
 p_bc = @(x) 0;
 %influx?

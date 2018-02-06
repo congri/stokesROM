@@ -232,7 +232,7 @@ classdef StokesData
             
             %log specific surface of non-overlap. polydis. spheres
             for n = 1:numel(self.samples)
-                phi = log(specificSurface(self.microstructData{n}.diskCenters,...
+                phi =log(specificSurface(self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridX, gridY) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
@@ -254,14 +254,44 @@ classdef StokesData
             
             %log mean pore chord length non-overlap. polydis. spheres
             for n = 1:numel(self.samples)
-                phi = log(meanChordLength(self.microstructData{n}.diskCenters,...
+                phi =log(meanChordLength(self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridX, gridY) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
         end
         
-        function [triHandles, pltHandles, figHandle] = plotData(self, samples)
+        function self = shapeToLocalDesignMat(self)
+            %Sets separate coefficients theta_c for each macro-cell in a single
+            %microstructure sample. Don't execute before rescaling/
+            %standardization of design Matrix!
+            debug = false; %debug mode
+            disp(strcat('Using separate feature coefficients theta_c for', ...
+                ' each macro-cell in a microstructure...'));
+            [nElc, nFeatureFunctions] = size(self.designMatrix{1});
+            Phi{1} = zeros(nElc, nElc*nFeatureFunctions);
+            nData = numel(self.designMatrix);
+            Phi = repmat(Phi, nData, 1);
+            
+            %Reassemble design matrix
+            for n = 1:nData
+                for k = 1:nElc
+                    Phi{n}(k, ((k - 1)*nFeatureFunctions + 1):...
+                        (k*nFeatureFunctions)) = self.designMatrix{n}(k, :);
+                end
+                Phi{n} = sparse(Phi{n});
+            end
+            if debug
+                firstDesignMatrixBeforeLocal = self.designMatrix{1}
+                firstDesignMatrixAfterLocal = full(Phi{1})
+                pause
+            end
+            self.designMatrix = Phi;
+            disp('done')
+        end
+        
+        function [triHandles, pltHandles, figHandle, cb] =...
+                plotData(self, samples)
             %Plots the fine scale data and returns handles
             
             %Load data if not yet loaded
@@ -296,8 +326,9 @@ classdef StokesData
                 box on;
                 xticks({});
                 yticks({});
-                cbp = colorbar;
-                cbp.Label.String = 'pressure p';
+                cb(1, pltIndex) = colorbar;
+                cb(1, pltIndex).Label.String = 'pressure p';
+                cb(1, pltIndex).Label.Interpreter = 'latex';
                 
                 %velocity field (norm)
                 u_norm = sqrt(sum(self.U{pltIndex}.^2));
@@ -311,9 +342,9 @@ classdef StokesData
                 box on;
                 xticks({});
                 yticks({});
-                cbu = colorbar;
-                cbu.Label.String = 'velocity u';
-                
+                cb(2, pltIndex) = colorbar;
+                cb(2, pltIndex).Label.String = 'velocity norm $|u|$';
+                cb(2, pltIndex).Label.Interpreter = 'latex';
                 pltIndex = pltIndex + 1;
             end
         end

@@ -80,9 +80,90 @@ classdef StokesROM
         end
         
         function self = M_step(self, XMean, XSqMean, sqDist_p_cf)
-            %Update parameters in p_c
-            self = self.update_p_c(XMean, XSqMean);
-            self = self.update_p_cf(sqDist_p_cf);
+            
+            if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
+                    strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
+                dim_theta = numel(self.modelParams.theta_c);
+                nTrain = numel(self.trainingData.samples);
+                nElc = size(self.trainingData.designMatrix{1}, 1);
+                
+                %Parameters that do not change when q(lambda_c) is fixed
+                a = self.modelParams.VRVM_a + .5;
+                e = self.modelParams.VRVM_e + .5*nTrain;
+                c = self.modelParams.VRVM_c + .5*nTrain;
+                Ncells_gridS = numel(self.gridSX)*numel(self.gridSY);
+                sqDistSum = zeros(Ncells_gridS, 1);
+                for j = 1:Ncells_gridS
+                    for n = 1:numel(self.trainingData.samples)
+                        sqDistSum(j)= sqDistSum(j) + mean(sqDist_p_cf{n}(j ==...
+                            self.trainingData.cellOfVertex{n}));
+                    end
+                end
+                f = self.modelParams.VRVM_f + .5*sqDistSum;
+                tau_cf = e./f;  %p_cf precision
+                
+                %initialization
+                if(numel(self.modelParams.gamma) ~= dim_theta)
+                    warning('resizing theta precision parameter gamma')
+                    self.modelParams.gamma = 1e0*ones(dim_theta, 1);
+                end
+                gamma = self.modelParams.gamma;
+                tau_theta = diag(gamma);    %precision of q(theta_c)
+                if isempty(self.modelParams.Sigma_theta_c)
+                    Sigma_theta = inv(tau_theta);
+                else
+                    Sigma_theta = self.modelParams.Sigma_theta_c;
+                end
+                mu_theta = self.modelParams.theta_c;
+                
+                for i = 1:self.modelParams.VRVM_iter
+                    b = self.modelParams.VRVM_b + .5*(mu_theta.^2 +...
+                            diag(Sigma_theta));
+                    if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
+                        b = reshape(b, dim_theta/nElc, nElc);
+                        b = mean(b, 2);
+                        b = repmat(b, nElc, 1);
+                    end
+                    gamma = a./b;
+                    d = self.modelParams.VRVM_d + .5*sum(XSqMean, 2);
+                    for n = 1:nTrain
+                        PhiThetaMean_n = self.trainingData.designMatrix{n}*...
+                            mu_theta;
+                        d = d - XMean(:, n).*PhiThetaMean_n;
+                        PhiThetaSq_n = diag(PhiThetaMean_n*PhiThetaMean_n'+...
+                            self.trainingData.designMatrix{n}*...
+                            Sigma_theta*self.trainingData.designMatrix{n}');
+                        d = d + .5*PhiThetaSq_n;
+                    end
+                    tau_c = c./d;   %precision of p_c
+                    tau_theta = diag(gamma);
+                    sumPhiTau_cXMean = 0;
+                    for n = 1:nTrain
+                        tau_theta = tau_theta +...
+                            self.trainingData.designMatrix{n}'*diag(tau_c)*...
+                            self.trainingData.designMatrix{n};
+                        sumPhiTau_cXMean = sumPhiTau_cXMean + ...
+                            self.trainingData.designMatrix{n}'*...
+                            diag(tau_c)*XMean(:, n);
+                    end
+                    Sigma_theta = inv(tau_theta);
+                    mu_theta = Sigma_theta*sumPhiTau_cXMean;
+                end
+                
+                %assign <S>, <Sigma_c>, <theta_c>
+                self.modelParams.sigma_cf.s0 = 1./tau_cf;
+                
+                self.modelParams.Sigma_c = diag(1./tau_c);
+                self.modelParams.theta_c = mu_theta;
+                self.modelParams.Sigma_theta_c = Sigma_theta;
+                
+                self.modelParams.gamma = gamma;
+                mean_s0 = mean(self.modelParams.sigma_cf.s0)
+            else
+                %Update model parameters
+                self = self.update_p_c(XMean, XSqMean);
+                self = self.update_p_cf(sqDist_p_cf);
+            end
         end
         
         function self = update_p_c(self, XMean, XSqMean)
@@ -390,16 +471,16 @@ classdef StokesROM
                 predict(self, testStokesData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
+            %   mode:       'local' for separate theta_c's per macro-cell
+            
+            if nargin < 3
+                mode = '';
+            end
+            
             
             %Some hard-coded prediction params
             nSamples_p_c = 1000;    %Samples
-            useLaplaceApproximation = false;
             
-            
-            
-            if(nargin < 3)
-                mode = 'test';
-            end
             
             %Load test data
             if isempty(testStokesData.X)
@@ -411,6 +492,9 @@ classdef StokesROM
             
             testStokesData = testStokesData.evaluateFeatures(...
                 self.gridX, self.gridY);
+            if strcmp(mode, 'local')
+                testStokesData = testStokesData.shapeToLocalDesignMat;
+            end
             
             if isempty(self.modelParams)
                 %Read in trained params form ./data folder
@@ -419,7 +503,7 @@ classdef StokesROM
             end
             
             %% Sample from p_c
-            disp('Sampling from p_c...')
+            disp('Sampling effective diffusivities...')
             nTest = numel(testStokesData.samples);
             
             %short hand notation/avoiding broadcast overhead
@@ -432,49 +516,41 @@ classdef StokesROM
             
             meanEffCond = zeros(nElc, nTest);
             
-            if useLaplaceApproximation
-                [precisionTheta, precisionLogS, precisionLogSigma] =...
-                    self.laplaceApproximation;
-                SigmaTheta = inv(precisionTheta) +...
-                    eps*eye(numel(self.theta_c.theta));
-                stdLogS = 0;
-                stdLogSigma = 0;
-            else
-                stdLogS = [];   %for parfor
-            end
+            stdLogS = [];   %for parfor
+            
             
             for i = 1:nTest
-                %Samples from p_c
-                if useLaplaceApproximation
-                    %First sample theta from Laplace approx, then sample X
-                    theta = mvnrnd(self.modelParams.theta_c',...
-                        SigmaTheta, nSamples_p_c)';
-                    for j = 1:nSamples_p_c
-                        Sigma2 = exp(normrnd(log(...
-                            diag(self.modelParams.Sigma_c))', stdLogSigma));
-                        Sigma2 = diag(self.modelParams.Sigma_c);
-                        Xsamples(:, j, i) = mvnrnd((...
-                            testStokesData.designMatrix{i}*...
-                            theta(:, j))', Sigma2)';
-                    end
+                if strcmp(self.modelParams.prior_theta_c, 'VRVM')
+                    SigmaTildeInv = testStokesData.designMatrix{i}'*...
+                        (self.modelParams.Sigma_c\...
+                        testStokesData.designMatrix{i}) + ...
+                        inv(self.modelParams.Sigma_theta_c);
+                    SigmaTilde = inv(SigmaTildeInv);
+                    Sigma_c_inv_Phi = self.modelParams.Sigma_c\...
+                        testStokesData.designMatrix{i};
+                    precisionLambda_c = inv(self.modelParams.Sigma_c) - ...
+                        Sigma_c_inv_Phi*SigmaTilde*Sigma_c_inv_Phi';
+                    Sigma_lambda_c = inv(precisionLambda_c);
+                    mu_lambda_c = Sigma_lambda_c*Sigma_c_inv_Phi*(SigmaTilde/...
+                       self.modelParams.Sigma_theta_c)*self.modelParams.theta_c;
                 else
-                    Xsamples(:, :, i) = mvnrnd((...
-                        testStokesData.designMatrix{i}*...
-                        self.modelParams.theta_c)',...
-                        self.modelParams.Sigma_c, nSamples_p_c)';
+                    mu_lambda_c = testStokesData.designMatrix{i}*...
+                    self.modelParams.theta_c;
+                    Sigma_lambda_c = self.modelParams.Sigma_c;
                 end
-                %Conductivities
+                %Samples of lambda_c
+                if ~issymmetric(Sigma_lambda_c)
+                    warning('Sigma_lambda_c not sym. to machine accuracy');
+                    skew_sum = sum(sum(abs(...
+                        .5*(Sigma_lambda_c - Sigma_lambda_c'))))
+                    Sigma_lambda_c = .5*(Sigma_lambda_c + Sigma_lambda_c');
+                end
+                Xsamples(:, :, i) = mvnrnd(mu_lambda_c',...
+                    Sigma_lambda_c, nSamples_p_c)';
+                %Diffusivities
                 LambdaSamples{i} = conductivityBackTransform(...
                     Xsamples(:, :, i), self.modelParams.condTransOpts);
-                if(strcmp(self.modelParams.condTransOpts.type, 'log'))
-                    meanEffCond(:, i) = ...
-                        exp(testStokesData.designMatrix{i}*...
-                        self.modelParams.theta_c +...
-                        .5*diag(self.modelParams.Sigma_c));
-                else
-                    meanEffCond(:, i) = mean(LambdaSamples{i}, 2);
-                end
-
+                meanEffCond(:, i) = mean(LambdaSamples{i}, 2);
             end
             disp('Sampling from p_c done.')
             
@@ -501,7 +577,6 @@ classdef StokesROM
             end
             
             parfor n = 1:nTest
-                
                 for i = 1:nSamples_p_c
                     D = zeros(2, 2, cm.nEl);
                     for e = 1:cm.nEl
@@ -518,8 +593,8 @@ classdef StokesROM
                         + (1/i)*mu_cf;  %U_f-integration can be done analyt.
                     mean_P_sq{n} = ((i - 1)/i)*mean_P_sq{n} + (1/i)*mu_cf.^2;
                 end
-
                 mean_P_sq{n} = mean_P_sq{n} + S{n};
+                
                 %abs to avoid negative variance due to numerical error
                 predVarArray{n} = abs(mean_P_sq{n} - predMeanArray{n}.^2);
                 %meanTf_meanMCErr = mean(sqrt(predVarArray{n}/nSamples))
