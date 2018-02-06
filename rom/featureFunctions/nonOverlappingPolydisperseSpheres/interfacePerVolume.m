@@ -34,11 +34,11 @@ Ncirc = length(diskRadii);
 interfaceArea = 0*A0;          %interfaces are of dimension 1 in 2d
 for circ = 1:Ncirc
     nx = 1;
-    while(diskCenters(circ, 1) > cumsumX(nx))
+    while(diskCenters(circ, 1) > cumsumX(nx) && nx < Nx)
         nx = nx + 1;
     end
     ny = 1;
-    while(diskCenters(circ, 2) > cumsumY(ny))
+    while(diskCenters(circ, 2) > cumsumY(ny) && ny < Ny)
         ny = ny + 1;
     end
 

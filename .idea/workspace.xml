@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9994e0a7-38f6-4996-b0fd-b80354c39d8e" name="Default" comment="">
+<<<<<<< HEAD
       <change beforePath="$PROJECT_DIR$/genStokesData.py" afterPath="$PROJECT_DIR$/genStokesData.py" />
       <change beforePath="$PROJECT_DIR$/generateMeshes.py" afterPath="$PROJECT_DIR$/generateMeshes.py" />
 <<<<<<< HEAD
@@ -13,6 +14,13 @@
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
 =======
 >>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
+=======
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change beforePath="$PROJECT_DIR$/rom/ModelParams.m" afterPath="$PROJECT_DIR$/rom/ModelParams.m" />
+      <change beforePath="$PROJECT_DIR$/rom/StokesROM.m" afterPath="$PROJECT_DIR$/rom/StokesROM.m" />
+      <change beforePath="$PROJECT_DIR$/rom/log_p_c.m" afterPath="$PROJECT_DIR$/rom/log_p_c.m" />
+      <change beforePath="$PROJECT_DIR$/rom/trainModel.mlx" afterPath="$PROJECT_DIR$/rom/trainModel.mlx" />
+>>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -30,20 +38,25 @@
     <SUITE FILE_PATH="coverage/stokesEquation$genStokesData.coverage" NAME="genStokesData Coverage Results" MODIFIED="1515416958756" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
 =======
     <SUITE FILE_PATH="coverage/stokesEquation$demo_stokes_taylorhood.coverage" NAME="demo_stokes-taylorhood Coverage Results" MODIFIED="1516011028802" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/stokesEquation$generateMeshes.coverage" NAME="generateMeshes Coverage Results" MODIFIED="1516115480942" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/stokesEquation$generateMeshes.coverage" NAME="generateMeshes Coverage Results" MODIFIED="1516811233096" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/stokesEquation$loadMesh.coverage" NAME="loadMesh Coverage Results" MODIFIED="1512387800239" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+<<<<<<< HEAD
 <<<<<<< HEAD
     <SUITE FILE_PATH="coverage/stokesEquation$genStokesData.coverage" NAME="genStokesData Coverage Results" MODIFIED="1516091988869" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
 =======
     <SUITE FILE_PATH="coverage/stokesEquation$genStokesData.coverage" NAME="genStokesData Coverage Results" MODIFIED="1516109679451" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
 >>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
+=======
+    <SUITE FILE_PATH="coverage/stokesEquation$genStokesData.coverage" NAME="genStokesData Coverage Results" MODIFIED="1517824693084" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+>>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="genStokesData.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/genStokesData.py">
           <provider selected="true" editor-type-id="text-editor">
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
             <state relative-caret-position="540">
@@ -56,6 +69,10 @@
             <state relative-caret-position="360">
               <caret line="36" column="19" lean-forward="true" selection-start-line="36" selection-start-column="19" selection-end-line="36" selection-end-column="19" />
 >>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
+=======
+            <state relative-caret-position="405">
+              <caret line="147" column="18" lean-forward="false" selection-start-line="147" selection-start-column="18" selection-end-line="147" selection-end-column="18" />
+>>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
               <folding>
                 <element signature="e#147#178#0" expanded="true" />
               </folding>
@@ -66,7 +83,7 @@
       <file leaf-file-name="demo_stokes-taylorhood.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/demo_stokes-taylorhood.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1770">
+            <state relative-caret-position="1710">
               <caret line="118" column="3" lean-forward="false" selection-start-line="118" selection-start-column="3" selection-end-line="118" selection-end-column="3" />
               <folding>
                 <element signature="e#1117#1154#0" expanded="true" />
@@ -92,6 +109,7 @@
           <provider selected="true" editor-type-id="text-editor">
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             <state relative-caret-position="-1350">
               <caret line="24" column="1" lean-forward="false" selection-start-line="24" selection-start-column="0" selection-end-line="24" selection-end-column="28" />
 =======
@@ -102,20 +120,12 @@
             <state relative-caret-position="393">
               <caret line="251" column="0" lean-forward="false" selection-start-line="251" selection-start-column="0" selection-end-line="251" selection-end-column="0" />
 >>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
+=======
+            <state relative-caret-position="2820">
+              <caret line="188" column="0" lean-forward="true" selection-start-line="188" selection-start-column="0" selection-end-line="188" selection-end-column="0" />
+>>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
               <folding>
                 <element signature="e#52#79#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="meshGenerationTest.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/meshGenerationTest.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="375">
-              <caret line="28" column="6" lean-forward="false" selection-start-line="28" selection-start-column="6" selection-end-line="28" selection-end-column="6" />
-              <folding>
-                <element signature="e#0#19#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -176,14 +186,23 @@
       <find>randomField</find>
       <find>domain</find>
       <find>boundaries</find>
-      <find>c_params</find>
       <find>fig</find>
 <<<<<<< HEAD
       <find>c_params</find>
 =======
       <find>mu</find>
+<<<<<<< HEAD
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
+=======
+      <find>nExclusionsMin</find>
+      <find>nExclusionsMax</find>
+      <find>c_params</find>
+>>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
     </findStrings>
+    <replaceStrings>
+      <replace>nExclusionParams[0]</replace>
+      <replace>nExclusionParams[1]</replace>
+    </replaceStrings>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -207,9 +226,13 @@
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
 =======
         <option value="$PROJECT_DIR$/demo_stokes-taylorhood.py" />
+<<<<<<< HEAD
         <option value="$PROJECT_DIR$/genStokesData.py" />
 >>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
+=======
+>>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
         <option value="$PROJECT_DIR$/generateMeshes.py" />
+        <option value="$PROJECT_DIR$/genStokesData.py" />
       </list>
     </option>
   </component>
@@ -259,10 +282,14 @@
       </list>
     </option>
   </component>
+<<<<<<< HEAD
   <component name="RunManager" selected="Python.generateMeshes">
 <<<<<<< HEAD
     <configuration name="genStokesData" type="PythonConfigurationType" factoryName="Python" temporary="true">
 =======
+=======
+  <component name="RunManager" selected="Python.genStokesData">
+>>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
     <configuration name="demo_stokes-taylorhood" type="PythonConfigurationType" factoryName="Python" temporary="true">
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -368,6 +395,7 @@
     </list>
     <recent_temporary>
       <list size="5">
+<<<<<<< HEAD
         <item index="0" class="java.lang.String" itemvalue="Python.generateMeshes" />
         <item index="1" class="java.lang.String" itemvalue="Python.genStokesData" />
 <<<<<<< HEAD
@@ -375,6 +403,10 @@
         <item index="3" class="java.lang.String" itemvalue="Python.plotStokes" />
         <item index="4" class="java.lang.String" itemvalue="Python.loadMesh" />
 =======
+=======
+        <item index="0" class="java.lang.String" itemvalue="Python.genStokesData" />
+        <item index="1" class="java.lang.String" itemvalue="Python.generateMeshes" />
+>>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
         <item index="2" class="java.lang.String" itemvalue="Python.demo_stokes-taylorhood" />
         <item index="3" class="java.lang.String" itemvalue="Python.meshGenerationTest" />
         <item index="4" class="java.lang.String" itemvalue="Python.plotStokes" />
@@ -403,10 +435,10 @@
     <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33697632" sideWeight="0.50416666" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33697632" sideWeight="0.5083333" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.21838035" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33697632" sideWeight="0.49583334" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33697632" sideWeight="0.49166667" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.08020833" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Docker" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
@@ -730,9 +762,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="375">
           <caret line="28" column="6" lean-forward="false" selection-start-line="28" selection-start-column="6" selection-end-line="28" selection-end-column="6" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -774,6 +803,7 @@
       <provider selected="true" editor-type-id="text-editor">
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         <state relative-caret-position="540">
           <caret line="48" column="28" lean-forward="false" selection-start-line="48" selection-start-column="28" selection-end-line="48" selection-end-column="28" />
 =======
@@ -782,6 +812,9 @@
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
 =======
         <state relative-caret-position="1770">
+=======
+        <state relative-caret-position="1710">
+>>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
           <caret line="118" column="3" lean-forward="false" selection-start-line="118" selection-start-column="3" selection-end-line="118" selection-end-column="3" />
 >>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
           <folding>
@@ -803,8 +836,8 @@
     <entry file="file://$PROJECT_DIR$/genStokesData.py">
 >>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="360">
-          <caret line="36" column="19" lean-forward="true" selection-start-line="36" selection-start-column="19" selection-end-line="36" selection-end-column="19" />
+        <state relative-caret-position="405">
+          <caret line="147" column="18" lean-forward="false" selection-start-line="147" selection-start-column="18" selection-end-line="147" selection-end-column="18" />
           <folding>
             <element signature="e#147#178#0" expanded="true" />
           </folding>
@@ -813,8 +846,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/generateMeshes.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="393">
-          <caret line="251" column="0" lean-forward="false" selection-start-line="251" selection-start-column="0" selection-end-line="251" selection-end-column="0" />
+        <state relative-caret-position="2820">
+          <caret line="188" column="0" lean-forward="true" selection-start-line="188" selection-start-column="0" selection-end-line="188" selection-end-column="0" />
           <folding>
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
             <element signature="e#52#79#0" expanded="true" />
