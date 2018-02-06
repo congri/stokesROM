@@ -2,15 +2,17 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9994e0a7-38f6-4996-b0fd-b80354c39d8e" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/demo_stokes-taylorhood.py" afterPath="$PROJECT_DIR$/demo_stokes-taylorhood.py" />
       <change beforePath="$PROJECT_DIR$/genStokesData.py" afterPath="$PROJECT_DIR$/genStokesData.py" />
       <change beforePath="$PROJECT_DIR$/generateMeshes.py" afterPath="$PROJECT_DIR$/generateMeshes.py" />
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
       <change beforePath="$PROJECT_DIR$/rom/ModelParams.m" afterPath="$PROJECT_DIR$/rom/ModelParams.m" />
       <change beforePath="$PROJECT_DIR$/rom/StokesData.m" afterPath="$PROJECT_DIR$/rom/StokesData.m" />
       <change beforePath="$PROJECT_DIR$/rom/trainModel.mlx" afterPath="$PROJECT_DIR$/rom/trainModel.mlx" />
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
+=======
+>>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -28,10 +30,14 @@
     <SUITE FILE_PATH="coverage/stokesEquation$genStokesData.coverage" NAME="genStokesData Coverage Results" MODIFIED="1515416958756" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
 =======
     <SUITE FILE_PATH="coverage/stokesEquation$demo_stokes_taylorhood.coverage" NAME="demo_stokes-taylorhood Coverage Results" MODIFIED="1516011028802" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/stokesEquation$generateMeshes.coverage" NAME="generateMeshes Coverage Results" MODIFIED="1516107807413" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/stokesEquation$generateMeshes.coverage" NAME="generateMeshes Coverage Results" MODIFIED="1516115480942" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/stokesEquation$loadMesh.coverage" NAME="loadMesh Coverage Results" MODIFIED="1512387800239" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+<<<<<<< HEAD
     <SUITE FILE_PATH="coverage/stokesEquation$genStokesData.coverage" NAME="genStokesData Coverage Results" MODIFIED="1516091988869" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
+=======
+    <SUITE FILE_PATH="coverage/stokesEquation$genStokesData.coverage" NAME="genStokesData Coverage Results" MODIFIED="1516109679451" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+>>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
@@ -39,12 +45,17 @@
         <entry file="file://$PROJECT_DIR$/genStokesData.py">
           <provider selected="true" editor-type-id="text-editor">
 <<<<<<< HEAD
+<<<<<<< HEAD
             <state relative-caret-position="540">
               <caret line="48" column="28" lean-forward="false" selection-start-line="48" selection-start-column="28" selection-end-line="48" selection-end-column="28" />
 =======
             <state relative-caret-position="423">
               <caret line="43" column="20" lean-forward="false" selection-start-line="43" selection-start-column="20" selection-end-line="43" selection-end-column="20" />
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
+=======
+            <state relative-caret-position="360">
+              <caret line="36" column="19" lean-forward="true" selection-start-line="36" selection-start-column="19" selection-end-line="36" selection-end-column="19" />
+>>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
               <folding>
                 <element signature="e#147#178#0" expanded="true" />
               </folding>
@@ -80,12 +91,17 @@
         <entry file="file://$PROJECT_DIR$/generateMeshes.py">
           <provider selected="true" editor-type-id="text-editor">
 <<<<<<< HEAD
+<<<<<<< HEAD
             <state relative-caret-position="-1350">
               <caret line="24" column="1" lean-forward="false" selection-start-line="24" selection-start-column="0" selection-end-line="24" selection-end-column="28" />
 =======
             <state relative-caret-position="168">
               <caret line="206" column="55" lean-forward="false" selection-start-line="206" selection-start-column="55" selection-end-line="206" selection-end-column="55" />
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
+=======
+            <state relative-caret-position="393">
+              <caret line="251" column="0" lean-forward="false" selection-start-line="251" selection-start-column="0" selection-end-line="251" selection-end-column="0" />
+>>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
               <folding>
                 <element signature="e#52#79#0" expanded="true" />
               </folding>
@@ -183,11 +199,16 @@
         <option value="$PROJECT_DIR$/porousMedia.py" />
         <option value="$PROJECT_DIR$/plotStokes.py" />
         <option value="$PROJECT_DIR$/meshGenerationTest.py" />
+<<<<<<< HEAD
         <option value="$PROJECT_DIR$/genStokesData.py" />
 <<<<<<< HEAD
 =======
         <option value="$PROJECT_DIR$/demo_stokes-taylorhood.py" />
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
+=======
+        <option value="$PROJECT_DIR$/demo_stokes-taylorhood.py" />
+        <option value="$PROJECT_DIR$/genStokesData.py" />
+>>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
         <option value="$PROJECT_DIR$/generateMeshes.py" />
       </list>
     </option>
@@ -749,8 +770,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/genStokesData.py">
+    <entry file="file://$PROJECT_DIR$/demo_stokes-taylorhood.py">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< HEAD
 <<<<<<< HEAD
         <state relative-caret-position="540">
           <caret line="48" column="28" lean-forward="false" selection-start-line="48" selection-start-column="28" selection-end-line="48" selection-end-column="28" />
@@ -758,12 +780,17 @@
         <state relative-caret-position="423">
           <caret line="43" column="20" lean-forward="false" selection-start-line="43" selection-start-column="20" selection-end-line="43" selection-end-column="20" />
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
+=======
+        <state relative-caret-position="1770">
+          <caret line="118" column="3" lean-forward="false" selection-start-line="118" selection-start-column="3" selection-end-line="118" selection-end-column="3" />
+>>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
           <folding>
-            <element signature="e#147#178#0" expanded="true" />
+            <element signature="e#1117#1154#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
 <<<<<<< HEAD
     <entry file="file://$PROJECT_DIR$/generateMeshes.py">
       <provider selected="true" editor-type-id="text-editor">
@@ -772,19 +799,22 @@
           <folding>
 =======
     <entry file="file://$PROJECT_DIR$/demo_stokes-taylorhood.py">
+=======
+    <entry file="file://$PROJECT_DIR$/genStokesData.py">
+>>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1770">
-          <caret line="118" column="3" lean-forward="false" selection-start-line="118" selection-start-column="3" selection-end-line="118" selection-end-column="3" />
+        <state relative-caret-position="360">
+          <caret line="36" column="19" lean-forward="true" selection-start-line="36" selection-start-column="19" selection-end-line="36" selection-end-column="19" />
           <folding>
-            <element signature="e#1117#1154#0" expanded="true" />
+            <element signature="e#147#178#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/generateMeshes.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="206" column="55" lean-forward="false" selection-start-line="206" selection-start-column="55" selection-end-line="206" selection-end-column="55" />
+        <state relative-caret-position="393">
+          <caret line="251" column="0" lean-forward="false" selection-start-line="251" selection-start-column="0" selection-end-line="251" selection-end-column="0" />
           <folding>
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
             <element signature="e#52#79#0" expanded="true" />
