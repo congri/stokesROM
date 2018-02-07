@@ -5,11 +5,12 @@ clear
 addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 %% Define parameters here:
 
-samples = 0:3;
+samples = 0:15;
 max_EM_iter = 800;  %maximum EM iterations
 muField = 0;        %mean function in p_cf
 
 mode = 'local';
+normalization = 'rescale';
 
 %Conductivity transformation options
 condTransOpts.type = 'log';
@@ -18,7 +19,8 @@ condTransOpts.limits = [1e-16, 1e16];
 %p_cf variance grid vectors
 gridX = (1/4)*ones(1, 4);
 gridY = gridX;
-gridSX = [.25, .5, ones(1, 28), .5, .25]; gridSX = gridSX/sum(gridSX);
+gridSX = [.125, .25, .5, ones(1, 26), .5, .25, .125];
+gridSX = gridSX/sum(gridSX);
 gridSY = gridSX;
 
 %Boundary condition fields
@@ -44,6 +46,11 @@ rom.modelParams.saveParams('priorType');
 rom.modelParams.saveParams('condTransOpts');
 rom.trainingData = rom.trainingData.evaluateFeatures(...
     rom.modelParams.coarseMesh.gridX, rom.modelParams.coarseMesh.gridY);
+
+if strcmp(normalization, 'rescale')
+    rom.trainingData = rom.trainingData.rescaleDesignMatrix;
+end
+
 if strcmp(mode, 'local')
     rom.trainingData = rom.trainingData.shapeToLocalDesignMat;
 end

@@ -458,7 +458,7 @@ classdef StokesROM
             drawnow
         end
         
-        function [predMean, predStd, meanEffCond] =...
+        function [predMean, predStd, meanEffCond, meanSqDist] =...
                 predict(self, testStokesData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
@@ -490,6 +490,12 @@ classdef StokesROM
             testStokesData = testStokesData.evaluateFeatures(...
                 self.modelParams.coarseMesh.gridX,...
                 self.modelParams.coarseMesh.gridY);
+            if exist('./data/featureFunctionMin', 'file')
+                featFuncMin = dlmread('./data/featureFunctionMin');
+                featFuncMax = dlmread('./data/featureFunctionMax');
+                testStokesData = testStokesData.rescaleDesignMatrix(...
+                    featFuncMin, featFuncMax);
+            end
             if strcmp(mode, 'local')
                 testStokesData = testStokesData.shapeToLocalDesignMat;
             end
@@ -513,7 +519,8 @@ classdef StokesROM
             
             
             for i = 1:nTest
-                if strcmp(self.modelParams.prior_theta_c, 'VRVM')
+                if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
+                        strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
                     SigmaTildeInv = testStokesData.designMatrix{i}'*...
                         (self.modelParams.Sigma_c\...
                         testStokesData.designMatrix{i}) + ...
@@ -582,6 +589,7 @@ classdef StokesROM
                     
                     %sample from p_cf
                     mu_cf = W_cf{n}*Tctemp(:);
+                    
                     %only for diagonal S!!
                     %Sequentially compute mean and <Tf^2> to save memory
                     predMeanArray{n} = ((i - 1)/i)*predMeanArray{n}...
@@ -606,10 +614,10 @@ classdef StokesROM
             end
             
             meanMahalanobisError = mean(cell2mat(meanMahaErrTemp));
-            meanSquaredDistance = mean(cell2mat(meanSqDistTemp));
+            meanSqDist = mean(cell2mat(meanSqDistTemp));
             meanSqDistSq = mean(cell2mat(meanSqDistTemp).^2);
             meanSquaredDistanceError =...
-                sqrt((meanSqDistSq - meanSquaredDistance^2)/nTest);
+                sqrt((meanSqDistSq - meanSqDist^2)/nTest);
             meanLogPerplexity = mean(cell2mat(logPerplexity));
             meanPerplexity = exp(meanLogPerplexity);
             

@@ -18,7 +18,7 @@ classdef StokesData
         P       %pressure at vertices
         U       %velocity at vertices
         cells   %cell-to-vertex map
-        cellOfVertex   %Mapping from vertex to sq. (macro-)cell
+        cellOfVertex   %Mapping from vertex to cell of S (p_cf variance)
         N_vertices_tot  %total number of vertices in data
         
         %Microstructural data, e.g. centers & radii of circular inclusions
@@ -133,7 +133,9 @@ classdef StokesData
             %Mapping from vertex to macro-cell given by grid vectors gridX,
             %gridY
             cumsumX = cumsum(gridX);
+            cumsumX(end) = cumsumX(end) + 1e-12;  %include vertices on boundary
             cumsumY = cumsum(gridY);
+            cumsumY(end) = cumsumY(end) + 1e-12;  %include vertices on boundary
             
             Nx = numel(gridX);
             
@@ -288,6 +290,84 @@ classdef StokesData
             end
             self.designMatrix = Phi;
             disp('done')
+        end
+        
+        function [featFuncMin, featFuncMax] = computeFeatureFunctionMinMax(self)
+            %Computes min/max of feature function outputs over training data,
+            %separately for every macro cell
+            featFuncMin = self.designMatrix{1};
+            featFuncMax = self.designMatrix{1};
+            for n = 1:numel(self.designMatrix)
+                featFuncMin(featFuncMin > self.designMatrix{n}) =...
+                    self.designMatrix{n}(featFuncMin > self.designMatrix{n});
+                featFuncMax(featFuncMax < self.designMatrix{n}) =...
+                    self.designMatrix{n}(featFuncMax < self.designMatrix{n});
+            end
+        end
+        
+        function self = rescaleDesignMatrix(self, featFuncMin, featFuncMax)
+            %Rescale design matrix s.t. outputs are between 0 and 1
+            disp('Rescale design matrix...')
+            
+            if nargin < 3
+                [featFuncMin, featFuncMax] = self.computeFeatureFunctionMinMax;
+            end
+            
+            featFuncDiff = featFuncMax - featFuncMin;
+            %to avoid irregularities due to rescaling (if every macro cell
+            %has the same feature function output). Like this rescaling does
+            %not have any effect
+            featFuncMin(featFuncDiff == 0) = 0;
+            featFuncDiff(featFuncDiff == 0) = 1;
+            for n = 1:numel(self.designMatrix)
+                self.designMatrix{n} =...
+                    (self.designMatrix{n} - featFuncMin)./(featFuncDiff);
+            end
+            
+            %Check if design Matrices are real and finite
+            self = self.checkDesignMatrices;
+            self.saveNormalization('rescaling', featFuncMin, featFuncMax);
+            disp('done')
+        end
+        
+        function self = checkDesignMatrices(self)
+            %Check for finiteness
+            for n = 1:numel(self.designMatrix)
+                if(~all(all(all(isfinite(self.designMatrix{n})))))
+                    warning(strcat('Non-finite design matrix.',...
+                        ' Setting non-finite component to 0.'))
+                    self.designMatrix{n}(~isfinite(self.designMatrix{n})) = 0;
+                    dataPoint = n
+                    [coarseElement, featureFunction] = ...
+                        ind2sub(size(self.designMatrix{n}),...
+                        find(~isfinite(self.designMatrix{n})))
+                elseif(~all(all(all(isreal(self.designMatrix{n})))))
+                    warning('Complex feature function output:')
+                    dataPoint = n
+                    [coarseElement, featureFunction] =...
+                        ind2sub(size(self.designMatrix{n}),...
+                        find(imag(self.designMatrix{n})))
+                    disp('Ignoring imaginary part...')
+                    self.designMatrix{n} = real(self.designMatrix{n});
+                end
+            end
+        end
+        
+        function saveNormalization(self, type, a, b)
+            disp('Saving design matrix normalization...')
+
+            if ~exist('./data')
+                mkdir('./data');
+            end
+            if strcmp(type, 'standardization')
+                save('./data/featureFunctionMean', 'a', '-ascii');
+                save('./data/featureFunctionSqMean', 'b', '-ascii');
+            elseif strcmp(type, 'rescaling')
+                save('./data/featureFunctionMin', 'a', '-ascii');
+                save('./data/featureFunctionMax', 'b', '-ascii');
+            else
+                error('Which type of data normalization?')
+            end
         end
         
         function [triHandles, pltHandles, figHandle, cb] =...
