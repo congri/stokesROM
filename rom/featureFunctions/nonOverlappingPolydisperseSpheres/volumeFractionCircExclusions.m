@@ -1,16 +1,16 @@
 function [porefrac] = volumeFractionCircExclusions(...
-    diskCenters, diskRadii, gridVectorX, gridVectorY)
+    diskCenters, diskRadii, gridX, gridY)
 %Computes the pore fraction of microstructures with disk exclusions
 %pores == voids where fluid can flow
 %   diskCenters:         clear
 %   diskRadii:           clear
 %   gridVectorX/Y:       specification of macro-cell edge lengths
 
-cumsumX = cumsum(gridVectorX);
-cumsumY = cumsum(gridVectorY);
+cumsumX = cumsum(gridX);
+cumsumY = cumsum(gridY);
 
-Nx = numel(gridVectorX);
-Ny = numel(gridVectorY);
+Nx = numel(gridX);
+Ny = numel(gridY);
 
 A0 = zeros(Nx, Ny);
 for ny = 1:Ny

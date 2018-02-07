@@ -3,6 +3,8 @@ classdef Mesh
 
     properties (SetAccess = public)
         
+        gridX                       %Mesh grid vectors
+        gridY
         nElX                        %number of finite elements in each direction
         nElY
         nEl                         %total number of elements
@@ -67,6 +69,9 @@ classdef Mesh
             %nElX and nElY are number of elements in x- and y-direction
             %lElX, lElY are vectors specifying element lengths in x- and y-dir.
             %i-th element in lElX: i-th column; j-th element in lElY: j-th row
+            
+            mesh.gridX = gridX;
+            mesh.gridY = gridY;
             
             mesh.nElX = numel(gridX);
             mesh.nElY = numel(gridY);

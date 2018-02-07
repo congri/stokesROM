@@ -2,9 +2,6 @@ classdef StokesROM
     %Class for reduced order model of Stokes equation
     
     properties
-        %ROM FEM grid vectors of rectangular mesh
-        gridX = .25*ones(1, 4)
-        gridY = .25*ones(1, 4)
         
         %Grid of p_cf variance
         gridSX
@@ -18,13 +15,8 @@ classdef StokesROM
     end
     
     methods
-        function [self] = StokesROM(gridX, gridY, gridSX, gridSY)
+        function [self] = StokesROM()
             %Constructor
-            self.gridX = gridX; nX = length(gridX);
-            self.gridY = gridY; nY = length(gridY);
-            
-            self.gridSX = gridSX;
-            self.gridSY = gridSY;
         end
         
         function [self] = readTrainingData(self, samples, u_bc)
@@ -33,14 +25,17 @@ classdef StokesROM
             self.trainingData = self.trainingData.readData('px');
         end
         
-        function [self] = initializeModelParams(self, p_bc, u_bc, mode)
+        function [self] = initializeModelParams(self, p_bc, u_bc, mode,...
+                gridX, gridY, gridSX, gridSY)
             %Initialize params theta_c, theta_cf
             
             self.modelParams = ModelParams;
+            self.modelParams.gridSX = gridSX;
+            self.modelParams.gridSY = gridSY;
             
             %Coarse mesh object
-            self.modelParams.coarseMesh = Mesh(self.gridX, self.gridY);
-            nX = length(self.gridX); nY = length(self.gridY);
+            self.modelParams.coarseMesh = Mesh(gridX, gridY);
+            nX = length(gridX); nY = length(gridY);
             
             %Convert flow bc string to handle functions
             u_x_temp = strrep(u_bc{1}(5:end), 'x[1]', 'y');
@@ -60,18 +55,12 @@ classdef StokesROM
                 self.modelParams.coarseMesh.setBoundaries(2:(2*nX + 2*nY),...
                 p_bc, u_bc_handle);
             
-            if isempty(self.trainingData.designMatrix)
-                self.trainingData = self.trainingData.evaluateFeatures(...
-                    self.gridX, self.gridY);
-            end
-            
-            nFeatures = size(self.trainingData.designMatrix{1}, 2);
-            nElements = numel(self.gridX)*numel(self.gridY);
+            nElements = numel(gridX)*numel(gridY);
             nData = numel(self.trainingData.samples);
-            nSCells = numel(self.gridSX)*numel(self.gridSY);
+            nSCells = numel(gridSX)*numel(gridSY);
             
-            self.modelParams = self.modelParams.initialize(nFeatures,...
-                nElements, nData, nSCells, mode);
+            self.modelParams = self.modelParams.initialize(nElements, nData,...
+                nSCells, mode);
             
             %Parameters from previous runs can be deleted here
             if exist('./data/', 'dir')
@@ -91,7 +80,8 @@ classdef StokesROM
                 a = self.modelParams.VRVM_a + .5;
                 e = self.modelParams.VRVM_e + .5*nTrain;
                 c = self.modelParams.VRVM_c + .5*nTrain;
-                Ncells_gridS = numel(self.gridSX)*numel(self.gridSY);
+                Ncells_gridS = numel(self.modelParams.gridSX)*...
+                    numel(self.modelParams.gridSY);
                 sqDistSum = zeros(Ncells_gridS, 1);
                 for j = 1:Ncells_gridS
                     for n = 1:numel(self.trainingData.samples)
@@ -380,7 +370,8 @@ classdef StokesROM
         
         function self = update_p_cf(self, sqDist_p_cf)
             
-            Ncells_gridS = numel(self.gridSX)*numel(self.gridSY);
+            Ncells_gridS = numel(self.modelParams.gridSX)*...
+                numel(self.modelParams.gridSY);
             self.modelParams.sigma_cf.s0 = zeros(Ncells_gridS, 1);
             for j = 1:Ncells_gridS
                 for n = 1:numel(self.trainingData.samples)
@@ -490,17 +481,19 @@ classdef StokesROM
                 testStokesData = testStokesData.readData('p');
             end
             
-            testStokesData = testStokesData.evaluateFeatures(...
-                self.gridX, self.gridY);
-            if strcmp(mode, 'local')
-                testStokesData = testStokesData.shapeToLocalDesignMat;
-            end
-            
             if isempty(self.modelParams)
                 %Read in trained params form ./data folder
                 self.modelParams = ModelParams;
                 self.modelParams = self.modelParams.loadModelParams;
             end
+            
+            testStokesData = testStokesData.evaluateFeatures(...
+                self.modelParams.coarseMesh.gridX,...
+                self.modelParams.coarseMesh.gridY);
+            if strcmp(mode, 'local')
+                testStokesData = testStokesData.shapeToLocalDesignMat;
+            end
+            
             
             %% Sample from p_c
             disp('Sampling effective diffusivities...')
@@ -569,7 +562,9 @@ classdef StokesROM
                 self.modelParams.fineScaleInterp(testStokesData.X);
             W_cf = self.modelParams.W_cf;
             %S_n is a vector of variances at vertices
-            testStokesData = testStokesData.vtxToCell(self.gridX, self.gridY);
+            testStokesData = testStokesData.vtxToCell(...
+                self.modelParams.coarseMesh.gridX,...
+                self.modelParams.coarseMesh.gridY);
             P = testStokesData.P;
             for n = 1:nTest
                 S{n} = self.modelParams.sigma_cf.s0(...

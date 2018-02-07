@@ -12,6 +12,8 @@ classdef ModelParams
         %p_cf
         W_cf
         sigma_cf
+        gridSX
+        gridSY
         
         %Surrogate FEM mesh
         coarseMesh
@@ -46,7 +48,7 @@ classdef ModelParams
             %Constructor
         end
         
-        function self = initialize(self, nFeatures, nElements, nData,...
+        function self = initialize(self, nElements, nData,...
                 nSCells, mode)
             %Initialize model parameters
             %   nFeatures:      number of feature functions
@@ -65,8 +67,6 @@ classdef ModelParams
                 self.variational_sigma =...
                     repmat(self.variational_sigma, nData, 1);
             else
-                %Initialize theta_c to 0
-                self.theta_c = zeros(nFeatures, 1);
                 %Initialize sigma_c to I
                 self.Sigma_c = 1e-4*eye(nElements);
                 
@@ -122,10 +122,10 @@ classdef ModelParams
             self.sigma_cf.s0 = dlmread('./data/sigma_cf')';
             
             try
-                self.Sigma_theta_c = dlmread('./data/Sigma_theta_c');
-                self.Sigma_theta_c = reshape(self.Sigma_theta_c,...
-                    sqrt(numel(self.Sigma_theta_c)),...
-                    sqrt(numel(self.Sigma_theta_c)));
+                temp = dlmread('./data/Sigma_theta_c');
+                temp = temp(end, :);
+                self.Sigma_theta_c = reshape(temp, sqrt(numel(temp)),...
+                    sqrt(numel(temp)));
             catch
                 warning('Sigma_theta_c not found.');
             end
@@ -288,7 +288,12 @@ classdef ModelParams
             if contains(params, 'stc')
                 filename = './data/Sigma_theta_c';
                 stc = self.Sigma_theta_c(:)';
-                save(filename, 'stc', '-ascii', '-append');
+                onlyFinal = true;
+                if onlyFinal
+                    save(filename, 'stc', '-ascii');
+                else
+                    save(filename, 'stc', '-ascii', '-append');
+                end
             end
             
             %sigma
