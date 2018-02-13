@@ -30,7 +30,7 @@ classdef ModelParams
         VRVM_d = 1e-10;
         VRVM_e = 1e-10;
         VRVM_f = 1e-10;
-        VRVM_iter = 5; %iterations with fixed q(lambda_c)
+        VRVM_iter = 200; %iterations with fixed q(lambda_c)
         
         %% Parameters of variational distributions
         variational_mu

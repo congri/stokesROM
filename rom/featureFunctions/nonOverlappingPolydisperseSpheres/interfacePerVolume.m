@@ -1,15 +1,18 @@
 function [relativeInterfaceArea] = interfacePerVolume(...
-    diskCenters, diskRadii, gridVectorX, gridVectorY)
+    diskCenters, diskRadii, gridX, gridY)
 %Computes the volume fraction of microstructures with disk exclusions
 %   diskCenters:         clear
 %   diskRadii:           clear
 %   gridVectorX/Y:       specification of macro-cell edge lengths
 
-cumsumX = cumsum(gridVectorX);
-cumsumY = cumsum(gridVectorY);
 
-Nx = numel(gridVectorX);
-Ny = numel(gridVectorY);
+%add small number at last element to include vertices on corresponding
+%domain boundary
+cumsumX = cumsum(gridX);    cumsumX(end) = cumsumX(end) + 1e-12;
+cumsumY = cumsum(gridY);    cumsumY(end) = cumsumY(end) + 1e-12;
+
+Nx = numel(gridX);
+Ny = numel(gridY);
 
 A0 = zeros(Nx, Ny);
 for ny = 1:Ny

@@ -397,11 +397,12 @@ classdef StokesData
                 %pressure field
                 pltHandles(1, pltIndex) = subplot(2, N, pltIndex);
                 triHandles(1, pltIndex) =...
-                    trisurf(self.cells{pltIndex}, self.X{pltIndex}(:, 1),...
-                    self.X{pltIndex}(:, 2), self.P{pltIndex});
+                    trisurf(self.cells{n}, self.X{n}(:, 1),...
+                    self.X{n}(:, 2), self.P{n});
                 triHandles(1, pltIndex).LineStyle = 'none';
                 axis square;
-                view(2);
+                axis tight;
+                view(3);
                 grid off;
                 box on;
                 xticks({});
@@ -411,13 +412,14 @@ classdef StokesData
                 cb(1, pltIndex).Label.Interpreter = 'latex';
                 
                 %velocity field (norm)
-                u_norm = sqrt(sum(self.U{pltIndex}.^2));
+                u_norm = sqrt(sum(self.U{n}.^2));
                 pltHandles(2, pltIndex) = subplot(2, N, pltIndex + N);
-                triHandles(2, pltIndex) = trisurf(self.cells{pltIndex},...
-                   self.X{pltIndex}(:, 1), self.X{pltIndex}(:, 2), u_norm);
+                triHandles(2, pltIndex) = trisurf(self.cells{n},...
+                   self.X{n}(:, 1), self.X{n}(:, 2), u_norm);
                 triHandles(2, pltIndex).LineStyle = 'none';
                 axis square;
-                view(2);
+                axis tight;
+                view(3);
                 grid off;
                 box on;
                 xticks({});

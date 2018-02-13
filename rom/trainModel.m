@@ -108,8 +108,9 @@ while ~converged
     tic
     parfor n = 1:N_train
         %Finding variational approximation to q_n
-        [varDistParams{n}, varDistParamsVec{n}] = efficientStochOpt(varDistParamsVec{n},...
-            lg_q{n}, 'diagonalGauss', sw, nElc);
+        [varDistParams{n}, varDistParamsVec{n}] =...
+            efficientStochOpt(varDistParamsVec{n}, lg_q{n}, 'diagonalGauss',...
+            sw, nElc);
     end
     VI_time = toc
     
@@ -123,7 +124,8 @@ while ~converged
         p_cf_expHandle_n = @(X) sqMisfit(X, condTransOpts,...
             coarseMesh, P_n_minus_mu, W_cf_n);
         %Expectations under variational distributions
-        p_cf_exp = mcInference(p_cf_expHandle_n, 'diagonalGauss', varDistParams{n});
+        p_cf_exp =...
+            mcInference(p_cf_expHandle_n, 'diagonalGauss', varDistParams{n});
         sqDist{n} = p_cf_exp;
     end
     
@@ -148,7 +150,8 @@ while ~converged
         end
         thetaArray = [thetaArray, rom.modelParams.theta_c];
         SigmaArray = [SigmaArray, full(diag(rom.modelParams.Sigma_c))];
-        rom.modelParams.plot_params(figParams, thetaArray', SigmaArray', numel(gridSX), numel(gridSY));
+        rom.modelParams.plot_params(...
+            figParams, thetaArray', SigmaArray', numel(gridSX), numel(gridSY));
                 
         % Plot data and reconstruction (modal value)
         if ~exist('figResponse')
@@ -161,6 +164,8 @@ while ~converged
     %collect data and write it to disk periodically to save memory
     rom.modelParams.saveParams('gtcscscfvardist') 
     rom.modelParams.saveParams('stc')
+    save('./data/XMean', 'XMean');
+    save('./data/XSqMean', 'XSqMean');
     
     if EMiter > max_EM_iter
         converged = true;

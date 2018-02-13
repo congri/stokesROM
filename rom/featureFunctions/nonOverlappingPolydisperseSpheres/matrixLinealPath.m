@@ -4,8 +4,10 @@ function [L] = matrixLinealPath(diskCenters, diskRadii,...
 %approximation in Torquato eq. 6.37
 
 
-cumsumX = cumsum(gridX);
-cumsumY = cumsum(gridY);
+%add small number at last element to include vertices on corresponding
+%domain boundary
+cumsumX = cumsum(gridX);    cumsumX(end) = cumsumX(end) + 1e-12;
+cumsumY = cumsum(gridY);    cumsumY(end) = cumsumY(end) + 1e-12;
 
 Nx = numel(gridX);
 Ny = numel(gridY);

@@ -683,6 +683,79 @@ classdef StokesROM
             predMean = 0;
             predStd = 0;
         end
+        
+        function [d_log_p_cf_sqMean] = findMeshRefinement(self)
+            %Script to sample d_log_p_cf under Q(lambda_c) to find where to
+            %refine mesh next
+            
+            if isempty(self.modelParams)
+                %Read in trained params form ./data folder
+                self.modelParams = ModelParams;
+                self.modelParams = self.modelParams.loadModelParams;
+            end
+            
+            nSamples = 100;
+            d_log_p_cf_sqMean = 0;
+            k = 1;
+            
+            for n = (self.trainingData.samples + 1) %+1 for matlab indexing
+                if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
+                        strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
+                    SigmaTildeInv = self.trainingData.designMatrix{n}'*...
+                        (self.modelParams.Sigma_c\...
+                        self.trainingData.designMatrix{n}) + ...
+                        inv(self.modelParams.Sigma_theta_c);
+                    SigmaTilde = inv(SigmaTildeInv);
+                    Sigma_c_inv_Phi = self.modelParams.Sigma_c\...
+                        self.trainingData.designMatrix{n};
+                    precisionLambda_c = inv(self.modelParams.Sigma_c) - ...
+                        Sigma_c_inv_Phi*SigmaTilde*Sigma_c_inv_Phi';
+                    Sigma_lambda_c = inv(precisionLambda_c);
+                    mu_lambda_c = Sigma_lambda_c*Sigma_c_inv_Phi*(SigmaTilde/...
+                       self.modelParams.Sigma_theta_c)*self.modelParams.theta_c;
+                else
+                    mu_lambda_c = self.trainingData.designMatrix{n}*...
+                    self.modelParams.theta_c;
+                    Sigma_lambda_c = self.modelParams.Sigma_c;
+                end
+                
+                
+                W_cf_n = self.modelParams.W_cf{n};
+                %S_n is a vector of variances at vertices
+                S_n = self.modelParams.sigma_cf.s0(...
+                    self.trainingData.cellOfVertex{n});
+                S_n = ones(size(S_n)); %comment to include S
+                S_cf_n.sumLogS = sum(log(S_n));
+                S_cf_n.Sinv_vec = 1./S_n;
+                Sinv = sparse(1:length(S_n), 1:length(S_n), S_cf_n.Sinv_vec);
+                S_cf_n.WTSinv = (Sinv*W_cf_n)';
+                
+                
+                for j = 1:nSamples
+                    lambda_c_sample = mvnrnd(mu_lambda_c, Sigma_lambda_c)';
+                    [~, d_log_p_cf] = log_p_cf(self.trainingData.P{n},...
+                        self.modelParams.coarseMesh, lambda_c_sample, W_cf_n,...
+                        S_cf_n, self.modelParams.condTransOpts);
+
+                    d_log_p_cf_sqMean = ((k - 1)/k)*d_log_p_cf_sqMean +...
+                        (1/k)*d_log_p_cf.^2;
+                    k = k + 1;
+                end
+            end
+            
+            fig = figure;
+            sb1 = subplot(1, 1, 1);
+            imagesc(reshape(d_log_p_cf_sqMean,...
+                self.modelParams.coarseMesh.nElX,...
+                self.modelParams.coarseMesh.nElY)', 'Parent', sb1)
+            sb1.YDir = 'normal';
+            axis(sb1, 'tight');
+            axis(sb1, 'square');
+            sb1.GridLineStyle = 'none';
+            sb1.XTick = [];
+            sb1.YTick = [];
+            cbp_lambda = colorbar('Parent', fig);
+        end
     end
 end
 
