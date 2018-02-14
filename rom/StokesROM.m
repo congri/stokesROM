@@ -26,12 +26,14 @@ classdef StokesROM
         end
         
         function [self] = initializeModelParams(self, p_bc, u_bc, mode,...
-                gridX, gridY, gridSX, gridSY)
+                gridX, gridY, gridRFX, gridRFY, gridSX, gridSY)
             %Initialize params theta_c, theta_cf
             
             self.modelParams = ModelParams;
             self.modelParams.gridSX = gridSX;
             self.modelParams.gridSY = gridSY;
+            self.modelParams.gridRFX = gridRFX;
+            self.modelParams.gridRFY = gridRFY;
             
             %Coarse mesh object
             self.modelParams.coarseMesh = Mesh(gridX, gridY);
@@ -55,13 +57,13 @@ classdef StokesROM
                 self.modelParams.coarseMesh.setBoundaries(2:(2*nX + 2*nY),...
                 p_bc, u_bc_handle);
             
-            nElements = numel(gridX)*numel(gridY);
+            nElements = numel(gridRFX)*numel(gridRFY);
             nData = numel(self.trainingData.samples);
             nSCells = numel(gridSX)*numel(gridSY);
             
             self.modelParams = self.modelParams.initialize(nElements, nData,...
                 nSCells, mode);
-            
+                        
             %Parameters from previous runs can be deleted here
             if exist('./data/', 'dir')
                 rmdir('./data', 's'); %delete old params

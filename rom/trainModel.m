@@ -5,7 +5,7 @@ clear
 addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 %% Define parameters here:
 
-samples = 0:15;
+samples = 0:3;
 max_EM_iter = 800;  %maximum EM iterations
 muField = 0;        %mean function in p_cf
 
@@ -16,10 +16,12 @@ normalization = 'rescale';
 condTransOpts.type = 'log';
 condTransOpts.limits = [1e-16, 1e16];
 
-%p_cf variance grid vectors
-gridX = (1/4)*ones(1, 4);
+%grid vectors
+gridX = (1/4)*ones(1, 4);   %coarse FEM
 gridY = gridX;
-gridSX = [.125, .25, .5, ones(1, 26), .5, .25, .125];
+gridRFX = (1/2)*ones(1, 2); %random field grid
+gridRFY = gridRFX;
+gridSX = [.125, .25, .5, ones(1, 26), .5, .25, .125];   %p_cf S grid
 gridSX = gridSX/sum(gridSX);
 gridSY = gridSX;
 
@@ -37,15 +39,16 @@ rom = rom.readTrainingData(samples, u_bc);
 N_train = numel(rom.trainingData.samples);
 rom.trainingData = rom.trainingData.countVertices();
 
-rom = rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridSX, gridSY);
+rom = rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY,...
+    gridRFX, gridRFY, gridSX, gridSY);
 rom.modelParams.condTransOpts = condTransOpts;
 rom.modelParams = rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
 rom.modelParams.saveParams('gtcscscf');
 rom.modelParams.saveParams('coarseMesh');
 rom.modelParams.saveParams('priorType');
 rom.modelParams.saveParams('condTransOpts');
-rom.trainingData = rom.trainingData.evaluateFeatures(...
-    rom.modelParams.coarseMesh.gridX, rom.modelParams.coarseMesh.gridY);
+rom.modelParams.saveParams('gridRF');
+rom.trainingData = rom.trainingData.evaluateFeatures(gridRFX, gridRFY);
 
 if strcmp(normalization, 'rescale')
     rom.trainingData = rom.trainingData.rescaleDesignMatrix;
@@ -65,7 +68,7 @@ sw =[4e-2*ones(1, numel(rom.modelParams.coarseMesh.gridX)*...
     numel(rom.modelParams.coarseMesh.gridY))];
 
 %% Bring variational distribution params in form for unconstrained optimization
-
+rom.modelParams.variational_mu
 varDistParamsVec{1} = [rom.modelParams.variational_mu{1},...
     -2*log(rom.modelParams.variational_sigma{1})];
 varDistParamsVec = repmat(varDistParamsVec, N_train, 1);
@@ -104,13 +107,13 @@ while ~converged
             S_cf_n, tc, Phi_n, coarseMesh, condTransOpts);
     end
     
-    nElc = coarseMesh.nEl;
+    nRFc = numel(gridRFX)*numel(gridRFY);
     tic
     parfor n = 1:N_train
         %Finding variational approximation to q_n
         [varDistParams{n}, varDistParamsVec{n}] =...
             efficientStochOpt(varDistParamsVec{n}, lg_q{n}, 'diagonalGauss',...
-            sw, nElc);
+            sw, nRFc);
     end
     VI_time = toc
     

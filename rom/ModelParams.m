@@ -8,6 +8,8 @@ classdef ModelParams
         Sigma_c
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
+        gridRFX
+        gridRFY
         
         %p_cf
         W_cf
@@ -17,6 +19,9 @@ classdef ModelParams
         
         %Surrogate FEM mesh
         coarseMesh
+        
+        %FEM to random field grid
+        fem2rf
         
         %Transformation options of diffusivity parameter
         condTransOpts
@@ -48,8 +53,7 @@ classdef ModelParams
             %Constructor
         end
         
-        function self = initialize(self, nElements, nData,...
-                nSCells, mode)
+        function self = initialize(self, nElements, nData, nSCells, mode)
             %Initialize model parameters
             %   nFeatures:      number of feature functions
             %   nElements:      number of macro elements
@@ -93,6 +97,9 @@ classdef ModelParams
                 self.variational_sigma =...
                     repmat(self.variational_sigma, nData, 1);
             end
+            
+            %Coarse FEM to coarse random field cells map
+            
         end
         
         function [self] = loadModelParams(self)
@@ -245,6 +252,13 @@ classdef ModelParams
                 %save coarseMesh to file
                 coarseMesh = self.coarseMesh;
                 save('./data/coarseMesh.mat', 'coarseMesh');
+            end
+            
+            %Coarse random field discretization
+            if contains(params, 'gridRF')
+                gridRFX = self.gridRFX;
+                gridRFY = self.gridRFY;
+                save('./data/gridRF.mat', 'gridRFX', 'gridRFY');
             end
             
             %Optimal params
