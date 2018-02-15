@@ -159,7 +159,7 @@ classdef StokesData
             end
         end
         
-        function self = evaluateFeatures(self, gridX, gridY)
+        function self = evaluateFeatures(self, gridRF)
             %Evaluates the feature functions
             if isempty(self.microstructData)
                 self = self.readData('m');
@@ -168,14 +168,14 @@ classdef StokesData
             %constant 1
             for n = 1:numel(self.samples)
                 self.designMatrix{n} = [self.designMatrix{n},...
-                    ones(numel(gridX)*numel(gridY), 1)];
+                    ones(gridRF.nCells, 1)];
             end
             
             %pore fraction
             for n = 1:numel(self.samples)
                 phi = volumeFractionCircExclusions(...
                     self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY);
+                    self.microstructData{n}.diskRadii, gridRF);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
@@ -183,7 +183,7 @@ classdef StokesData
             for n = 1:numel(self.samples)
                 phi = log(volumeFractionCircExclusions(...
                     self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
+                    self.microstructData{n}.diskRadii, gridRF) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
@@ -191,7 +191,7 @@ classdef StokesData
             for n = 1:numel(self.samples)
                 phi = interfacePerVolume(...
                     self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY);
+                    self.microstructData{n}.diskRadii, gridRF);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
@@ -199,14 +199,14 @@ classdef StokesData
             for n = 1:numel(self.samples)
                 phi = log(interfacePerVolume(...
                     self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
+                    self.microstructData{n}.diskRadii, gridRF) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %mean distance between disk edges
             for n = 1:numel(self.samples)
                 phi = diskDistance(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY, 'mean',...
+                    self.microstructData{n}.diskRadii, gridRF, 'mean',...
                     'edge2edge');
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
@@ -214,28 +214,28 @@ classdef StokesData
             %mean distance between disks
             for n = 1:numel(self.samples)
                 phi = diskDistance(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY, 'mean', 2);
+                    self.microstructData{n}.diskRadii, gridRF, 'mean', 2);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %min distance between disks
             for n = 1:numel(self.samples)
                 phi = diskDistance(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY, 'min', 2);
+                    self.microstructData{n}.diskRadii, gridRF, 'min', 2);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %specific surface of non-overlap. polydis. spheres
             for n = 1:numel(self.samples)
                 phi = specificSurface(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY);
+                    self.microstructData{n}.diskRadii, gridRF);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %log specific surface of non-overlap. polydis. spheres
             for n = 1:numel(self.samples)
                 phi =log(specificSurface(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
+                    self.microstructData{n}.diskRadii, gridRF) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
@@ -243,21 +243,21 @@ classdef StokesData
             %last entry is distance
             for n = 1:numel(self.samples)
                 phi = matrixLinealPath(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY, .02);
+                    self.microstructData{n}.diskRadii, gridRF, .02);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %mean pore chord length non-overlap. polydis. spheres
             for n = 1:numel(self.samples)
                 phi = meanChordLength(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY);
+                    self.microstructData{n}.diskRadii, gridRF);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %log mean pore chord length non-overlap. polydis. spheres
             for n = 1:numel(self.samples)
                 phi =log(meanChordLength(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
+                    self.microstructData{n}.diskRadii, gridRF) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             

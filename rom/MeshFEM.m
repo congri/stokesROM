@@ -1,4 +1,4 @@
-classdef Mesh
+classdef MeshFEM
     %class describing the finite element domain
 
     properties (SetAccess = public)
@@ -64,7 +64,7 @@ classdef Mesh
     
     
     methods
-        function mesh = Mesh(gridX, gridY)
+        function mesh = MeshFEM(gridX, gridY)
             %Constructor
             %nElX and nElY are number of elements in x- and y-direction
             %lElX, lElY are vectors specifying element lengths in x- and y-dir.

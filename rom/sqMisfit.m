@@ -1,10 +1,10 @@
 function [p_cf_exp, Tc, TcTcT] =...
-    sqMisfit(X, condTransOpts, mesh, Tf_n_minus_mu, W_cf_n)
+    sqMisfit(X, condTransOpts, mesh, Tf_n_minus_mu, W_cf_n, rf2fem)
 %function computing the squared difference between prediction and truth
 %   X:  transformed conductivity (row vector)
 
 %transformed conductivity to conductivity
-conductivity = conductivityBackTransform(X, condTransOpts);
+conductivity = conductivityBackTransform(rf2fem*X', condTransOpts);
 
 %Set up conductivity tensors for each element
 D = zeros(2, 2, mesh.nEl);

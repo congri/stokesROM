@@ -1,4 +1,4 @@
-classdef Msh < handle
+classdef Mesh < handle
     %Mesh parent class
     properties(SetAccess = private)
         vertices            %cell array of vertex objects.

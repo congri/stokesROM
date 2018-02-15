@@ -3,6 +3,7 @@
 
 clear
 addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
+addpath('./mesh')
 %% Define parameters here:
 
 samples = 0:3;
@@ -19,8 +20,8 @@ condTransOpts.limits = [1e-16, 1e16];
 %grid vectors
 gridX = (1/4)*ones(1, 4);   %coarse FEM
 gridY = gridX;
-gridRFX = (1/2)*ones(1, 2); %random field grid
-gridRFY = gridRFX;
+gridRF = RectangularMesh([.5 .5]);
+gridRF.split_cell(gridRF.cells{2});
 gridSX = [.125, .25, .5, ones(1, 26), .5, .25, .125];   %p_cf S grid
 gridSX = gridSX/sum(gridSX);
 gridSY = gridSX;
@@ -39,8 +40,8 @@ rom = rom.readTrainingData(samples, u_bc);
 N_train = numel(rom.trainingData.samples);
 rom.trainingData = rom.trainingData.countVertices();
 
-rom = rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY,...
-    gridRFX, gridRFY, gridSX, gridSY);
+rom = rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX,...
+    gridSY);
 rom.modelParams.condTransOpts = condTransOpts;
 rom.modelParams = rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
 rom.modelParams.saveParams('gtcscscf');
@@ -48,7 +49,7 @@ rom.modelParams.saveParams('coarseMesh');
 rom.modelParams.saveParams('priorType');
 rom.modelParams.saveParams('condTransOpts');
 rom.modelParams.saveParams('gridRF');
-rom.trainingData = rom.trainingData.evaluateFeatures(gridRFX, gridRFY);
+rom.trainingData = rom.trainingData.evaluateFeatures(gridRF);
 
 if strcmp(normalization, 'rescale')
     rom.trainingData = rom.trainingData.rescaleDesignMatrix;
@@ -62,10 +63,7 @@ rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
 rom.trainingData = rom.trainingData.vtxToCell(gridSX, gridSY);
 
 %Step width for stochastic optimization in VI
-sw =[4e-2*ones(1, numel(rom.modelParams.coarseMesh.gridX)*...
-    numel(rom.modelParams.coarseMesh.gridY)),...
-    1e-3*ones(1, numel(rom.modelParams.coarseMesh.gridX)*...
-    numel(rom.modelParams.coarseMesh.gridY))];
+sw =[4e-2*ones(1, gridRF.nCells), 1e-3*ones(1, gridRF.nCells)];
 
 %% Bring variational distribution params in form for unconstrained optimization
 rom.modelParams.variational_mu
@@ -103,11 +101,12 @@ while ~converged
         Phi_n = rom.trainingData.designMatrix{n};
         coarseMesh = rom.modelParams.coarseMesh;
         
-        lg_q{n} = @(Xi) log_q_n(Xi, P_n_minus_mu, W_cf_n,...
-            S_cf_n, tc, Phi_n, coarseMesh, condTransOpts);
+        rf2fem = rom.modelParams.rf2fem;
+        lg_q{n} = @(Xi) log_q_n(Xi, P_n_minus_mu, W_cf_n, S_cf_n, tc, Phi_n,...
+            coarseMesh, condTransOpts, rf2fem);
     end
     
-    nRFc = numel(gridRFX)*numel(gridRFY);
+    nRFc = gridRF.nCells;
     tic
     parfor n = 1:N_train
         %Finding variational approximation to q_n
@@ -125,7 +124,7 @@ while ~converged
         P_n_minus_mu = rom.trainingData.P{n} - muField;
         W_cf_n = rom.modelParams.W_cf{n};
         p_cf_expHandle_n = @(X) sqMisfit(X, condTransOpts,...
-            coarseMesh, P_n_minus_mu, W_cf_n);
+            coarseMesh, P_n_minus_mu, W_cf_n, rf2fem);
         %Expectations under variational distributions
         p_cf_exp =...
             mcInference(p_cf_expHandle_n, 'diagonalGauss', varDistParams{n});

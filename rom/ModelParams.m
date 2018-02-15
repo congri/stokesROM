@@ -8,8 +8,7 @@ classdef ModelParams
         Sigma_c
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
-        gridRFX
-        gridRFY
+        gridRF
         
         %p_cf
         W_cf
@@ -20,8 +19,8 @@ classdef ModelParams
         %Surrogate FEM mesh
         coarseMesh
         
-        %FEM to random field grid
-        fem2rf
+        %Mapping from random field to FEM discretization
+        rf2fem
         
         %Transformation options of diffusivity parameter
         condTransOpts
@@ -126,6 +125,9 @@ classdef ModelParams
             load('./data/condTransOpts.mat');
             self.condTransOpts = condTransOpts;
 
+            load('./data/gridRF.mat');
+            self.gridRF = gridRF;
+            
             self.sigma_cf.s0 = dlmread('./data/sigma_cf')';
             
             try
@@ -169,12 +171,12 @@ classdef ModelParams
             if strcmp(mode, 'local')
                 disp('theta_c: row = feature, column = macro-cell:')
                 curr_theta_c = reshape(self.theta_c,...
-                    numel(self.theta_c)/self.coarseMesh.nEl,...
-                    self.coarseMesh.nEl)
+                    numel(self.theta_c)/self.gridRF.nCells,...
+                    self.gridRF.nCells)
                 curr_Sigma_c = full(diag(self.Sigma_c))
                 if strcmp(self.prior_theta_c, 'sharedVRVM')
                     curr_gamma = self.gamma(1:...
-                        (numel(self.theta_c)/self.coarseMesh.nEl))
+                        (numel(self.theta_c)/self.gridRF.nCells))
                 else
                     curr_gamma = self.gamma
                 end
@@ -218,9 +220,9 @@ classdef ModelParams
             sb3.YLabel.String = '$\sigma_k$';
             
             sb4 = subplot(3, 2, 4, 'Parent', figHandle);
-            im = imagesc(reshape(diag(sqrt(self.Sigma_c(1:self.coarseMesh.nEl,...
-                1:self.coarseMesh.nEl))),...
-                self.coarseMesh.nElX, self.coarseMesh.nElY)', 'Parent', sb4);
+            sigma_c_plot = self.rf2fem*diag(self.Sigma_c);
+            im = imagesc(reshape(sigma_c_plot, self.coarseMesh.nElX,...
+                self.coarseMesh.nElY)', 'Parent', sb4);
             sb4.YDir = 'normal';
             sb4.Title.String = '$\sigma_k$';
             colorbar('Parent', figHandle);
@@ -256,9 +258,8 @@ classdef ModelParams
             
             %Coarse random field discretization
             if contains(params, 'gridRF')
-                gridRFX = self.gridRFX;
-                gridRFY = self.gridRFY;
-                save('./data/gridRF.mat', 'gridRFX', 'gridRFY');
+                gridRF = self.gridRF;
+                save('./data/gridRF.mat', 'gridRF');
             end
             
             %Optimal params

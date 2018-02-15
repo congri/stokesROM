@@ -12,6 +12,7 @@ classdef StokesROM
         
         %Model parameters
         modelParams
+        
     end
     
     methods
@@ -26,17 +27,17 @@ classdef StokesROM
         end
         
         function [self] = initializeModelParams(self, p_bc, u_bc, mode,...
-                gridX, gridY, gridRFX, gridRFY, gridSX, gridSY)
+                gridX, gridY, gridRF, gridSX, gridSY)
             %Initialize params theta_c, theta_cf
             
             self.modelParams = ModelParams;
             self.modelParams.gridSX = gridSX;
             self.modelParams.gridSY = gridSY;
-            self.modelParams.gridRFX = gridRFX;
-            self.modelParams.gridRFY = gridRFY;
+            self.modelParams.gridRF = gridRF;
+            self.modelParams.rf2fem = gridRF.map2fine(gridX, gridY);
             
             %Coarse mesh object
-            self.modelParams.coarseMesh = Mesh(gridX, gridY);
+            self.modelParams.coarseMesh = MeshFEM(gridX, gridY);
             nX = length(gridX); nY = length(gridY);
             
             %Convert flow bc string to handle functions
@@ -57,12 +58,11 @@ classdef StokesROM
                 self.modelParams.coarseMesh.setBoundaries(2:(2*nX + 2*nY),...
                 p_bc, u_bc_handle);
             
-            nElements = numel(gridRFX)*numel(gridRFY);
             nData = numel(self.trainingData.samples);
             nSCells = numel(gridSX)*numel(gridSY);
             
-            self.modelParams = self.modelParams.initialize(nElements, nData,...
-                nSCells, mode);
+            self.modelParams = self.modelParams.initialize(gridRF.nCells,...
+                nData, nSCells, mode);
                         
             %Parameters from previous runs can be deleted here
             if exist('./data/', 'dir')
@@ -393,6 +393,8 @@ classdef StokesROM
                 Lambda_eff_mode = conductivityBackTransform(...
                     self.trainingData.designMatrix{i + dataOffset}*...
                     self.modelParams.theta_c, condTransOpts);
+                Lambda_eff_mode = self.modelParams.rf2fem*...
+                    Lambda_eff_mode;
                 sb1 = subplot(2, 3, 1 + (i - 1)*3, 'Parent', fig);
                 imagesc(reshape(Lambda_eff_mode,...
                     self.modelParams.coarseMesh.nElX,...
@@ -487,11 +489,13 @@ classdef StokesROM
                 %Read in trained params form ./data folder
                 self.modelParams = ModelParams;
                 self.modelParams = self.modelParams.loadModelParams;
+                self.modelParams.rf2fem = self.modelParams.gridRF.map2fine(...
+                    self.modelParams.coarseMesh.gridX,...
+                    self.modelParams.coarseMesh.gridY);
             end
             
-            testStokesData = testStokesData.evaluateFeatures(...
-                self.modelParams.coarseMesh.gridX,...
-                self.modelParams.coarseMesh.gridY);
+            testStokesData =...
+                testStokesData.evaluateFeatures(self.modelParams.gridRF);
             if exist('./data/featureFunctionMin', 'file')
                 featFuncMin = dlmread('./data/featureFunctionMin');
                 featFuncMax = dlmread('./data/featureFunctionMax');
@@ -508,17 +512,16 @@ classdef StokesROM
             nTest = numel(testStokesData.samples);
             
             %short hand notation/avoiding broadcast overhead
-            nElc = self.modelParams.coarseMesh.nEl;
+            nElc = self.modelParams.gridRF.nCells;
             
             Xsamples = zeros(nElc, nSamples_p_c, nTest);
             %Lambda as cell array for parallelization
             LambdaSamples{1} = zeros(nElc, nSamples_p_c);
             LambdaSamples = repmat(LambdaSamples, nTest, 1);
             
-            meanEffCond = zeros(nElc, nTest);
+            meanEffCond = zeros(self.modelParams.coarseMesh.nEl, nTest);
             
             stdLogS = [];   %for parfor
-            
             
             for i = 1:nTest
                 if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
@@ -552,7 +555,9 @@ classdef StokesROM
                 %Diffusivities
                 LambdaSamples{i} = conductivityBackTransform(...
                     Xsamples(:, :, i), self.modelParams.condTransOpts);
-                meanEffCond(:, i) = mean(LambdaSamples{i}, 2);
+                meanEffCond(:, i) = self.modelParams.rf2fem*...
+                    mean(LambdaSamples{i}, 2);
+                LambdaSamples{i} = self.modelParams.rf2fem*LambdaSamples{i};
             end
             disp('Sampling from p_c done.')
             
@@ -580,7 +585,7 @@ classdef StokesROM
                     testStokesData.cellOfVertex{n});
             end
             
-            parfor n = 1:nTest
+            for n = 1:nTest
                 for i = 1:nSamples_p_c
                     D = zeros(2, 2, cm.nEl);
                     for e = 1:cm.nEl

@@ -1,10 +1,65 @@
-classdef RectangularMesh < Msh
+classdef RectangularMesh < Mesh
     %Class for mesh consisting of generic rectangles
 
     
     methods
-        function self = RectangularMesh(self)
+        function self = RectangularMesh(gridX, gridY)
             %constructor
+            %gridX, gridY are vectors of edge lengths
+            
+            %Generate mesh according to grid vectors
+            if nargin > 0
+                if nargin == 1
+                    gridY = gridX;
+                end
+                
+                %Create vertices
+                x_coord = cumsum([0, gridX]);
+                y_coord = cumsum([0, gridY]);
+                for y = y_coord
+                    for x = x_coord
+                        self.create_vertex([x, y]);
+                    end
+                end
+                
+                %Create edges
+                nx = numel(gridX) + 1;
+                ny = numel(gridY) + 1;
+                for y = 0:(ny - 1)
+                    for x = 1:nx
+                        if self.vertices{x + y*nx}.coordinates(1) > 0
+                            self.create_edge(self.vertices{x + y*nx - 1}, ...
+                                self.vertices{x + y*nx});
+                        end
+                    end
+                end
+                for y = 0:(ny - 1)
+                    for x = 1:nx
+                        if self.vertices{x + y*nx}.coordinates(2) > 0
+                            self.create_edge(self.vertices{x + (y - 1)*nx}, ...
+                                self.vertices{x + y*nx});
+                        end
+                    end
+                end
+                
+                %Create cells
+                nx = nx - 1;
+                ny = ny - 1;
+                n = 1;  %cell index
+                for y = 1:ny
+                    for x = 1:nx
+                        vtx = {self.vertices{x + (y - 1)*(nx + 1)}, ...
+                            self.vertices{x + (y - 1)*(nx + 1) + 1}, ...
+                            self.vertices{x + y*(nx + 1) + 1}, ...
+                            self.vertices{x + y*(nx + 1)}};
+                        edg= {self.edges{n}, self.edges{nx*(ny + 1) + n + y},...
+                            self.edges{n + nx},...
+                            self.edges{nx*(ny + 1) + n + y - 1}};
+                        self.create_cell(vtx, edg);
+                        n = n + 1;
+                    end
+                end
+            end
         end
         
         function self = split_cell(self, cll)
@@ -75,6 +130,44 @@ classdef RectangularMesh < Msh
             self.nCells = self.nCells - 1;
         end
         
+        function map = map2fine(self, gridX, gridY)
+            %Computes map from rectangular mesh to finer regular rectangular 
+            %mesh given by grid vectors gridX, gridY
+            %For use to map from random field discretization to PDE discret.
+            
+            if nargin == 2
+                gridY = gridX;
+            end
+            
+            nx = numel(gridX); ny = numel(gridY);
+            cumsumX = cumsum([0, gridX]); cumsumY = cumsum([0, gridY]);
+            
+            
+            %Loop through fine (FEM) cells specified by grid vectors and check
+            %which coarse cell they are in
+            map = zeros(nx*ny, self.nCells);
+            n = 1;
+            for cll = self.cells
+                if isvalid(cll{1})
+                    m = 1;  %fine (FEM) cell index
+                    for y = 1:ny
+                        for x = 1:nx
+                            %Compute centroid of fine (FEM) cell
+                            vertex_low = [cumsumX(x), cumsumY(y)];
+                            vertex_high = [cumsumX(x + 1), cumsumY(y + 1)];
+                            centroid = .5*(vertex_low + vertex_high);
+                            isin = cll{1}.inside(centroid);
+                            if isin
+                                %FEM cell m is in random fiend cell n
+                                map(m, n) = 1;
+                            end
+                            m = m + 1;
+                        end
+                    end
+                    n = n + 1;
+                end
+            end
+        end
     end
 end
 

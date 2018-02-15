@@ -1,11 +1,12 @@
-function [log_p, d_log_p, Tc] =...
-    log_p_cf(Tf_n_minus_mu, coarseMesh, Xn, W_cf_n, S_cf_n, condTransOpts)
+function [log_p, d_log_p, Tc] = log_p_cf(...
+    Tf_n_minus_mu, coarseMesh, Xn, W_cf_n, S_cf_n, condTransOpts, rf2fem)
 %Coarse-to-fine map
 %ignore constant prefactor
 %log_p = -.5*logdet(S, 'chol') - .5*(Tf - mu)'*(S\(Tf - mu));
 %diagonal S
 
 conductivity = conductivityBackTransform(Xn, condTransOpts);
+conductivity = rf2fem*conductivity;
 D = zeros(2, 2, coarseMesh.nEl);
 %Conductivity matrix D, only consider isotropic materials here
 for j = 1:coarseMesh.nEl
@@ -52,6 +53,9 @@ if nargout > 1
     adjoints = get_adjoints(FEMout.globalStiffness,...
         S_cf_n.WTSinv, coarseMesh, Tf_n_minus_mu_minus_WTc);
     d_log_p = - d_rx*adjoints;
+    
+    %We need the gradient w.r.t. degrees of freedom of discretized rand. field
+    d_log_p = rf2fem'*d_log_p;
 
     
     %Finite difference gradient check
