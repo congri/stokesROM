@@ -18,7 +18,7 @@ classdef StokesData
         P       %pressure at vertices
         U       %velocity at vertices
         cells   %cell-to-vertex map
-        cellOfVertex   %Mapping from vertex to sq. (macro-)cell
+        cellOfVertex   %Mapping from vertex to cell of S (p_cf variance)
         N_vertices_tot  %total number of vertices in data
         
         %Microstructural data, e.g. centers & radii of circular inclusions
@@ -133,7 +133,9 @@ classdef StokesData
             %Mapping from vertex to macro-cell given by grid vectors gridX,
             %gridY
             cumsumX = cumsum(gridX);
+            cumsumX(end) = cumsumX(end) + 1e-12;  %include vertices on boundary
             cumsumY = cumsum(gridY);
+            cumsumY(end) = cumsumY(end) + 1e-12;  %include vertices on boundary
             
             Nx = numel(gridX);
             
@@ -157,7 +159,7 @@ classdef StokesData
             end
         end
         
-        function self = evaluateFeatures(self, gridX, gridY)
+        function self = evaluateFeatures(self, gridRF)
             %Evaluates the feature functions
             if isempty(self.microstructData)
                 self = self.readData('m');
@@ -166,14 +168,14 @@ classdef StokesData
             %constant 1
             for n = 1:numel(self.samples)
                 self.designMatrix{n} = [self.designMatrix{n},...
-                    ones(numel(gridX)*numel(gridY), 1)];
+                    ones(gridRF.nCells, 1)];
             end
             
             %pore fraction
             for n = 1:numel(self.samples)
                 phi = volumeFractionCircExclusions(...
                     self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY);
+                    self.microstructData{n}.diskRadii, gridRF);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
@@ -181,7 +183,7 @@ classdef StokesData
             for n = 1:numel(self.samples)
                 phi = log(volumeFractionCircExclusions(...
                     self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
+                    self.microstructData{n}.diskRadii, gridRF) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
@@ -189,7 +191,7 @@ classdef StokesData
             for n = 1:numel(self.samples)
                 phi = interfacePerVolume(...
                     self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY);
+                    self.microstructData{n}.diskRadii, gridRF);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
@@ -197,14 +199,14 @@ classdef StokesData
             for n = 1:numel(self.samples)
                 phi = log(interfacePerVolume(...
                     self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
+                    self.microstructData{n}.diskRadii, gridRF) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %mean distance between disk edges
             for n = 1:numel(self.samples)
                 phi = diskDistance(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY, 'mean',...
+                    self.microstructData{n}.diskRadii, gridRF, 'mean',...
                     'edge2edge');
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
@@ -212,28 +214,28 @@ classdef StokesData
             %mean distance between disks
             for n = 1:numel(self.samples)
                 phi = diskDistance(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY, 'mean', 2);
+                    self.microstructData{n}.diskRadii, gridRF, 'mean', 2);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %min distance between disks
             for n = 1:numel(self.samples)
                 phi = diskDistance(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY, 'min', 2);
+                    self.microstructData{n}.diskRadii, gridRF, 'min', 2);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %specific surface of non-overlap. polydis. spheres
             for n = 1:numel(self.samples)
                 phi = specificSurface(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY);
+                    self.microstructData{n}.diskRadii, gridRF);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %log specific surface of non-overlap. polydis. spheres
             for n = 1:numel(self.samples)
                 phi =log(specificSurface(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
+                    self.microstructData{n}.diskRadii, gridRF) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
@@ -241,21 +243,21 @@ classdef StokesData
             %last entry is distance
             for n = 1:numel(self.samples)
                 phi = matrixLinealPath(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY, .02);
+                    self.microstructData{n}.diskRadii, gridRF, .02);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %mean pore chord length non-overlap. polydis. spheres
             for n = 1:numel(self.samples)
                 phi = meanChordLength(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY);
+                    self.microstructData{n}.diskRadii, gridRF);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %log mean pore chord length non-overlap. polydis. spheres
             for n = 1:numel(self.samples)
                 phi =log(meanChordLength(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridX, gridY) + eps);
+                    self.microstructData{n}.diskRadii, gridRF) + eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
@@ -290,6 +292,84 @@ classdef StokesData
             disp('done')
         end
         
+        function [featFuncMin, featFuncMax] = computeFeatureFunctionMinMax(self)
+            %Computes min/max of feature function outputs over training data,
+            %separately for every macro cell
+            featFuncMin = self.designMatrix{1};
+            featFuncMax = self.designMatrix{1};
+            for n = 1:numel(self.designMatrix)
+                featFuncMin(featFuncMin > self.designMatrix{n}) =...
+                    self.designMatrix{n}(featFuncMin > self.designMatrix{n});
+                featFuncMax(featFuncMax < self.designMatrix{n}) =...
+                    self.designMatrix{n}(featFuncMax < self.designMatrix{n});
+            end
+        end
+        
+        function self = rescaleDesignMatrix(self, featFuncMin, featFuncMax)
+            %Rescale design matrix s.t. outputs are between 0 and 1
+            disp('Rescale design matrix...')
+            
+            if nargin < 3
+                [featFuncMin, featFuncMax] = self.computeFeatureFunctionMinMax;
+            end
+            
+            featFuncDiff = featFuncMax - featFuncMin;
+            %to avoid irregularities due to rescaling (if every macro cell
+            %has the same feature function output). Like this rescaling does
+            %not have any effect
+            featFuncMin(featFuncDiff == 0) = 0;
+            featFuncDiff(featFuncDiff == 0) = 1;
+            for n = 1:numel(self.designMatrix)
+                self.designMatrix{n} =...
+                    (self.designMatrix{n} - featFuncMin)./(featFuncDiff);
+            end
+            
+            %Check if design Matrices are real and finite
+            self = self.checkDesignMatrices;
+            self.saveNormalization('rescaling', featFuncMin, featFuncMax);
+            disp('done')
+        end
+        
+        function self = checkDesignMatrices(self)
+            %Check for finiteness
+            for n = 1:numel(self.designMatrix)
+                if(~all(all(all(isfinite(self.designMatrix{n})))))
+                    warning(strcat('Non-finite design matrix.',...
+                        ' Setting non-finite component to 0.'))
+                    self.designMatrix{n}(~isfinite(self.designMatrix{n})) = 0;
+                    dataPoint = n
+                    [coarseElement, featureFunction] = ...
+                        ind2sub(size(self.designMatrix{n}),...
+                        find(~isfinite(self.designMatrix{n})))
+                elseif(~all(all(all(isreal(self.designMatrix{n})))))
+                    warning('Complex feature function output:')
+                    dataPoint = n
+                    [coarseElement, featureFunction] =...
+                        ind2sub(size(self.designMatrix{n}),...
+                        find(imag(self.designMatrix{n})))
+                    disp('Ignoring imaginary part...')
+                    self.designMatrix{n} = real(self.designMatrix{n});
+                end
+            end
+        end
+        
+        function saveNormalization(self, type, a, b)
+            disp('Saving design matrix normalization...')
+
+            if ~exist('./data')
+                mkdir('./data');
+            end
+            if strcmp(type, 'standardization')
+                save('./data/featureFunctionMean', 'a', '-ascii');
+                save('./data/featureFunctionSqMean', 'b', '-ascii');
+            elseif strcmp(type, 'rescaling')
+                save('./data/featureFunctionMin', 'a', '-ascii');
+                save('./data/featureFunctionMax', 'b', '-ascii');
+            else
+                error('Which type of data normalization?')
+            end
+        end
+        
         function [triHandles, pltHandles, figHandle, cb] =...
                 plotData(self, samples)
             %Plots the fine scale data and returns handles
@@ -317,11 +397,12 @@ classdef StokesData
                 %pressure field
                 pltHandles(1, pltIndex) = subplot(2, N, pltIndex);
                 triHandles(1, pltIndex) =...
-                    trisurf(self.cells{pltIndex}, self.X{pltIndex}(:, 1),...
-                    self.X{pltIndex}(:, 2), self.P{pltIndex});
+                    trisurf(self.cells{n}, self.X{n}(:, 1),...
+                    self.X{n}(:, 2), self.P{n});
                 triHandles(1, pltIndex).LineStyle = 'none';
                 axis square;
-                view(2);
+                axis tight;
+                view(3);
                 grid off;
                 box on;
                 xticks({});
@@ -331,13 +412,14 @@ classdef StokesData
                 cb(1, pltIndex).Label.Interpreter = 'latex';
                 
                 %velocity field (norm)
-                u_norm = sqrt(sum(self.U{pltIndex}.^2));
+                u_norm = sqrt(sum(self.U{n}.^2));
                 pltHandles(2, pltIndex) = subplot(2, N, pltIndex + N);
-                triHandles(2, pltIndex) = trisurf(self.cells{pltIndex},...
-                   self.X{pltIndex}(:, 1), self.X{pltIndex}(:, 2), u_norm);
+                triHandles(2, pltIndex) = trisurf(self.cells{n},...
+                   self.X{n}(:, 1), self.X{n}(:, 2), u_norm);
                 triHandles(2, pltIndex).LineStyle = 'none';
                 axis square;
-                view(2);
+                axis tight;
+                view(3);
                 grid off;
                 box on;
                 xticks({});

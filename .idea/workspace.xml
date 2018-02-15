@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="9994e0a7-38f6-4996-b0fd-b80354c39d8e" name="Default" comment="">
 <<<<<<< HEAD
+<<<<<<< HEAD
       <change beforePath="$PROJECT_DIR$/genStokesData.py" afterPath="$PROJECT_DIR$/genStokesData.py" />
       <change beforePath="$PROJECT_DIR$/generateMeshes.py" afterPath="$PROJECT_DIR$/generateMeshes.py" />
 <<<<<<< HEAD
@@ -16,11 +17,32 @@
 >>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
 =======
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+=======
+      <change beforePath="$PROJECT_DIR$/rom/Mesh.m" afterPath="$PROJECT_DIR$/rom/MeshFEM.m" />
+>>>>>>> a3162663d4f0d333f8f1a3a6996703813ea3f411
       <change beforePath="$PROJECT_DIR$/rom/ModelParams.m" afterPath="$PROJECT_DIR$/rom/ModelParams.m" />
+      <change beforePath="$PROJECT_DIR$/rom/StokesData.m" afterPath="$PROJECT_DIR$/rom/StokesData.m" />
       <change beforePath="$PROJECT_DIR$/rom/StokesROM.m" afterPath="$PROJECT_DIR$/rom/StokesROM.m" />
+<<<<<<< HEAD
       <change beforePath="$PROJECT_DIR$/rom/log_p_c.m" afterPath="$PROJECT_DIR$/rom/log_p_c.m" />
       <change beforePath="$PROJECT_DIR$/rom/trainModel.mlx" afterPath="$PROJECT_DIR$/rom/trainModel.mlx" />
 >>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
+=======
+      <change beforePath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/diskDistance.m" afterPath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/diskDistance.m" />
+      <change beforePath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/interfacePerVolume.m" afterPath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/interfacePerVolume.m" />
+      <change beforePath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/matrixLinealPath.m" afterPath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/matrixLinealPath.m" />
+      <change beforePath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/meanChordLength.m" afterPath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/meanChordLength.m" />
+      <change beforePath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/specificSurface.m" afterPath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/specificSurface.m" />
+      <change beforePath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/volumeFractionCircExclusions.m" afterPath="$PROJECT_DIR$/rom/featureFunctions/nonOverlappingPolydisperseSpheres/volumeFractionCircExclusions.m" />
+      <change beforePath="$PROJECT_DIR$/rom/log_p_cf.m" afterPath="$PROJECT_DIR$/rom/log_p_cf.m" />
+      <change beforePath="$PROJECT_DIR$/rom/log_q_n.m" afterPath="$PROJECT_DIR$/rom/log_q_n.m" />
+      <change beforePath="$PROJECT_DIR$/rom/mesh/Cell.m" afterPath="$PROJECT_DIR$/rom/mesh/Cell.m" />
+      <change beforePath="$PROJECT_DIR$/rom/mesh/Msh.m" afterPath="$PROJECT_DIR$/rom/mesh/Mesh.m" />
+      <change beforePath="$PROJECT_DIR$/rom/mesh/RectangularMesh.m" afterPath="$PROJECT_DIR$/rom/mesh/RectangularMesh.m" />
+      <change beforePath="$PROJECT_DIR$/rom/predictionScript.m" afterPath="$PROJECT_DIR$/rom/predictionScript.m" />
+      <change beforePath="$PROJECT_DIR$/rom/sqMisfit.m" afterPath="$PROJECT_DIR$/rom/sqMisfit.m" />
+      <change beforePath="$PROJECT_DIR$/rom/trainModel.m" afterPath="$PROJECT_DIR$/rom/trainModel.m" />
+>>>>>>> a3162663d4f0d333f8f1a3a6996703813ea3f411
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -59,6 +81,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             <state relative-caret-position="540">
               <caret line="48" column="28" lean-forward="false" selection-start-line="48" selection-start-column="28" selection-end-line="48" selection-end-column="28" />
 =======
@@ -71,6 +94,9 @@
 >>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
 =======
             <state relative-caret-position="405">
+=======
+            <state relative-caret-position="2115">
+>>>>>>> a3162663d4f0d333f8f1a3a6996703813ea3f411
               <caret line="147" column="18" lean-forward="false" selection-start-line="147" selection-start-column="18" selection-end-line="147" selection-end-column="18" />
 >>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
               <folding>
@@ -104,7 +130,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="generateMeshes.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="generateMeshes.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/generateMeshes.py">
           <provider selected="true" editor-type-id="text-editor">
 <<<<<<< HEAD
@@ -122,8 +148,12 @@
 >>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
 =======
             <state relative-caret-position="2820">
+<<<<<<< HEAD
               <caret line="188" column="0" lean-forward="true" selection-start-line="188" selection-start-column="0" selection-end-line="188" selection-end-column="0" />
 >>>>>>> 9ad13e9ba29c888270fda3b8fe93fc4d9a6c8b68
+=======
+              <caret line="188" column="0" lean-forward="false" selection-start-line="188" selection-start-column="0" selection-end-line="188" selection-end-column="0" />
+>>>>>>> a3162663d4f0d333f8f1a3a6996703813ea3f411
               <folding>
                 <element signature="e#52#79#0" expanded="true" />
               </folding>
@@ -131,15 +161,20 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="porousMedia.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="porousMedia.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/porousMedia.py">
           <provider selected="true" editor-type-id="text-editor">
+<<<<<<< HEAD
 <<<<<<< HEAD
             <state relative-caret-position="-525">
 =======
             <state relative-caret-position="495">
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
               <caret line="37" column="5" lean-forward="false" selection-start-line="37" selection-start-column="4" selection-end-line="37" selection-end-column="19" />
+=======
+            <state relative-caret-position="1170">
+              <caret line="78" column="6" lean-forward="false" selection-start-line="78" selection-start-column="6" selection-end-line="78" selection-end-column="6" />
+>>>>>>> a3162663d4f0d333f8f1a3a6996703813ea3f411
               <folding>
                 <element signature="e#86#104#0" expanded="true" />
               </folding>
@@ -432,13 +467,12 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="512" y="229" width="1920" height="1200" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33697632" sideWeight="0.5083333" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.21838035" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33697632" sideWeight="0.49166667" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33697632" sideWeight="0.49166667" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.08020833" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Docker" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
@@ -775,6 +809,7 @@
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
     <entry file="file://$PROJECT_DIR$/porousMedia.py">
       <provider selected="true" editor-type-id="text-editor">
 <<<<<<< HEAD
@@ -789,6 +824,8 @@
         </state>
       </provider>
     </entry>
+=======
+>>>>>>> a3162663d4f0d333f8f1a3a6996703813ea3f411
     <entry file="file://$PROJECT_DIR$/plotStokes.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="705">
@@ -836,7 +873,7 @@
     <entry file="file://$PROJECT_DIR$/genStokesData.py">
 >>>>>>> b5f7ed4034fcb0d3d93a3dde640e8f86ddf09114
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="405">
+        <state relative-caret-position="2115">
           <caret line="147" column="18" lean-forward="false" selection-start-line="147" selection-start-column="18" selection-end-line="147" selection-end-column="18" />
           <folding>
             <element signature="e#147#178#0" expanded="true" />
@@ -847,10 +884,20 @@
     <entry file="file://$PROJECT_DIR$/generateMeshes.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2820">
-          <caret line="188" column="0" lean-forward="true" selection-start-line="188" selection-start-column="0" selection-end-line="188" selection-end-column="0" />
+          <caret line="188" column="0" lean-forward="false" selection-start-line="188" selection-start-column="0" selection-end-line="188" selection-end-column="0" />
           <folding>
 >>>>>>> aa28d594e3d25c59e7aeb394b92b0abe1dae9cd0
             <element signature="e#52#79#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/porousMedia.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1170">
+          <caret line="78" column="6" lean-forward="false" selection-start-line="78" selection-start-column="6" selection-end-line="78" selection-end-column="6" />
+          <folding>
+            <element signature="e#86#104#0" expanded="true" />
           </folding>
         </state>
       </provider>

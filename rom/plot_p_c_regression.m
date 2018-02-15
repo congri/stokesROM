@@ -23,6 +23,8 @@ if strcmp(mode, 'local')
                     if xData < minX, minX = xData; end
                 end
                 if minX ~=maxX, sb(k).XLim = [minX, maxX]; end
+                ylabel('$\left<\lambda_c \right>$');
+                xlabel('$\phi$');
                 k = k + 1;
             end
         end

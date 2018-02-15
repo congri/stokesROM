@@ -2,9 +2,6 @@ classdef StokesROM
     %Class for reduced order model of Stokes equation
     
     properties
-        %ROM FEM grid vectors of rectangular mesh
-        gridX = .25*ones(1, 4)
-        gridY = .25*ones(1, 4)
         
         %Grid of p_cf variance
         gridSX
@@ -15,16 +12,12 @@ classdef StokesROM
         
         %Model parameters
         modelParams
+        
     end
     
     methods
-        function [self] = StokesROM(gridX, gridY, gridSX, gridSY)
+        function [self] = StokesROM()
             %Constructor
-            self.gridX = gridX; nX = length(gridX);
-            self.gridY = gridY; nY = length(gridY);
-            
-            self.gridSX = gridSX;
-            self.gridSY = gridSY;
         end
         
         function [self] = readTrainingData(self, samples, u_bc)
@@ -33,14 +26,19 @@ classdef StokesROM
             self.trainingData = self.trainingData.readData('px');
         end
         
-        function [self] = initializeModelParams(self, p_bc, u_bc, mode)
+        function [self] = initializeModelParams(self, p_bc, u_bc, mode,...
+                gridX, gridY, gridRF, gridSX, gridSY)
             %Initialize params theta_c, theta_cf
             
             self.modelParams = ModelParams;
+            self.modelParams.gridSX = gridSX;
+            self.modelParams.gridSY = gridSY;
+            self.modelParams.gridRF = gridRF;
+            self.modelParams.rf2fem = gridRF.map2fine(gridX, gridY);
             
             %Coarse mesh object
-            self.modelParams.coarseMesh = Mesh(self.gridX, self.gridY);
-            nX = length(self.gridX); nY = length(self.gridY);
+            self.modelParams.coarseMesh = MeshFEM(gridX, gridY);
+            nX = length(gridX); nY = length(gridY);
             
             %Convert flow bc string to handle functions
             u_x_temp = strrep(u_bc{1}(5:end), 'x[1]', 'y');
@@ -60,19 +58,12 @@ classdef StokesROM
                 self.modelParams.coarseMesh.setBoundaries(2:(2*nX + 2*nY),...
                 p_bc, u_bc_handle);
             
-            if isempty(self.trainingData.designMatrix)
-                self.trainingData = self.trainingData.evaluateFeatures(...
-                    self.gridX, self.gridY);
-            end
-            
-            nFeatures = size(self.trainingData.designMatrix{1}, 2);
-            nElements = numel(self.gridX)*numel(self.gridY);
             nData = numel(self.trainingData.samples);
-            nSCells = numel(self.gridSX)*numel(self.gridSY);
+            nSCells = numel(gridSX)*numel(gridSY);
             
-            self.modelParams = self.modelParams.initialize(nFeatures,...
-                nElements, nData, nSCells, mode);
-            
+            self.modelParams = self.modelParams.initialize(gridRF.nCells,...
+                nData, nSCells, mode);
+                        
             %Parameters from previous runs can be deleted here
             if exist('./data/', 'dir')
                 rmdir('./data', 's'); %delete old params
@@ -91,7 +82,8 @@ classdef StokesROM
                 a = self.modelParams.VRVM_a + .5;
                 e = self.modelParams.VRVM_e + .5*nTrain;
                 c = self.modelParams.VRVM_c + .5*nTrain;
-                Ncells_gridS = numel(self.gridSX)*numel(self.gridSY);
+                Ncells_gridS = numel(self.modelParams.gridSX)*...
+                    numel(self.modelParams.gridSY);
                 sqDistSum = zeros(Ncells_gridS, 1);
                 for j = 1:Ncells_gridS
                     for n = 1:numel(self.trainingData.samples)
@@ -380,7 +372,8 @@ classdef StokesROM
         
         function self = update_p_cf(self, sqDist_p_cf)
             
-            Ncells_gridS = numel(self.gridSX)*numel(self.gridSY);
+            Ncells_gridS = numel(self.modelParams.gridSX)*...
+                numel(self.modelParams.gridSY);
             self.modelParams.sigma_cf.s0 = zeros(Ncells_gridS, 1);
             for j = 1:Ncells_gridS
                 for n = 1:numel(self.trainingData.samples)
@@ -400,6 +393,8 @@ classdef StokesROM
                 Lambda_eff_mode = conductivityBackTransform(...
                     self.trainingData.designMatrix{i + dataOffset}*...
                     self.modelParams.theta_c, condTransOpts);
+                Lambda_eff_mode = self.modelParams.rf2fem*...
+                    Lambda_eff_mode;
                 sb1 = subplot(2, 3, 1 + (i - 1)*3, 'Parent', fig);
                 imagesc(reshape(Lambda_eff_mode,...
                     self.modelParams.coarseMesh.nElX,...
@@ -467,7 +462,7 @@ classdef StokesROM
             drawnow
         end
         
-        function [predMean, predStd, meanEffCond] =...
+        function [predMean, predStd, meanEffCond, meanSqDist] =...
                 predict(self, testStokesData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
@@ -490,37 +485,47 @@ classdef StokesROM
                 testStokesData = testStokesData.readData('p');
             end
             
-            testStokesData = testStokesData.evaluateFeatures(...
-                self.gridX, self.gridY);
-            if strcmp(mode, 'local')
-                testStokesData = testStokesData.shapeToLocalDesignMat;
-            end
-            
             if isempty(self.modelParams)
                 %Read in trained params form ./data folder
                 self.modelParams = ModelParams;
                 self.modelParams = self.modelParams.loadModelParams;
+                self.modelParams.rf2fem = self.modelParams.gridRF.map2fine(...
+                    self.modelParams.coarseMesh.gridX,...
+                    self.modelParams.coarseMesh.gridY);
             end
+            
+            testStokesData =...
+                testStokesData.evaluateFeatures(self.modelParams.gridRF);
+            if exist('./data/featureFunctionMin', 'file')
+                featFuncMin = dlmread('./data/featureFunctionMin');
+                featFuncMax = dlmread('./data/featureFunctionMax');
+                testStokesData = testStokesData.rescaleDesignMatrix(...
+                    featFuncMin, featFuncMax);
+            end
+            if strcmp(mode, 'local')
+                testStokesData = testStokesData.shapeToLocalDesignMat;
+            end
+            
             
             %% Sample from p_c
             disp('Sampling effective diffusivities...')
             nTest = numel(testStokesData.samples);
             
             %short hand notation/avoiding broadcast overhead
-            nElc = self.modelParams.coarseMesh.nEl;
+            nElc = self.modelParams.gridRF.nCells;
             
             Xsamples = zeros(nElc, nSamples_p_c, nTest);
             %Lambda as cell array for parallelization
             LambdaSamples{1} = zeros(nElc, nSamples_p_c);
             LambdaSamples = repmat(LambdaSamples, nTest, 1);
             
-            meanEffCond = zeros(nElc, nTest);
+            meanEffCond = zeros(self.modelParams.coarseMesh.nEl, nTest);
             
             stdLogS = [];   %for parfor
             
-            
             for i = 1:nTest
-                if strcmp(self.modelParams.prior_theta_c, 'VRVM')
+                if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
+                        strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
                     SigmaTildeInv = testStokesData.designMatrix{i}'*...
                         (self.modelParams.Sigma_c\...
                         testStokesData.designMatrix{i}) + ...
@@ -550,7 +555,9 @@ classdef StokesROM
                 %Diffusivities
                 LambdaSamples{i} = conductivityBackTransform(...
                     Xsamples(:, :, i), self.modelParams.condTransOpts);
-                meanEffCond(:, i) = mean(LambdaSamples{i}, 2);
+                meanEffCond(:, i) = self.modelParams.rf2fem*...
+                    mean(LambdaSamples{i}, 2);
+                LambdaSamples{i} = self.modelParams.rf2fem*LambdaSamples{i};
             end
             disp('Sampling from p_c done.')
             
@@ -569,14 +576,16 @@ classdef StokesROM
                 self.modelParams.fineScaleInterp(testStokesData.X);
             W_cf = self.modelParams.W_cf;
             %S_n is a vector of variances at vertices
-            testStokesData = testStokesData.vtxToCell(self.gridX, self.gridY);
+            testStokesData = testStokesData.vtxToCell(...
+                self.modelParams.coarseMesh.gridX,...
+                self.modelParams.coarseMesh.gridY);
             P = testStokesData.P;
             for n = 1:nTest
                 S{n} = self.modelParams.sigma_cf.s0(...
                     testStokesData.cellOfVertex{n});
             end
             
-            parfor n = 1:nTest
+            for n = 1:nTest
                 for i = 1:nSamples_p_c
                     D = zeros(2, 2, cm.nEl);
                     for e = 1:cm.nEl
@@ -587,6 +596,7 @@ classdef StokesROM
                     
                     %sample from p_cf
                     mu_cf = W_cf{n}*Tctemp(:);
+                    
                     %only for diagonal S!!
                     %Sequentially compute mean and <Tf^2> to save memory
                     predMeanArray{n} = ((i - 1)/i)*predMeanArray{n}...
@@ -611,10 +621,10 @@ classdef StokesROM
             end
             
             meanMahalanobisError = mean(cell2mat(meanMahaErrTemp));
-            meanSquaredDistance = mean(cell2mat(meanSqDistTemp));
+            meanSqDist = mean(cell2mat(meanSqDistTemp));
             meanSqDistSq = mean(cell2mat(meanSqDistTemp).^2);
             meanSquaredDistanceError =...
-                sqrt((meanSqDistSq - meanSquaredDistance^2)/nTest);
+                sqrt((meanSqDistSq - meanSqDist^2)/nTest);
             meanLogPerplexity = mean(cell2mat(logPerplexity));
             meanPerplexity = exp(meanLogPerplexity);
             
@@ -679,6 +689,79 @@ classdef StokesROM
             
             predMean = 0;
             predStd = 0;
+        end
+        
+        function [d_log_p_cf_sqMean] = findMeshRefinement(self)
+            %Script to sample d_log_p_cf under Q(lambda_c) to find where to
+            %refine mesh next
+            
+            if isempty(self.modelParams)
+                %Read in trained params form ./data folder
+                self.modelParams = ModelParams;
+                self.modelParams = self.modelParams.loadModelParams;
+            end
+            
+            nSamples = 100;
+            d_log_p_cf_sqMean = 0;
+            k = 1;
+            
+            for n = (self.trainingData.samples + 1) %+1 for matlab indexing
+                if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
+                        strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
+                    SigmaTildeInv = self.trainingData.designMatrix{n}'*...
+                        (self.modelParams.Sigma_c\...
+                        self.trainingData.designMatrix{n}) + ...
+                        inv(self.modelParams.Sigma_theta_c);
+                    SigmaTilde = inv(SigmaTildeInv);
+                    Sigma_c_inv_Phi = self.modelParams.Sigma_c\...
+                        self.trainingData.designMatrix{n};
+                    precisionLambda_c = inv(self.modelParams.Sigma_c) - ...
+                        Sigma_c_inv_Phi*SigmaTilde*Sigma_c_inv_Phi';
+                    Sigma_lambda_c = inv(precisionLambda_c);
+                    mu_lambda_c = Sigma_lambda_c*Sigma_c_inv_Phi*(SigmaTilde/...
+                       self.modelParams.Sigma_theta_c)*self.modelParams.theta_c;
+                else
+                    mu_lambda_c = self.trainingData.designMatrix{n}*...
+                    self.modelParams.theta_c;
+                    Sigma_lambda_c = self.modelParams.Sigma_c;
+                end
+                
+                
+                W_cf_n = self.modelParams.W_cf{n};
+                %S_n is a vector of variances at vertices
+                S_n = self.modelParams.sigma_cf.s0(...
+                    self.trainingData.cellOfVertex{n});
+                S_n = ones(size(S_n)); %comment to include S
+                S_cf_n.sumLogS = sum(log(S_n));
+                S_cf_n.Sinv_vec = 1./S_n;
+                Sinv = sparse(1:length(S_n), 1:length(S_n), S_cf_n.Sinv_vec);
+                S_cf_n.WTSinv = (Sinv*W_cf_n)';
+                
+                
+                for j = 1:nSamples
+                    lambda_c_sample = mvnrnd(mu_lambda_c, Sigma_lambda_c)';
+                    [~, d_log_p_cf] = log_p_cf(self.trainingData.P{n},...
+                        self.modelParams.coarseMesh, lambda_c_sample, W_cf_n,...
+                        S_cf_n, self.modelParams.condTransOpts);
+
+                    d_log_p_cf_sqMean = ((k - 1)/k)*d_log_p_cf_sqMean +...
+                        (1/k)*d_log_p_cf.^2;
+                    k = k + 1;
+                end
+            end
+            
+            fig = figure;
+            sb1 = subplot(1, 1, 1);
+            imagesc(reshape(d_log_p_cf_sqMean,...
+                self.modelParams.coarseMesh.nElX,...
+                self.modelParams.coarseMesh.nElY)', 'Parent', sb1)
+            sb1.YDir = 'normal';
+            axis(sb1, 'tight');
+            axis(sb1, 'square');
+            sb1.GridLineStyle = 'none';
+            sb1.XTick = [];
+            sb1.YTick = [];
+            cbp_lambda = colorbar('Parent', fig);
         end
     end
 end

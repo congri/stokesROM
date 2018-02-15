@@ -1,5 +1,5 @@
 function [log_q, d_log_q, Tc] = log_q_n(Xn, Tf_n_minus_mu, W_cf_n, S_cf_n,...
-    theta_c, designMatrix,  coarseMesh, condTransOpts)
+    theta_c, designMatrix,  coarseMesh, condTransOpts, rf2fem)
 
 %Xi must be a column vector
 if size(Xn, 2) > 1
@@ -8,7 +8,7 @@ end
 
 [lg_p_c, d_lg_p_c] = log_p_c(Xn, designMatrix, theta_c);
 [lg_p_cf, d_lg_p_cf, Tc] = log_p_cf(...
-    Tf_n_minus_mu, coarseMesh, Xn, W_cf_n, S_cf_n, condTransOpts);
+    Tf_n_minus_mu, coarseMesh, Xn, W_cf_n, S_cf_n, condTransOpts, rf2fem);
 
 log_q = lg_p_cf + lg_p_c;
 d_log_q = d_lg_p_c + d_lg_p_cf;

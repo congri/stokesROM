@@ -8,13 +8,19 @@ classdef ModelParams
         Sigma_c
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
+        gridRF
         
         %p_cf
         W_cf
         sigma_cf
+        gridSX
+        gridSY
         
         %Surrogate FEM mesh
         coarseMesh
+        
+        %Mapping from random field to FEM discretization
+        rf2fem
         
         %Transformation options of diffusivity parameter
         condTransOpts
@@ -28,7 +34,7 @@ classdef ModelParams
         VRVM_d = 1e-10;
         VRVM_e = 1e-10;
         VRVM_f = 1e-10;
-        VRVM_iter = 5; %iterations with fixed q(lambda_c)
+        VRVM_iter = 200; %iterations with fixed q(lambda_c)
         
         %% Parameters of variational distributions
         variational_mu
@@ -46,8 +52,7 @@ classdef ModelParams
             %Constructor
         end
         
-        function self = initialize(self, nFeatures, nElements, nData,...
-                nSCells, mode)
+        function self = initialize(self, nElements, nData, nSCells, mode)
             %Initialize model parameters
             %   nFeatures:      number of feature functions
             %   nElements:      number of macro elements
@@ -65,8 +70,6 @@ classdef ModelParams
                 self.variational_sigma =...
                     repmat(self.variational_sigma, nData, 1);
             else
-                %Initialize theta_c to 0
-                self.theta_c = zeros(nFeatures, 1);
                 %Initialize sigma_c to I
                 self.Sigma_c = 1e-4*eye(nElements);
                 
@@ -93,6 +96,9 @@ classdef ModelParams
                 self.variational_sigma =...
                     repmat(self.variational_sigma, nData, 1);
             end
+            
+            %Coarse FEM to coarse random field cells map
+            
         end
         
         function [self] = loadModelParams(self)
@@ -119,13 +125,16 @@ classdef ModelParams
             load('./data/condTransOpts.mat');
             self.condTransOpts = condTransOpts;
 
+            load('./data/gridRF.mat');
+            self.gridRF = gridRF;
+            
             self.sigma_cf.s0 = dlmread('./data/sigma_cf')';
             
             try
-                self.Sigma_theta_c = dlmread('./data/Sigma_theta_c');
-                self.Sigma_theta_c = reshape(self.Sigma_theta_c,...
-                    sqrt(numel(self.Sigma_theta_c)),...
-                    sqrt(numel(self.Sigma_theta_c)));
+                temp = dlmread('./data/Sigma_theta_c');
+                temp = temp(end, :);
+                self.Sigma_theta_c = reshape(temp, sqrt(numel(temp)),...
+                    sqrt(numel(temp)));
             catch
                 warning('Sigma_theta_c not found.');
             end
@@ -162,12 +171,12 @@ classdef ModelParams
             if strcmp(mode, 'local')
                 disp('theta_c: row = feature, column = macro-cell:')
                 curr_theta_c = reshape(self.theta_c,...
-                    numel(self.theta_c)/self.coarseMesh.nEl,...
-                    self.coarseMesh.nEl)
+                    numel(self.theta_c)/self.gridRF.nCells,...
+                    self.gridRF.nCells)
                 curr_Sigma_c = full(diag(self.Sigma_c))
                 if strcmp(self.prior_theta_c, 'sharedVRVM')
                     curr_gamma = self.gamma(1:...
-                        (numel(self.theta_c)/self.coarseMesh.nEl))
+                        (numel(self.theta_c)/self.gridRF.nCells))
                 else
                     curr_gamma = self.gamma
                 end
@@ -211,9 +220,9 @@ classdef ModelParams
             sb3.YLabel.String = '$\sigma_k$';
             
             sb4 = subplot(3, 2, 4, 'Parent', figHandle);
-            im = imagesc(reshape(diag(sqrt(self.Sigma_c(1:self.coarseMesh.nEl,...
-                1:self.coarseMesh.nEl))),...
-                self.coarseMesh.nElX, self.coarseMesh.nElY)', 'Parent', sb4);
+            sigma_c_plot = self.rf2fem*diag(self.Sigma_c);
+            im = imagesc(reshape(sigma_c_plot, self.coarseMesh.nElX,...
+                self.coarseMesh.nElY)', 'Parent', sb4);
             sb4.YDir = 'normal';
             sb4.Title.String = '$\sigma_k$';
             colorbar('Parent', figHandle);
@@ -245,6 +254,12 @@ classdef ModelParams
                 %save coarseMesh to file
                 coarseMesh = self.coarseMesh;
                 save('./data/coarseMesh.mat', 'coarseMesh');
+            end
+            
+            %Coarse random field discretization
+            if contains(params, 'gridRF')
+                gridRF = self.gridRF;
+                save('./data/gridRF.mat', 'gridRF');
             end
             
             %Optimal params
@@ -288,7 +303,12 @@ classdef ModelParams
             if contains(params, 'stc')
                 filename = './data/Sigma_theta_c';
                 stc = self.Sigma_theta_c(:)';
-                save(filename, 'stc', '-ascii', '-append');
+                onlyFinal = true;
+                if onlyFinal
+                    save(filename, 'stc', '-ascii');
+                else
+                    save(filename, 'stc', '-ascii', '-append');
+                end
             end
             
             %sigma

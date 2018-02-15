@@ -25,6 +25,7 @@ slprj/
 *.pvd
 *.xdmf
 data/
+.idea/
 
 
 
