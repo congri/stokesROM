@@ -51,6 +51,7 @@ rom.modelParams.saveParams('coarseMesh');
 rom.modelParams.saveParams('priorType');
 rom.modelParams.saveParams('condTransOpts');
 rom.modelParams.saveParams('gridRF');
+rom.modelParams.saveParams('gridS');
 rom.trainingData = rom.trainingData.evaluateFeatures(gridRF);
 
 if strcmp(normalization, 'rescale')

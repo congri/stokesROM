@@ -488,7 +488,7 @@ classdef StokesROM
             if isempty(self.modelParams)
                 %Read in trained params form ./data folder
                 self.modelParams = ModelParams;
-                self.modelParams = self.modelParams.loadModelParams;
+                self.modelParams = self.modelParams.load;
                 self.modelParams.rf2fem = self.modelParams.gridRF.map2fine(...
                     self.modelParams.coarseMesh.gridX,...
                     self.modelParams.coarseMesh.gridY);
@@ -576,9 +576,8 @@ classdef StokesROM
                 self.modelParams.fineScaleInterp(testStokesData.X);
             W_cf = self.modelParams.W_cf;
             %S_n is a vector of variances at vertices
-            testStokesData = testStokesData.vtxToCell(...
-                self.modelParams.coarseMesh.gridX,...
-                self.modelParams.coarseMesh.gridY);
+            testStokesData= testStokesData.vtxToCell(self.modelParams.gridSX,...
+                self.modelParams.gridSY);
             P = testStokesData.P;
             for n = 1:nTest
                 S{n} = self.modelParams.sigma_cf.s0(...
@@ -698,7 +697,7 @@ classdef StokesROM
             if isempty(self.modelParams)
                 %Read in trained params form ./data folder
                 self.modelParams = ModelParams;
-                self.modelParams = self.modelParams.loadModelParams;
+                self.modelParams = self.modelParams.load;
             end
             
             nSamples = 100;
