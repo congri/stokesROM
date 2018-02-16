@@ -6,7 +6,8 @@ addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 addpath('./mesh')
 %% Define parameters here:
 
-samples = 0:3;
+nTrain = 4;
+samples = 0:(nTrain - 1);
 max_EM_iter = 800;  %maximum EM iterations
 muField = 0;        %mean function in p_cf
 
@@ -21,7 +22,7 @@ condTransOpts.limits = [1e-16, 1e16];
 gridX = (1/4)*ones(1, 4);   %coarse FEM
 gridY = gridX;
 gridRF = RectangularMesh([.5 .5]);
-gridRF.split_cell(gridRF.cells{2});
+gridRF.split_cell(gridRF.cells{4});
 gridSX = [.125, .25, .5, ones(1, 26), .5, .25, .125];   %p_cf S grid
 gridSX = gridSX/sum(gridSX);
 gridSY = gridSX;

@@ -1,5 +1,4 @@
 NTRAIN=128
-HYPERPARAM=1e4
 
 NCORES=16
 if [ $NTRAIN -lt $NCORES ]; then
@@ -8,13 +7,13 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="sharedVRVM"
+NAMEBASE="cell4"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
 JOBNAME="${NAMEBASE}_nTrain=${NTRAIN}"
 SPOOL_FILE=/home/constantin/spooledOutput/${DATESTR}_${JOBNAME}
 
-JOBDIR="/home/constantin/python/data/nTrain=${NTRAIN}_hyperparam=${HYPERPARAM}_${DATESTR}"
+JOBDIR="/home/constantin/python/data/${JOBNAME}_${DATESTR}"
 
 
 #Create job directory and copy source code
@@ -40,15 +39,7 @@ printf "#PBS -N $JOBNAME
 cd \"$JOBDIR/rom\"
 
 #Set parameters
-sed -i \"8s/.*/nTrain = ${NTRAIN};/\" ./trainModel.m
-sed -i \"25s/.*/        VRVM_a = ${HYPERPARAM};/\" ./ModelParams.m
-sed -i \"26s/.*/        VRVM_b = ${HYPERPARAM};/\" ./ModelParams.m
-sed -i \"27s/.*/        VRVM_c = ${HYPERPARAM};/\" ./ModelParams.m
-sed -i \"28s/.*/        VRVM_d = ${HYPERPARAM};/\" ./ModelParams.m
-sed -i \"29s/.*/        VRVM_e = ${HYPERPARAM};/\" ./ModelParams.m
-sed -i \"30s/.*/        VRVM_f = ${HYPERPARAM};/\" ./ModelParams.m
-
-
+sed -i \"9s/.*/nTrain = ${NTRAIN};/\" ./trainModel.m
 
 #Run Matlab
 /home/matlab/R2017a/bin/matlab -nodesktop -nodisplay -nosplash -r \"trainModel ; quit;\" | tee ${SPOOL_FILE}" >> job_file.sh
