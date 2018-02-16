@@ -4,8 +4,8 @@ function [d_r] = FEMgrad(FEMout, mesh, conductivity)
 
 
     function gradKK = get_glob_stiff_gradient(grad_loc_k)
-        gradKK = sparse(mesh.Equations(:,1),...
-            mesh.Equations(:,2), grad_loc_k(mesh.kIndex));
+        gradKK = sparse(mesh.Equations(:, 1),...
+            mesh.Equations(:, 2), grad_loc_k(mesh.kIndex));
     end
 
 % (d/d Lambda_e) k^(e) = (1/Lambda_e) k^(e)     as k^(e) linear in Lambda_e

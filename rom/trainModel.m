@@ -6,7 +6,7 @@ addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 addpath('./mesh')
 %% Define parameters here:
 
-samples = 0:3;
+samples = 0:7;
 max_EM_iter = 800;  %maximum EM iterations
 muField = 0;        %mean function in p_cf
 
@@ -49,6 +49,7 @@ rom.modelParams.saveParams('coarseMesh');
 rom.modelParams.saveParams('priorType');
 rom.modelParams.saveParams('condTransOpts');
 rom.modelParams.saveParams('gridRF');
+rom.modelParams.saveParams('gridS');
 rom.trainingData = rom.trainingData.evaluateFeatures(gridRF);
 
 if strcmp(normalization, 'rescale')

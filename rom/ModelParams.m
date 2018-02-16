@@ -59,7 +59,7 @@ classdef ModelParams
             %   nSCells:        number of cells in S-grid
             
             if strcmp(mode, 'load')
-                self = self.loadModelParams;
+                self = self.load;
                 
                 %Initialize parameters of variational approximate distributions
                 load('./data/vardistparams.mat');
@@ -101,7 +101,7 @@ classdef ModelParams
             
         end
         
-        function [self] = loadModelParams(self)
+        function [self] = load(self)
             %Initialize params theta_c, theta_cf
                         
             %Coarse mesh object
@@ -125,10 +125,15 @@ classdef ModelParams
             load('./data/condTransOpts.mat');
             self.condTransOpts = condTransOpts;
 
+            addpath('./mesh');
             load('./data/gridRF.mat');
             self.gridRF = gridRF;
+            self.rf2fem = gridRF.map2fine(coarseMesh.gridX, coarseMesh.gridY);
             
             self.sigma_cf.s0 = dlmread('./data/sigma_cf')';
+            load('./data/gridS.mat');
+            self.gridSX = gridSX;
+            self.gridSY = gridSY;
             
             try
                 temp = dlmread('./data/Sigma_theta_c');
@@ -203,6 +208,15 @@ classdef ModelParams
                 thetaArray, SigmaArray, nSX, nSY)
             %Plots the current theta_c
             
+            if nargin < 6
+                self = self.load;
+                nSX = numel(self.gridSX);
+                nSY = numel(self.gridSY);
+                SigmaArray = dlmread('./data/sigma_c');
+                thetaArray = dlmread('./data/theta_c');
+                figHandle = figure;
+            end
+            
             sb1 = subplot(3, 2, 1, 'Parent', figHandle);
             plot(thetaArray, 'linewidth', 1, 'Parent', sb1)
             axis(sb1, 'tight');
@@ -220,6 +234,7 @@ classdef ModelParams
             sb3.YLabel.String = '$\sigma_k$';
             
             sb4 = subplot(3, 2, 4, 'Parent', figHandle);
+            
             sigma_c_plot = self.rf2fem*diag(self.Sigma_c);
             im = imagesc(reshape(sigma_c_plot, self.coarseMesh.nElX,...
                 self.coarseMesh.nElY)', 'Parent', sb4);
@@ -328,6 +343,14 @@ classdef ModelParams
                 else
                     save(filename, 'scf', '-ascii', '-append');
                 end
+            end
+            
+            %grid of S
+            if contains(params, 'gridS')
+                filename = './data/gridS.mat';
+                gridSX = self.gridSX;
+                gridSY = self.gridSY;
+                save(filename, 'gridSX', 'gridSY');
             end
             
             %Parameters of variational distributions on log lambda_c
