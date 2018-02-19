@@ -79,11 +79,11 @@ classdef StokesData
                 
                 if exist(filename, 'file')
                     
-                    if any(quantities == 'x')
+                    if contains(quantities, 'x')
                         self.X{cellIndex} = file.x;
                     end
                     
-                    if any(quantities == 'p')
+                    if contains(quantities, 'p')
                         rescale_p = true;
                         if rescale_p
                             p_temp = file.p';
@@ -95,17 +95,17 @@ classdef StokesData
                         self.P{cellIndex} = p_temp;
                     end
                     
-                    if any(quantities == 'u')
+                    if contains(quantities, 'u')
                         self.U{cellIndex} = file.u;
                     end
                     
-                    if any(quantities == 'c')
+                    if contains(quantities, 'c')
                         cellfile = matfile(char(strcat(self.pathname, 'mesh',...
                             num2str(n), '.mat')));
                         self.cells{cellIndex} = cellfile.cells;
                     end
                     
-                    if any(quantities == 'm')
+                    if contains(quantities, 'm')
                         datafile = char(strcat(self.pathname,...
                             'microstructureInformation', num2str(n), '.mat'));
                         self.microstructData{cellIndex} = load(datafile);
@@ -116,6 +116,12 @@ classdef StokesData
                     warning(strcat(filename, 'not found. Skipping sample.'))
                 end
             end
+        end
+        
+        function self = interpolateData(fineGridX, fineGridY, interpolationMode)
+            %Interpolates finescale data onto a regular rectangular grid
+            %specified by fineGridX, fineGridY
+            
         end
         
         function self = countVertices(self)
@@ -371,7 +377,7 @@ classdef StokesData
         end
         
         function [triHandles, pltHandles, figHandle, cb] =...
-                plotData(self, samples)
+                plot(self, samples)
             %Plots the fine scale data and returns handles
             
             %Load data if not yet loaded
@@ -395,7 +401,7 @@ classdef StokesData
             for n = samples
                 figure(figHandle);
                 %pressure field
-                pltHandles(1, pltIndex) = subplot(2, N, pltIndex);
+                pltHandles(1, pltIndex) = subplot(3, N, pltIndex);
                 triHandles(1, pltIndex) =...
                     trisurf(self.cells{n}, self.X{n}(:, 1),...
                     self.X{n}(:, 2), self.P{n});
@@ -413,7 +419,7 @@ classdef StokesData
                 
                 %velocity field (norm)
                 u_norm = sqrt(sum(self.U{n}.^2));
-                pltHandles(2, pltIndex) = subplot(2, N, pltIndex + N);
+                pltHandles(2, pltIndex) = subplot(3, N, pltIndex + N);
                 triHandles(2, pltIndex) = trisurf(self.cells{n},...
                    self.X{n}(:, 1), self.X{n}(:, 2), u_norm);
                 triHandles(2, pltIndex).LineStyle = 'none';
@@ -427,6 +433,22 @@ classdef StokesData
                 cb(2, pltIndex) = colorbar;
                 cb(2, pltIndex).Label.String = 'velocity norm $|u|$';
                 cb(2, pltIndex).Label.Interpreter = 'latex';
+                
+                %velocity field (norm), 2d
+                pltHandles(3, pltIndex) = subplot(3, N, pltIndex + 2*N);
+                triHandles(3, pltIndex) = trisurf(self.cells{n},...
+                   self.X{n}(:, 1), self.X{n}(:, 2), u_norm);
+                triHandles(3, pltIndex).LineStyle = 'none';
+                axis square;
+                axis tight;
+                view(2);
+                grid off;
+                box on;
+                xticks({});
+                yticks({});
+                cb(3, pltIndex) = colorbar;
+                cb(3, pltIndex).Label.String = 'velocity norm $|u|$';
+                cb(3, pltIndex).Label.Interpreter = 'latex';
                 pltIndex = pltIndex + 1;
             end
         end
