@@ -153,7 +153,7 @@ classdef StokesData
                     self.U{n} = [u_interp_x, u_interp_y];
                 end
             end
-            self.X_interp = [xq(:), yq(:)];
+            self.X_interp{1} = [xq(:), yq(:)];
         end
         
         function self = input2bitmap(self, gridX, gridY)
@@ -213,9 +213,15 @@ classdef StokesData
             end
         end
         
-        function self = vtxToCell(self, gridX, gridY)
-            %Mapping from vertex to macro-cell given by grid vectors gridX,
-            %gridY
+        function self = vtxToCell(self, gridX, gridY, interpolationMode)
+            %Mapping from vertex to cell of rectangular grid specified by
+            %grid vectors gridX, gridY
+            if nargin < 4
+                interpolationMode = false;
+            end
+            if nargin < 3
+                gridY = gridX;
+            end
             cumsumX = cumsum(gridX);
             cumsumX(end) = cumsumX(end) + 1e-12;  %include vertices on boundary
             cumsumY = cumsum(gridY);
@@ -226,16 +232,24 @@ classdef StokesData
             if isempty(self.X)
                 self = self.readData('x');
             end
+            if any(interpolationMode)
+                if isempty(self.X_interp)
+                    self = self.interpolate(gridX, gridY, interpolationMode);
+                end
+                X = self.X_interp;
+            else
+                X = self.X;
+            end
             
-            for n = 1:numel(self.X)
-                self.cellOfVertex{n} = zeros(size(self.X{n}, 1), 1);
-                for vtx = 1:size(self.X{n}, 1)
+            for n = 1:numel(X)
+                self.cellOfVertex{n} = zeros(size(X{n}, 1), 1);
+                for vtx = 1:size(X{n}, 1)
                     nx = 1;
-                    while(self.X{n}(vtx, 1) > cumsumX(nx))
+                    while(X{n}(vtx, 1) > cumsumX(nx))
                         nx = nx + 1;
                     end
                     ny = 1;
-                    while(self.X{n}(vtx, 2) > cumsumY(ny))
+                    while(X{n}(vtx, 2) > cumsumY(ny))
                         ny = ny + 1;
                     end
                     self.cellOfVertex{n}(vtx) = nx + (ny - 1)*Nx;

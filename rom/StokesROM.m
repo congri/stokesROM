@@ -3,10 +3,6 @@ classdef StokesROM
     
     properties
         
-        %Grid of p_cf variance
-        gridSX
-        gridSY
-        
         %StokesData object
         trainingData
         
@@ -84,10 +80,16 @@ classdef StokesROM
                 Ncells_gridS = numel(self.modelParams.gridSX)*...
                     numel(self.modelParams.gridSY);
                 sqDistSum = zeros(Ncells_gridS, 1);
-                for j = 1:Ncells_gridS
+                if any(self.modelParams.interpolationMode)
                     for n = 1:numel(self.trainingData.samples)
-                        sqDistSum(j)= sqDistSum(j) + mean(sqDist_p_cf{n}(j ==...
-                            self.trainingData.cellOfVertex{n}));
+                        sqDistSum = sqDistSum + sqDist_p_cf{n};
+                    end
+                else
+                    for j = 1:Ncells_gridS
+                        for n = 1:numel(self.trainingData.samples)
+                            sqDistSum(j)= sqDistSum(j) + mean(sqDist_p_cf{n}(...
+                                j == self.trainingData.cellOfVertex{n}));
+                        end
                     end
                 end
                 f = self.modelParams.VRVM_f + .5*sqDistSum;
@@ -385,7 +387,7 @@ classdef StokesROM
             mean_s0 = mean(self.modelParams.sigma_cf.s0)
         end
         
-        function [] = plotCurrentState(self, fig, dataOffset, condTransOpts)
+        function plotCurrentState(self, fig, dataOffset, condTransOpts)
             %Plots the current modal effective property and the modal
             %reconstruction for 2 -training- samples
             for i = 1:2
@@ -409,10 +411,23 @@ classdef StokesROM
                 if isempty(self.trainingData.cells)
                     self.trainingData = self.trainingData.readData('c');
                 end
+                if any(self.modelParams.interpolationMode)
+                    XX = reshape(self.trainingData.X_interp{1}(:, 1),...
+                        numel(self.modelParams.gridSX),...
+                        numel(self.modelParams.gridSY));
+                    YY = reshape(self.trainingData.X_interp{1}(:, 2),...
+                        numel(self.modelParams.gridSX),...
+                        numel(self.modelParams.gridSY));
+                    P = reshape(self.trainingData.P{i + dataOffset},...
+                        numel(self.modelParams.gridSX),...
+                        numel(self.modelParams.gridSY));
+                    trihandle = surf(XX, YY, P, 'Parent', sb2);
+                else
                 trihandle = trisurf(self.trainingData.cells{i + dataOffset},...
                     self.trainingData.X{i + dataOffset}(:, 1),...
                     self.trainingData.X{i + dataOffset}(:, 2),...
                     self.trainingData.P{i + dataOffset}, 'Parent', sb2);
+                end
                 trihandle.LineStyle = 'none';
                 axis(sb2, 'tight');
                 axis(sb2, 'square');
@@ -435,19 +450,31 @@ classdef StokesROM
                 
                 Tc = coarseFEMout.Tff';
                 Tc = Tc(:);
-                reconstruction = self.modelParams.W_cf{i + dataOffset}*Tc;
-                
-                trihandle2 = trisurf(self.trainingData.cells{i + dataOffset},...
-                    self.trainingData.X{i + dataOffset}(:, 1),...
-                    self.trainingData.X{i + dataOffset}(:, 2),...
-                    reconstruction, 'Parent', sb3);
+                if any(self.modelParams.interpolationMode)
+                    reconstruction = reshape(self.modelParams.W_cf{1}*Tc, ...
+                        numel(self.modelParams.gridSX),...
+                        numel(self.modelParams.gridSY));
+                    trihandle2 = surf(XX, YY, reconstruction, 'Parent', sb3);
+                else
+                    reconstruction = self.modelParams.W_cf{i + dataOffset}*Tc;
+                    trihandle2 =...
+                        trisurf(self.trainingData.cells{i + dataOffset},...
+                        self.trainingData.X{i + dataOffset}(:, 1),...
+                        self.trainingData.X{i + dataOffset}(:, 2),...
+                        reconstruction, 'Parent', sb3);
+                end
                 trihandle2.LineStyle = 'none';
                 trihandle2.FaceColor = 'b';
                 hold(sb3, 'on');
-                trihandle3 = trisurf(self.trainingData.cells{i + dataOffset},...
-                    self.trainingData.X{i + dataOffset}(:, 1),...
-                    self.trainingData.X{i + dataOffset}(:, 2),...
-                    self.trainingData.P{i + dataOffset}, 'Parent', sb3);
+                if any(self.modelParams.interpolationMode)
+                    trihandle3 = surf(XX, YY, P, 'Parent', sb3);
+                else
+                    trihandle3 =...
+                        trisurf(self.trainingData.cells{i + dataOffset},...
+                        self.trainingData.X{i + dataOffset}(:, 1),...
+                        self.trainingData.X{i + dataOffset}(:, 2),...
+                        self.trainingData.P{i + dataOffset}, 'Parent', sb3);
+                end
                 trihandle3.LineStyle = 'none';
                 hold(sb3, 'off');
                 axis(sb3, 'tight');
@@ -563,6 +590,12 @@ classdef StokesROM
             
             %% Run coarse model and sample from p_cf
             disp('Solving coarse model and sample from p_cf...')
+            intp = any(self.modelParams.interpolationMode);
+            if intp
+                testStokesData = ...
+                    testStokesData.interpolate(self.modelParams.gridSX,...
+                    self.modelParams.gridSY,self.modelParams.interpolationMode);
+            end
             for n = 1:nTest
                 predMeanArray{n} = zeros(size(testStokesData.P{n}));
             end
@@ -571,15 +604,24 @@ classdef StokesROM
             
             cm = self.modelParams.coarseMesh;
             %Compute shape function interpolation matrices W
-            self.modelParams.fineScaleInterp(testStokesData.X);
+            if intp
+                self.modelParams.fineScaleInterp(testStokesData.X_interp);
+            else
+                self.modelParams.fineScaleInterp(testStokesData.X);
+            end
             W_cf = self.modelParams.W_cf;
             %S_n is a vector of variances at vertices
             testStokesData= testStokesData.vtxToCell(self.modelParams.gridSX,...
-                self.modelParams.gridSY);
+                self.modelParams.gridSY, self.modelParams.interpolationMode);
             P = testStokesData.P;
-            for n = 1:nTest
-                S{n} = self.modelParams.sigma_cf.s0(...
-                    testStokesData.cellOfVertex{n});
+            if intp
+                S = self.modelParams.sigma_cf.s0(...
+                        testStokesData.cellOfVertex{1});
+            else
+                for n = 1:nTest
+                    S{n} = self.modelParams.sigma_cf.s0(...
+                        testStokesData.cellOfVertex{n});
+                end
             end
             
             for n = 1:nTest
@@ -592,7 +634,11 @@ classdef StokesROM
                     Tctemp = FEMout.Tff';
                     
                     %sample from p_cf
-                    mu_cf = W_cf{n}*Tctemp(:);
+                    if intp
+                        mu_cf = W_cf{1}*Tctemp(:);
+                    else
+                        mu_cf = W_cf{n}*Tctemp(:);
+                    end
                     
                     %only for diagonal S!!
                     %Sequentially compute mean and <Tf^2> to save memory
@@ -600,7 +646,11 @@ classdef StokesROM
                         + (1/i)*mu_cf;  %U_f-integration can be done analyt.
                     mean_P_sq{n} = ((i - 1)/i)*mean_P_sq{n} + (1/i)*mu_cf.^2;
                 end
-                mean_P_sq{n} = mean_P_sq{n} + S{n};
+                if intp
+                    mean_P_sq{n} = mean_P_sq{n} + S;
+                else
+                    mean_P_sq{n} = mean_P_sq{n} + S{n};
+                end
                 
                 %abs to avoid negative variance due to numerical error
                 predVarArray{n} = abs(mean_P_sq{n} - predMeanArray{n}.^2);
@@ -635,10 +685,23 @@ classdef StokesROM
                 for i = 1:6
                     %truth
                     splt(i) = subplot(2, 3, i);
-                    thdl = trisurf(testStokesData.cells{i + pltstart},...
-                        testStokesData.X{i + pltstart}(:, 1),...
-                        testStokesData.X{i + pltstart}(:, 2),...
-                        testStokesData.P{i + pltstart}, 'Parent', splt(i));
+                    if intp
+                        XX = reshape(testStokesData.X_interp{1}(:, 1),...
+                            numel(self.modelParams.gridSX),...
+                            numel(self.modelParams.gridSY));
+                        YY = reshape(testStokesData.X_interp{1}(:, 2),...
+                            numel(self.modelParams.gridSX),...
+                            numel(self.modelParams.gridSY));
+                        P = reshape(testStokesData.P{i + pltstart},...
+                            numel(self.modelParams.gridSX),...
+                            numel(self.modelParams.gridSY));
+                        thdl = surf(XX, YY, P, 'Parent', splt(i));
+                    else
+                        thdl = trisurf(testStokesData.cells{i + pltstart},...
+                            testStokesData.X{i + pltstart}(:, 1),...
+                            testStokesData.X{i + pltstart}(:, 2),...
+                            testStokesData.P{i + pltstart}, 'Parent', splt(i));
+                    end
                     thdl.LineStyle = 'none';
                     axis(splt(i), 'tight');
                     axis(splt(i), 'square');
@@ -652,28 +715,50 @@ classdef StokesROM
                     
                     %predictive mean
                     hold on;
-                    thdlpred = trisurf(testStokesData.cells{i + pltstart},...
-                        testStokesData.X{i + pltstart}(:, 1),...
-                        testStokesData.X{i + pltstart}(:, 2),...
-                        predMeanArray{i + pltstart}, 'Parent', splt(i));
+                    if intp
+                        nx = numel(self.modelParams.gridSX);
+                        ny = numel(self.modelParams.gridSY);
+                        thdlpred = surf(XX, YY, reshape(...
+                            predMeanArray{i + pltstart}, nx, ny),...
+                            'Parent', splt(i));
+                    else
+                        thdlpred= trisurf(testStokesData.cells{i + pltstart},...
+                            testStokesData.X{i + pltstart}(:, 1),...
+                            testStokesData.X{i + pltstart}(:, 2),...
+                            predMeanArray{i + pltstart}, 'Parent', splt(i));
+                    end
                     thdlpred.LineStyle = 'none';
                     thdlpred.FaceColor = 'b';
                     
                     %predictive mean + std
-                    thdlpstd = trisurf(testStokesData.cells{i + pltstart},...
-                        testStokesData.X{i + pltstart}(:, 1),...
-                        testStokesData.X{i + pltstart}(:, 2),...
-                        predMeanArray{i + pltstart} +...
-                        sqrt(predVarArray{i + pltstart}), 'Parent', splt(i));
+                    if intp
+                        thdlpstd = surf(XX, YY,...
+                            reshape(predMeanArray{i + pltstart} +...
+                            sqrt(predVarArray{i + pltstart}), nx, ny),...
+                            'Parent', splt(i));
+                    else
+                        thdlpstd= trisurf(testStokesData.cells{i + pltstart},...
+                            testStokesData.X{i + pltstart}(:, 1),...
+                            testStokesData.X{i + pltstart}(:, 2),...
+                            predMeanArray{i + pltstart} +...
+                            sqrt(predVarArray{i + pltstart}),'Parent', splt(i));
+                    end
                     thdlpstd.LineStyle = 'none';
                     thdlpstd.FaceColor = [.85 .85 .85];
                     
                     %predictive mean - std
-                    thdlmstd = trisurf(testStokesData.cells{i + pltstart},...
-                        testStokesData.X{i + pltstart}(:, 1),...
-                        testStokesData.X{i + pltstart}(:, 2),...
-                        predMeanArray{i + pltstart} -...
-                        sqrt(predVarArray{i + pltstart}), 'Parent', splt(i));
+                    if intp
+                        thdlmstd = surf(XX, YY,...
+                            reshape(predMeanArray{i + pltstart} -...
+                            sqrt(predVarArray{i + pltstart}), nx, ny),...
+                            'Parent', splt(i));
+                    else
+                        thdlmstd= trisurf(testStokesData.cells{i + pltstart},...
+                            testStokesData.X{i + pltstart}(:, 1),...
+                            testStokesData.X{i + pltstart}(:, 2),...
+                            predMeanArray{i + pltstart} -...
+                            sqrt(predVarArray{i + pltstart}),'Parent', splt(i));
+                    end
                     thdlmstd.LineStyle = 'none';
                     thdlmstd.FaceColor = [.85 .85 .85];
                     

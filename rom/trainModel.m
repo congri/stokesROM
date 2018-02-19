@@ -21,9 +21,8 @@ condTransOpts.limits = [1e-16, 1e16];
 gridX = (1/4)*ones(1, 4);   %coarse FEM
 gridY = gridX;
 gridRF = RectangularMesh([.5 .5]);
-gridRF.split_cell(gridRF.cells{2});
-gridSX = [.125, .25, .5, ones(1, 26), .5, .25, .125];   %p_cf S grid
-gridSX = gridSX/sum(gridSX);
+gridRF.split_cell(gridRF.cells{3});
+gridSX = linspace(0, 1, 129);   %p_cf S grid
 gridSY = gridSX;
 
 %Boundary condition fields
@@ -32,8 +31,9 @@ p_bc = @(x) 0;
 u_bc{1} = 'u_x=0.25 - (x[1] - 0.5)*(x[1] - 0.5)';
 u_bc{2} = 'u_y=0.0';
 %% Initialize reduced order model object:
-
 rom = StokesROM;
+
+
 %% Read training data, initialize parameters and evaluate features:
 
 rom = rom.readTrainingData(samples, u_bc);
@@ -42,14 +42,25 @@ rom.trainingData = rom.trainingData.countVertices();
 
 rom = rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX,...
     gridSY);
+rom.modelParams.interpolationMode = 'cubic';  %Interpolation on regular 
+                                              %finescale grid, including solid
+                                              %phase
 rom.modelParams.condTransOpts = condTransOpts;
-rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
+if any(rom.modelParams.interpolationMode)
+    rom.trainingData = ...
+        rom.trainingData.interpolate(gridSX, gridSY,...
+        rom.modelParams.interpolationMode);
+    rom.modelParams.fineScaleInterp(rom.trainingData.X_interp);
+else
+    rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
+end
 rom.modelParams.saveParams('gtcscscf');
 rom.modelParams.saveParams('coarseMesh');
 rom.modelParams.saveParams('priorType');
 rom.modelParams.saveParams('condTransOpts');
 rom.modelParams.saveParams('gridRF');
 rom.modelParams.saveParams('gridS');
+rom.modelParams.saveParams('interp');
 rom.trainingData = rom.trainingData.evaluateFeatures(gridRF);
 
 if strcmp(normalization, 'rescale')
@@ -61,13 +72,13 @@ if strcmp(mode, 'local')
 end
 %theta_c must be initialized after design matrices exist
 rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
-rom.trainingData = rom.trainingData.vtxToCell(gridSX, gridSY);
+rom.trainingData = rom.trainingData.vtxToCell(gridSX, gridSY, ...
+    rom.modelParams.interpolationMode);
 
 %Step width for stochastic optimization in VI
 sw =[4e-2*ones(1, gridRF.nCells), 1e-3*ones(1, gridRF.nCells)];
 
 %% Bring variational distribution params in form for unconstrained optimization
-rom.modelParams.variational_mu
 varDistParamsVec{1} = [rom.modelParams.variational_mu{1},...
     -2*log(rom.modelParams.variational_sigma{1})];
 varDistParamsVec = repmat(varDistParamsVec, N_train, 1);
@@ -87,9 +98,14 @@ while ~converged
         %Setting up a handle to the distribution q_n
         %this transfers less data in parfor loops
         P_n_minus_mu = rom.trainingData.P{n} - muField;
-        W_cf_n = rom.modelParams.W_cf{n};
+        if any(rom.modelParams.interpolationMode)
+            W_cf_n = rom.modelParams.W_cf{1};
+            S_n = rom.modelParams.sigma_cf.s0(rom.trainingData.cellOfVertex{1});
+        else
+            W_cf_n = rom.modelParams.W_cf{n};
+            S_n = rom.modelParams.sigma_cf.s0(rom.trainingData.cellOfVertex{n});
+        end
         %S_n is a vector of variances at vertices
-        S_n = rom.modelParams.sigma_cf.s0(rom.trainingData.cellOfVertex{n});
         S_cf_n.sumLogS = sum(log(S_n));
         S_cf_n.Sinv_vec = 1./S_n;
         Sinv = sparse(1:length(S_n), 1:length(S_n), S_cf_n.Sinv_vec);
@@ -123,7 +139,11 @@ while ~converged
         XSqMean(:, n) = varDistParams{n}.XSqMean;
         
         P_n_minus_mu = rom.trainingData.P{n} - muField;
-        W_cf_n = rom.modelParams.W_cf{n};
+        if any(rom.modelParams.interpolationMode)
+            W_cf_n = rom.modelParams.W_cf{1};
+        else
+            W_cf_n = rom.modelParams.W_cf{n};
+        end
         p_cf_expHandle_n = @(X) sqMisfit(X, condTransOpts,...
             coarseMesh, P_n_minus_mu, W_cf_n, rf2fem);
         %Expectations under variational distributions

@@ -15,6 +15,7 @@ classdef ModelParams < handle
         sigma_cf
         gridSX
         gridSY
+        interpolationMode
         
         %Surrogate FEM mesh
         coarseMesh
@@ -131,6 +132,9 @@ classdef ModelParams < handle
             load('./data/gridS.mat');
             self.gridSX = gridSX;
             self.gridSY = gridSY;
+            
+            load('./data/interpolationMode.mat');
+            self.interpolationMode = interpolationMode;
             
             try
                 temp = dlmread('./data/Sigma_theta_c');
@@ -348,6 +352,12 @@ classdef ModelParams < handle
                 gridSX = self.gridSX;
                 gridSY = self.gridSY;
                 save(filename, 'gridSX', 'gridSY');
+            end
+            
+            %Interpolation mode
+            if contains(params, 'interp')
+                interpolationMode = self.interpolationMode;
+                save('./data/interpolationMode.mat', 'interpolationMode');
             end
             
             %Parameters of variational distributions on log lambda_c
