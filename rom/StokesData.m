@@ -15,6 +15,9 @@ classdef StokesData
         
         %The properties below are saved as cell arrays (1 cell = 1 sample)
         X       %coordinates of mesh vertices as cell array
+        X_interp%coordinates of interpolation mesh, if data is interpolated
+        input_bitmap  %bitmap of microstr.; true is pore, false is solid phase
+                %onto regular mesh
         P       %pressure at vertices
         U       %velocity at vertices
         cells   %cell-to-vertex map
@@ -118,10 +121,85 @@ classdef StokesData
             end
         end
         
-        function self = interpolateData(fineGridX, fineGridY, interpolationMode)
+        function self = interpolate(self, fineGridX, fineGridY,...
+                interpolationMode)
             %Interpolates finescale data onto a regular rectangular grid
             %specified by fineGridX, fineGridY
+            if nargin < 4
+                interpolationMode = 'linear';
+            end
             
+            if isempty(self.X)
+                self = self.readData('x');
+            end
+            
+            %Specify query grid
+            [xq, yq] = meshgrid(fineGridX, fineGridY);
+            for n = 1:numel(self.P)
+                if ~isempty(self.P)
+                    p_interp = griddata(self.X{n}(:, 1), self.X{n}(:, 2), ...
+                        self.P{n}, xq(:), yq(:), interpolationMode);
+                    %replace original data by interpolated data
+                    self.P{n} = p_interp;
+                end
+                
+                if ~isempty(self.U)
+                    u_interp_x = griddata(self.X{n}(:, 1), self.X{n}(:, 2), ...
+                        self.U{n}(:, 1), xq(:), yq(:), interpolationMode);
+                    u_interp_y = griddata(self.X{n}(:, 1), self.X{n}(:, 2), ...
+                        self.U{n}(:, 2), xq(:), yq(:), interpolationMode);
+                    %replace original data by interpolated data
+                    self.U{n} = [];
+                    self.U{n} = [u_interp_x, u_interp_y];
+                end
+            end
+            self.X_interp = [xq(:), yq(:)];
+        end
+        
+        function self = input2bitmap(self, gridX, gridY)
+            %Converts input microstructures to bitmap images
+            %Feed in grid vectors for vertex coordinates, not elements!
+            %first index in input_bitmap is x-index!
+            
+            if isempty(self.X)
+                self = self.readData('x');
+            end
+            if isempty(self.microstructData)
+                self = self.readData('m');
+            end
+            
+            if nargin < 3
+                gridY = gridX;
+            end
+            
+            %gridX, gridY must be row vectors
+            if size(gridX, 1) > 1
+                gridX = gridX';
+            end
+            if size(gridX, 1) > 1
+                gridY = gridY';
+            end
+            
+            
+            centroids_x = movmean(gridX, 2); centroids_x = centroids_x(2:end);
+            centroids_y = movmean(gridY, 2); centroids_y = centroids_y(2:end);
+            
+            for n = 1:numel(self.X)
+                n
+                self.input_bitmap{n} = true(numel(gridX) - 1, numel(gridY) - 1);
+                %Loop over all element centroids and check if they are within 
+                %the domain or not
+                    dist_x_sq = (self.microstructData{n}.diskCenters(:, 1)...
+                        - centroids_x).^2;
+                    dist_y_sq = (self.microstructData{n}.diskCenters(:, 2)...
+                        - centroids_y).^2;
+                    for circle = 1:numel(self.microstructData{n}.diskRadii)
+                        %set pixels inside circle to false
+                        dist_sq = dist_x_sq(circle, :)' + dist_y_sq(circle, :);
+                        self.input_bitmap{n}(dist_sq < self...
+                            .microstructData{n}.diskRadii(circle)^2) = false;
+                    end
+            end
         end
         
         function self = countVertices(self)

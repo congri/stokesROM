@@ -109,7 +109,7 @@ while ~converged
     
     nRFc = gridRF.nCells;
     tic
-    for n = 1:N_train
+    parfor n = 1:N_train
         %Finding variational approximation to q_n
         [varDistParams{n}, varDistParamsVec{n}] =...
             efficientStochOpt(varDistParamsVec{n}, lg_q{n}, 'diagonalGauss',...
