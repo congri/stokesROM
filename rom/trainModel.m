@@ -43,7 +43,7 @@ rom.trainingData = rom.trainingData.countVertices();
 rom = rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX,...
     gridSY);
 rom.modelParams.condTransOpts = condTransOpts;
-rom.modelParams = rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
+rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
 rom.modelParams.saveParams('gtcscscf');
 rom.modelParams.saveParams('coarseMesh');
 rom.modelParams.saveParams('priorType');

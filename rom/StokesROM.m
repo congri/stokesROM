@@ -61,8 +61,7 @@ classdef StokesROM
             nData = numel(self.trainingData.samples);
             nSCells = numel(gridSX)*numel(gridSY);
             
-            self.modelParams = self.modelParams.initialize(gridRF.nCells,...
-                nData, nSCells, mode);
+            self.modelParams.initialize(gridRF.nCells, nData, nSCells, mode);
                         
             %Parameters from previous runs can be deleted here
             if exist('./data/', 'dir')
@@ -488,7 +487,7 @@ classdef StokesROM
             if isempty(self.modelParams)
                 %Read in trained params form ./data folder
                 self.modelParams = ModelParams;
-                self.modelParams = self.modelParams.load;
+                self.modelParams.load;
                 self.modelParams.rf2fem = self.modelParams.gridRF.map2fine(...
                     self.modelParams.coarseMesh.gridX,...
                     self.modelParams.coarseMesh.gridY);
@@ -572,8 +571,7 @@ classdef StokesROM
             
             cm = self.modelParams.coarseMesh;
             %Compute shape function interpolation matrices W
-            self.modelParams =...
-                self.modelParams.fineScaleInterp(testStokesData.X);
+            self.modelParams.fineScaleInterp(testStokesData.X);
             W_cf = self.modelParams.W_cf;
             %S_n is a vector of variances at vertices
             testStokesData= testStokesData.vtxToCell(self.modelParams.gridSX,...

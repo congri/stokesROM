@@ -1,4 +1,4 @@
-classdef ModelParams
+classdef ModelParams < handle
     %Initialize, update, ... the ROM model params
     
     properties
@@ -52,14 +52,14 @@ classdef ModelParams
             %Constructor
         end
         
-        function self = initialize(self, nElements, nData, nSCells, mode)
+        function initialize(self, nElements, nData, nSCells, mode)
             %Initialize model parameters
             %   nFeatures:      number of feature functions
             %   nElements:      number of macro elements
             %   nSCells:        number of cells in S-grid
             
             if strcmp(mode, 'load')
-                self = self.load;
+                self.load;
                 
                 %Initialize parameters of variational approximate distributions
                 load('./data/vardistparams.mat');
@@ -96,12 +96,9 @@ classdef ModelParams
                 self.variational_sigma =...
                     repmat(self.variational_sigma, nData, 1);
             end
-            
-            %Coarse FEM to coarse random field cells map
-            
         end
         
-        function [self] = load(self)
+        function load(self)
             %Initialize params theta_c, theta_cf
                         
             %Coarse mesh object
@@ -170,7 +167,7 @@ classdef ModelParams
             disp('done')
         end
         
-        function [] = printCurrentParams(self, mode)
+        function printCurrentParams(self, mode)
             %Print current model params on screen
             
             if strcmp(mode, 'local')
@@ -193,7 +190,7 @@ classdef ModelParams
             
         end
         
-        function self = fineScaleInterp(self, X)
+        function fineScaleInterp(self, X)
             %Precompute shape function interp. on every fine scale vertex
             
             nData = numel(X);
@@ -204,12 +201,12 @@ classdef ModelParams
             self.saveParams('W');
         end
         
-        function self = plot_params(self, figHandle,...
+        function plot_params(self, figHandle,...
                 thetaArray, SigmaArray, nSX, nSY)
             %Plots the current theta_c
             
             if nargin < 6
-                self = self.load;
+                self.load;
                 nSX = numel(self.gridSX);
                 nSY = numel(self.gridSY);
                 SigmaArray = dlmread('./data/sigma_c');
@@ -259,7 +256,7 @@ classdef ModelParams
             sb6.YDir = 'normal';
         end
                 
-        function [] = saveParams(self, params)
+        function saveParams(self, params)
             if ~exist('./data/', 'dir')
                 mkdir('./data/');
             end
