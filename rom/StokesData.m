@@ -324,19 +324,19 @@ classdef StokesData < handle
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
-            %specific surface of non-overlap. polydis. spheres
-            for n = 1:numel(self.samples)
-                phi = specificSurface(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridRF);
-                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
-            end
-            
-            %log specific surface of non-overlap. polydis. spheres
-            for n = 1:numel(self.samples)
-                phi =log(specificSurface(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridRF) + eps);
-                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
-            end
+%             %specific surface of non-overlap. polydis. spheres
+%             for n = 1:numel(self.samples)
+%                 phi = specificSurface(self.microstructData{n}.diskCenters,...
+%                     self.microstructData{n}.diskRadii, gridRF);
+%                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+%             end
+%             
+%             %log specific surface of non-overlap. polydis. spheres
+%             for n = 1:numel(self.samples)
+%                 phi =log(specificSurface(self.microstructData{n}.diskCenters,...
+%                     self.microstructData{n}.diskRadii, gridRF) + eps);
+%                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+%             end
             
             %pore lin. path for non-overlap. polydis. spheres
             %last entry is distance

@@ -26,7 +26,6 @@ classdef StokesROM < handle
                 gridRF, gridSX, gridSY)
             %Initialize params theta_c, theta_cf
             
-            self.modelParams = ModelParams;
             self.modelParams.gridSX = gridSX;
             self.modelParams.gridSY = gridSY;
             self.modelParams.gridRF = gridRF;
@@ -55,9 +54,8 @@ classdef StokesROM < handle
                 p_bc, u_bc_handle);
             
             nData = numel(self.trainingData.samples);
-            nSCells = (numel(gridSX) + 1)*(numel(gridSY) + 1);
             
-            self.modelParams.initialize(gridRF.nCells, nData, nSCells, mode);
+            self.modelParams.initialize(gridRF.nCells, nData, mode);
                         
             %Parameters from previous runs can be deleted here
             if exist('./data/', 'dir')
@@ -77,14 +75,15 @@ classdef StokesROM < handle
                 a = self.modelParams.VRVM_a + .5;
                 e = self.modelParams.VRVM_e + .5*nTrain;
                 c = self.modelParams.VRVM_c + .5*nTrain;
-                Ncells_gridS = (numel(self.modelParams.gridSX) + 1)*...
-                    (numel(self.modelParams.gridSY) + 1);
-                sqDistSum = 0;
+                Ncells_gridS = numel(self.modelParams.gridSX)*...
+                    numel(self.modelParams.gridSY);
                 if any(self.modelParams.interpolationMode)
+                    sqDistSum = 0;
                     for n = 1:numel(self.trainingData.samples)
                         sqDistSum = sqDistSum + sqDist_p_cf{n};
                     end
                 else
+                    sqDistSum = zeros(Ncells_gridS, 1);
                     for j = 1:Ncells_gridS
                         for n = 1:numel(self.trainingData.samples)
                             sqDistSum(j)= sqDistSum(j) + mean(sqDist_p_cf{n}(...
@@ -606,8 +605,7 @@ classdef StokesROM < handle
                 self.modelParams.gridSY, self.modelParams.interpolationMode);
             P = testStokesData.P;
             if intp
-                S = self.modelParams.sigma_cf.s0(...
-                        testStokesData.cellOfVertex{1});
+                S = self.modelParams.sigma_cf.s0;
             else
                 for n = 1:nTest
                     S{n} = self.modelParams.sigma_cf.s0(...
@@ -677,15 +675,11 @@ classdef StokesROM < handle
                     %truth
                     splt(i) = subplot(2, 3, i);
                     if intp
-                        XX = reshape(testStokesData.X_interp{1}(:, 1),...
-                            numel(self.modelParams.gridSX),...
-                            numel(self.modelParams.gridSY));
-                        YY = reshape(testStokesData.X_interp{1}(:, 2),...
-                            numel(self.modelParams.gridSX),...
-                            numel(self.modelParams.gridSY));
-                        P = reshape(testStokesData.P{i + pltstart},...
-                            numel(self.modelParams.gridSX),...
-                            numel(self.modelParams.gridSY));
+                        nSX = numel(self.modelParams.gridSX) + 1;
+                        nSY = numel(self.modelParams.gridSY) + 1;
+                        XX = reshape(testStokesData.X_interp{1}(:, 1), nSX,nSY);
+                        YY = reshape(testStokesData.X_interp{1}(:, 2), nSX,nSY);
+                        P = reshape(testStokesData.P{i + pltstart}, nSX, nSY);
                         thdl = surf(XX, YY, P, 'Parent', splt(i));
                     else
                         thdl = trisurf(testStokesData.cells{i + pltstart},...
@@ -707,10 +701,8 @@ classdef StokesROM < handle
                     %predictive mean
                     hold on;
                     if intp
-                        nx = numel(self.modelParams.gridSX);
-                        ny = numel(self.modelParams.gridSY);
                         thdlpred = surf(XX, YY, reshape(...
-                            predMeanArray{i + pltstart}, nx, ny),...
+                            predMeanArray{i + pltstart}, nSX, nSY),...
                             'Parent', splt(i));
                     else
                         thdlpred= trisurf(testStokesData.cells{i + pltstart},...
@@ -725,7 +717,7 @@ classdef StokesROM < handle
                     if intp
                         thdlpstd = surf(XX, YY,...
                             reshape(predMeanArray{i + pltstart} +...
-                            sqrt(predVarArray{i + pltstart}), nx, ny),...
+                            sqrt(predVarArray{i + pltstart}), nSX, nSY),...
                             'Parent', splt(i));
                     else
                         thdlpstd= trisurf(testStokesData.cells{i + pltstart},...
@@ -741,7 +733,7 @@ classdef StokesROM < handle
                     if intp
                         thdlmstd = surf(XX, YY,...
                             reshape(predMeanArray{i + pltstart} -...
-                            sqrt(predVarArray{i + pltstart}), nx, ny),...
+                            sqrt(predVarArray{i + pltstart}), nSX, nSY),...
                             'Parent', splt(i));
                     else
                         thdlmstd= trisurf(testStokesData.cells{i + pltstart},...

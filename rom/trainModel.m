@@ -22,8 +22,9 @@ gridX = ones(1, 4);   %coarse FEM
 gridX = gridX/sum(gridX);
 gridY = gridX;
 gridRF = RectangularMesh([.5 .5]);
-%gridRF.split_cell(gridRF.cells{4});
-gridSX = ones(1, 4);   %p_cf S grid
+% gridRF.split_cell(gridRF.cells{4});
+% gridRF.split_cell(gridRF.cells{1});
+gridSX = ones(1, 64);   %p_cf S grid
 gridSX = gridSX/sum(gridSX);
 gridSY = gridSX;
 
@@ -42,10 +43,12 @@ rom.readTrainingData(samples, u_bc);
 N_train = numel(rom.trainingData.samples);
 rom.trainingData.countVertices();
 
-rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX, gridSY);
+rom.modelParams = ModelParams;
 rom.modelParams.interpolationMode = 'cubic';  %Interpolation on regular 
                                               %finescale grid, including solid
                                               %phase
+rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX, gridSY);
+
 rom.modelParams.condTransOpts = condTransOpts;
 if any(rom.modelParams.interpolationMode)
     rom.trainingData.interpolate(gridSX, gridSY,...
@@ -99,7 +102,7 @@ while ~converged
         P_n_minus_mu = rom.trainingData.P{n} - muField;
         if any(rom.modelParams.interpolationMode)
             W_cf_n = rom.modelParams.W_cf{1};
-            S_n = rom.modelParams.sigma_cf.s0(rom.trainingData.cellOfVertex{1});
+            S_n = rom.modelParams.sigma_cf.s0;
         else
             W_cf_n = rom.modelParams.W_cf{n};
             S_n = rom.modelParams.sigma_cf.s0(rom.trainingData.cellOfVertex{n});
@@ -172,8 +175,7 @@ while ~converged
         end
         thetaArray = [thetaArray, rom.modelParams.theta_c];
         SigmaArray = [SigmaArray, full(diag(rom.modelParams.Sigma_c))];
-        rom.modelParams.plot_params(figParams, thetaArray', SigmaArray',...
-            numel(gridSX) + 1, numel(gridSY) + 1);
+        rom.modelParams.plot_params(figParams, thetaArray', SigmaArray');
                 
         % Plot data and reconstruction (modal value)
         if ~exist('figResponse')

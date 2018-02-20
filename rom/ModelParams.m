@@ -53,7 +53,7 @@ classdef ModelParams < handle
             %Constructor
         end
         
-        function initialize(self, nElements, nData, nSCells, mode)
+        function initialize(self, nElements, nData, mode)
             %Initialize model parameters
             %   nFeatures:      number of feature functions
             %   nElements:      number of macro elements
@@ -74,7 +74,11 @@ classdef ModelParams < handle
                 %Initialize sigma_c to I
                 self.Sigma_c = 1e-4*eye(nElements);
                 
-                self.sigma_cf.s0 = ones(nSCells, 1);  %variance field of p_cf
+                nSX = numel(self.gridSX); nSY = numel(self.gridSY);
+                if any(self.interpolationMode)
+                    nSX = nSX + 1; nSY = nSY + 1;
+                end
+                self.sigma_cf.s0 = ones(nSX*nSY, 1);  %variance field of p_cf
                 
                 %Initialize hyperparameters
                 if strcmp(self.prior_theta_c, 'RVM')
@@ -200,23 +204,28 @@ classdef ModelParams < handle
             nData = numel(X);
             for n = 1:nData
                 self.W_cf{n} = shapeInterp(self.coarseMesh, X{n});
-                self.W_cf{n} = eye(25);
             end
             
             self.saveParams('W');
         end
         
-        function plot_params(self, figHandle,...
-                thetaArray, SigmaArray, nSX, nSY)
+        function plot_params(self, figHandle, thetaArray, SigmaArray)
             %Plots the current theta_c
             
-            if nargin < 6
-                self.load;
-                nSX = numel(self.gridSX) + 1;
-                nSY = numel(self.gridSY) + 1;
-                SigmaArray = dlmread('./data/sigma_c');
-                thetaArray = dlmread('./data/theta_c');
+            %short notation
+            nSX = numel(self.gridSX); nSY = numel(self.gridSY);
+            if any(self.interpolationMode)
+                nSX = nSX + 1; nSY = nSY + 1;
+            end
+            
+            if nargin < 2
                 figHandle = figure;
+                if nargin < 3
+                    thetaArray = dlmread('./data/theta_c');
+                    if nargin < 4
+                        SigmaArray = dlmread('./data/sigma_c');
+                    end
+                end
             end
             
             sb1 = subplot(3, 2, 1, 'Parent', figHandle);
