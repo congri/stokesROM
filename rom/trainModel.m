@@ -18,11 +18,13 @@ condTransOpts.type = 'log';
 condTransOpts.limits = [1e-16, 1e16];
 
 %grid vectors
-gridX = (1/4)*ones(1, 4);   %coarse FEM
+gridX = ones(1, 4);   %coarse FEM
+gridX = gridX/sum(gridX);
 gridY = gridX;
 gridRF = RectangularMesh([.5 .5]);
-gridRF.split_cell(gridRF.cells{3});
-gridSX = linspace(0, 1, 129);   %p_cf S grid
+%gridRF.split_cell(gridRF.cells{4});
+gridSX = ones(1, 4);   %p_cf S grid
+gridSX = gridSX/sum(gridSX);
 gridSY = gridSX;
 
 %Boundary condition fields
@@ -36,19 +38,17 @@ rom = StokesROM;
 
 %% Read training data, initialize parameters and evaluate features:
 
-rom = rom.readTrainingData(samples, u_bc);
+rom.readTrainingData(samples, u_bc);
 N_train = numel(rom.trainingData.samples);
-rom.trainingData = rom.trainingData.countVertices();
+rom.trainingData.countVertices();
 
-rom = rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX,...
-    gridSY);
+rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX, gridSY);
 rom.modelParams.interpolationMode = 'cubic';  %Interpolation on regular 
                                               %finescale grid, including solid
                                               %phase
 rom.modelParams.condTransOpts = condTransOpts;
 if any(rom.modelParams.interpolationMode)
-    rom.trainingData = ...
-        rom.trainingData.interpolate(gridSX, gridSY,...
+    rom.trainingData.interpolate(gridSX, gridSY,...
         rom.modelParams.interpolationMode);
     rom.modelParams.fineScaleInterp(rom.trainingData.X_interp);
 else
@@ -61,19 +61,18 @@ rom.modelParams.saveParams('condTransOpts');
 rom.modelParams.saveParams('gridRF');
 rom.modelParams.saveParams('gridS');
 rom.modelParams.saveParams('interp');
-rom.trainingData = rom.trainingData.evaluateFeatures(gridRF);
+rom.trainingData.evaluateFeatures(gridRF);
 
 if strcmp(normalization, 'rescale')
-    rom.trainingData = rom.trainingData.rescaleDesignMatrix;
+    rom.trainingData.rescaleDesignMatrix;
 end
 
 if strcmp(mode, 'local')
-    rom.trainingData = rom.trainingData.shapeToLocalDesignMat;
+    rom.trainingData.shapeToLocalDesignMat;
 end
 %theta_c must be initialized after design matrices exist
 rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
-rom.trainingData = rom.trainingData.vtxToCell(gridSX, gridSY, ...
-    rom.modelParams.interpolationMode);
+rom.trainingData.vtxToCell(gridSX, gridSY, rom.modelParams.interpolationMode);
 
 %Step width for stochastic optimization in VI
 sw =[4e-2*ones(1, gridRF.nCells), 1e-3*ones(1, gridRF.nCells)];
@@ -157,7 +156,7 @@ while ~converged
     
     %M-step: determine optimal parameters given the sample set
     tic
-    rom = rom.M_step(XMean, XSqMean, sqDist);
+    rom.M_step(XMean, XSqMean, sqDist);
     M_step_time = toc
     
     
@@ -173,8 +172,8 @@ while ~converged
         end
         thetaArray = [thetaArray, rom.modelParams.theta_c];
         SigmaArray = [SigmaArray, full(diag(rom.modelParams.Sigma_c))];
-        rom.modelParams.plot_params(...
-            figParams, thetaArray', SigmaArray', numel(gridSX), numel(gridSY));
+        rom.modelParams.plot_params(figParams, thetaArray', SigmaArray',...
+            numel(gridSX) + 1, numel(gridSY) + 1);
                 
         % Plot data and reconstruction (modal value)
         if ~exist('figResponse')

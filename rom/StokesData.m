@@ -1,4 +1,4 @@
-classdef StokesData
+classdef StokesData < handle
     %class for fine scale data of Stokes equation
     
     properties
@@ -42,7 +42,7 @@ classdef StokesData
             end
         end
         
-        function self = setPathName(self)
+        function setPathName(self)
             if isempty(self.pathname)
                 self.pathname = strcat('/home/constantin/cluster/python/',...
                     'data/stokesEquation/meshes/');
@@ -60,7 +60,7 @@ classdef StokesData
             end
         end
         
-        function self = readData(self, quantities)
+        function readData(self, quantities)
             %Reads in Stokes equation data from fenics
             %samples:          samples to load
             %quantities:       identifier for the quantities to load,
@@ -70,7 +70,7 @@ classdef StokesData
             %                  'c' for cell-to-vertex map
             %                  'm' for microstructural data
             
-            self = self.setPathName;
+            self.setPathName;
             
             cellIndex = 1;
             for n = self.samples
@@ -121,16 +121,18 @@ classdef StokesData
             end
         end
         
-        function self = interpolate(self, fineGridX, fineGridY,...
-                interpolationMode)
+        function interpolate(self, fineGridX, fineGridY, interpolationMode)
             %Interpolates finescale data onto a regular rectangular grid
             %specified by fineGridX, fineGridY
             if nargin < 4
                 interpolationMode = 'linear';
             end
             
+            fineGridX = [0, cumsum(fineGridX)];
+            fineGridY = [0, cumsum(fineGridY)];
+            
             if isempty(self.X)
-                self = self.readData('x');
+                self.readData('x');
             end
             
             %Specify query grid
@@ -156,16 +158,16 @@ classdef StokesData
             self.X_interp{1} = [xq(:), yq(:)];
         end
         
-        function self = input2bitmap(self, gridX, gridY)
+        function input2bitmap(self, gridX, gridY)
             %Converts input microstructures to bitmap images
             %Feed in grid vectors for vertex coordinates, not elements!
             %first index in input_bitmap is x-index!
             
             if isempty(self.X)
-                self = self.readData('x');
+                self.readData('x');
             end
             if isempty(self.microstructData)
-                self = self.readData('m');
+                self.readData('m');
             end
             
             if nargin < 3
@@ -185,7 +187,6 @@ classdef StokesData
             centroids_y = movmean(gridY, 2); centroids_y = centroids_y(2:end);
             
             for n = 1:numel(self.X)
-                n
                 self.input_bitmap{n} = true(numel(gridX) - 1, numel(gridY) - 1);
                 %Loop over all element centroids and check if they are within 
                 %the domain or not
@@ -202,7 +203,7 @@ classdef StokesData
             end
         end
         
-        function self = countVertices(self)
+        function countVertices(self)
             self.N_vertices_tot = 0;
             if isempty(self.P)
                 self = self.readData('p');
@@ -213,7 +214,7 @@ classdef StokesData
             end
         end
         
-        function self = vtxToCell(self, gridX, gridY, interpolationMode)
+        function vtxToCell(self, gridX, gridY, interpolationMode)
             %Mapping from vertex to cell of rectangular grid specified by
             %grid vectors gridX, gridY
             if nargin < 4
@@ -257,10 +258,10 @@ classdef StokesData
             end
         end
         
-        function self = evaluateFeatures(self, gridRF)
+        function evaluateFeatures(self, gridRF)
             %Evaluates the feature functions
             if isempty(self.microstructData)
-                self = self.readData('m');
+                self.readData('m');
             end
             
             %constant 1
@@ -361,7 +362,7 @@ classdef StokesData
             
         end
         
-        function self = shapeToLocalDesignMat(self)
+        function shapeToLocalDesignMat(self)
             %Sets separate coefficients theta_c for each macro-cell in a single
             %microstructure sample. Don't execute before rescaling/
             %standardization of design Matrix!
@@ -403,7 +404,7 @@ classdef StokesData
             end
         end
         
-        function self = rescaleDesignMatrix(self, featFuncMin, featFuncMax)
+        function rescaleDesignMatrix(self, featFuncMin, featFuncMax)
             %Rescale design matrix s.t. outputs are between 0 and 1
             disp('Rescale design matrix...')
             
@@ -423,12 +424,12 @@ classdef StokesData
             end
             
             %Check if design Matrices are real and finite
-            self = self.checkDesignMatrices;
+            self.checkDesignMatrices;
             self.saveNormalization('rescaling', featFuncMin, featFuncMax);
             disp('done')
         end
         
-        function self = checkDesignMatrices(self)
+        function checkDesignMatrices(self)
             %Check for finiteness
             for n = 1:numel(self.designMatrix)
                 if(~all(all(all(isfinite(self.designMatrix{n})))))

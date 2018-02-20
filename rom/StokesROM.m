@@ -1,4 +1,4 @@
-classdef StokesROM
+classdef StokesROM < handle
     %Class for reduced order model of Stokes equation
     
     properties
@@ -16,14 +16,14 @@ classdef StokesROM
             %Constructor
         end
         
-        function [self] = readTrainingData(self, samples, u_bc)
+        function readTrainingData(self, samples, u_bc)
             %Sets trainingData to StokesData object
             self.trainingData = StokesData(samples, u_bc);
-            self.trainingData = self.trainingData.readData('px');
+            self.trainingData.readData('px');
         end
         
-        function [self] = initializeModelParams(self, p_bc, u_bc, mode,...
-                gridX, gridY, gridRF, gridSX, gridSY)
+        function initializeModelParams(self, p_bc, u_bc, mode, gridX, gridY,...
+                gridRF, gridSX, gridSY)
             %Initialize params theta_c, theta_cf
             
             self.modelParams = ModelParams;
@@ -55,7 +55,7 @@ classdef StokesROM
                 p_bc, u_bc_handle);
             
             nData = numel(self.trainingData.samples);
-            nSCells = numel(gridSX)*numel(gridSY);
+            nSCells = (numel(gridSX) + 1)*(numel(gridSY) + 1);
             
             self.modelParams.initialize(gridRF.nCells, nData, nSCells, mode);
                         
@@ -65,7 +65,7 @@ classdef StokesROM
             end
         end
         
-        function self = M_step(self, XMean, XSqMean, sqDist_p_cf)
+        function M_step(self, XMean, XSqMean, sqDist_p_cf)
             
             if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
                     strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
@@ -77,9 +77,9 @@ classdef StokesROM
                 a = self.modelParams.VRVM_a + .5;
                 e = self.modelParams.VRVM_e + .5*nTrain;
                 c = self.modelParams.VRVM_c + .5*nTrain;
-                Ncells_gridS = numel(self.modelParams.gridSX)*...
-                    numel(self.modelParams.gridSY);
-                sqDistSum = zeros(Ncells_gridS, 1);
+                Ncells_gridS = (numel(self.modelParams.gridSX) + 1)*...
+                    (numel(self.modelParams.gridSY) + 1);
+                sqDistSum = 0;
                 if any(self.modelParams.interpolationMode)
                     for n = 1:numel(self.trainingData.samples)
                         sqDistSum = sqDistSum + sqDist_p_cf{n};
@@ -159,7 +159,7 @@ classdef StokesROM
             end
         end
         
-        function self = update_p_c(self, XMean, XSqMean)
+        function update_p_c(self, XMean, XSqMean)
             %% Find optimal theta_c and Sigma_c self-consistently:
             %update theta_c, then Sigma_c, then theta_c and so on
             
@@ -371,7 +371,7 @@ classdef StokesROM
             self.modelParams.Sigma_c = Sigma_c;
         end
         
-        function self = update_p_cf(self, sqDist_p_cf)
+        function update_p_cf(self, sqDist_p_cf)
             
             Ncells_gridS = numel(self.modelParams.gridSX)*...
                 numel(self.modelParams.gridSY);
@@ -409,18 +409,14 @@ classdef StokesROM
                 cbp_lambda = colorbar('Parent', fig);
                 sb2 = subplot(2, 3, 2 + (i - 1)*3, 'Parent', fig);
                 if isempty(self.trainingData.cells)
-                    self.trainingData = self.trainingData.readData('c');
+                    self.trainingData.readData('c');
                 end
                 if any(self.modelParams.interpolationMode)
-                    XX = reshape(self.trainingData.X_interp{1}(:, 1),...
-                        numel(self.modelParams.gridSX),...
-                        numel(self.modelParams.gridSY));
-                    YY = reshape(self.trainingData.X_interp{1}(:, 2),...
-                        numel(self.modelParams.gridSX),...
-                        numel(self.modelParams.gridSY));
-                    P = reshape(self.trainingData.P{i + dataOffset},...
-                        numel(self.modelParams.gridSX),...
-                        numel(self.modelParams.gridSY));
+                    nx = numel(self.modelParams.gridSX) + 1;
+                    ny = numel(self.modelParams.gridSY) + 1;
+                    XX = reshape(self.trainingData.X_interp{1}(:, 1), nx, ny);
+                    YY = reshape(self.trainingData.X_interp{1}(:, 2), nx, ny);
+                    P = reshape(self.trainingData.P{i + dataOffset}, nx, ny);
                     trihandle = surf(XX, YY, P, 'Parent', sb2);
                 else
                 trihandle = trisurf(self.trainingData.cells{i + dataOffset},...
@@ -451,9 +447,7 @@ classdef StokesROM
                 Tc = coarseFEMout.Tff';
                 Tc = Tc(:);
                 if any(self.modelParams.interpolationMode)
-                    reconstruction = reshape(self.modelParams.W_cf{1}*Tc, ...
-                        numel(self.modelParams.gridSX),...
-                        numel(self.modelParams.gridSY));
+                    reconstruction = reshape(self.modelParams.W_cf{1}*Tc,nx,ny);
                     trihandle2 = surf(XX, YY, reconstruction, 'Parent', sb3);
                 else
                     reconstruction = self.modelParams.W_cf{i + dataOffset}*Tc;
@@ -505,10 +499,10 @@ classdef StokesROM
             
             %Load test data
             if isempty(testStokesData.X)
-                testStokesData = testStokesData.readData('x');
+                testStokesData.readData('x');
             end
             if isempty(testStokesData.P)
-                testStokesData = testStokesData.readData('p');
+                testStokesData.readData('p');
             end
             
             if isempty(self.modelParams)
@@ -520,16 +514,14 @@ classdef StokesROM
                     self.modelParams.coarseMesh.gridY);
             end
             
-            testStokesData =...
-                testStokesData.evaluateFeatures(self.modelParams.gridRF);
+            testStokesData.evaluateFeatures(self.modelParams.gridRF);
             if exist('./data/featureFunctionMin', 'file')
                 featFuncMin = dlmread('./data/featureFunctionMin');
                 featFuncMax = dlmread('./data/featureFunctionMax');
-                testStokesData = testStokesData.rescaleDesignMatrix(...
-                    featFuncMin, featFuncMax);
+                testStokesData.rescaleDesignMatrix(featFuncMin, featFuncMax);
             end
             if strcmp(mode, 'local')
-                testStokesData = testStokesData.shapeToLocalDesignMat;
+                testStokesData.shapeToLocalDesignMat;
             end
             
             
@@ -592,8 +584,7 @@ classdef StokesROM
             disp('Solving coarse model and sample from p_cf...')
             intp = any(self.modelParams.interpolationMode);
             if intp
-                testStokesData = ...
-                    testStokesData.interpolate(self.modelParams.gridSX,...
+                testStokesData.interpolate(self.modelParams.gridSX,...
                     self.modelParams.gridSY,self.modelParams.interpolationMode);
             end
             for n = 1:nTest
@@ -611,7 +602,7 @@ classdef StokesROM
             end
             W_cf = self.modelParams.W_cf;
             %S_n is a vector of variances at vertices
-            testStokesData= testStokesData.vtxToCell(self.modelParams.gridSX,...
+            testStokesData.vtxToCell(self.modelParams.gridSX,...
                 self.modelParams.gridSY, self.modelParams.interpolationMode);
             P = testStokesData.P;
             if intp
@@ -679,8 +670,8 @@ classdef StokesROM
             if plotPrediction
                 fig = figure('units','normalized','outerposition',[0 0 1 1]);
                 pltstart = 0;
-                if isempty(testStokesData.cells)
-                    testStokesData = testStokesData.readData('c');
+                if(isempty(testStokesData.cells) && ~intp)
+                    testStokesData.readData('c');
                 end
                 for i = 1:6
                     %truth

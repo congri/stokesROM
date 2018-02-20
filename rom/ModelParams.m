@@ -200,6 +200,7 @@ classdef ModelParams < handle
             nData = numel(X);
             for n = 1:nData
                 self.W_cf{n} = shapeInterp(self.coarseMesh, X{n});
+                self.W_cf{n} = eye(25);
             end
             
             self.saveParams('W');
@@ -211,8 +212,8 @@ classdef ModelParams < handle
             
             if nargin < 6
                 self.load;
-                nSX = numel(self.gridSX);
-                nSY = numel(self.gridSY);
+                nSX = numel(self.gridSX) + 1;
+                nSY = numel(self.gridSY) + 1;
                 SigmaArray = dlmread('./data/sigma_c');
                 thetaArray = dlmread('./data/theta_c');
                 figHandle = figure;
