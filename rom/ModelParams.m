@@ -1,4 +1,4 @@
-classdef ModelParams
+classdef ModelParams < handle
     %Initialize, update, ... the ROM model params
     
     properties
@@ -15,6 +15,8 @@ classdef ModelParams
         sigma_cf
         gridSX
         gridSY
+        interpolationMode
+        smoothingParameter
         
         %Surrogate FEM mesh
         coarseMesh
@@ -52,14 +54,14 @@ classdef ModelParams
             %Constructor
         end
         
-        function self = initialize(self, nElements, nData, nSCells, mode)
+        function initialize(self, nElements, nData, mode)
             %Initialize model parameters
             %   nFeatures:      number of feature functions
             %   nElements:      number of macro elements
             %   nSCells:        number of cells in S-grid
             
             if strcmp(mode, 'load')
-                self = self.load;
+                self.load;
                 
                 %Initialize parameters of variational approximate distributions
                 load('./data/vardistparams.mat');
@@ -73,7 +75,11 @@ classdef ModelParams
                 %Initialize sigma_c to I
                 self.Sigma_c = 1e-4*eye(nElements);
                 
-                self.sigma_cf.s0 = ones(nSCells, 1);  %variance field of p_cf
+                nSX = numel(self.gridSX); nSY = numel(self.gridSY);
+                if any(self.interpolationMode)
+                    nSX = nSX + 1; nSY = nSY + 1;
+                end
+                self.sigma_cf.s0 = ones(nSX*nSY, 1);  %variance field of p_cf
                 
                 %Initialize hyperparameters
                 if strcmp(self.prior_theta_c, 'RVM')
@@ -96,12 +102,9 @@ classdef ModelParams
                 self.variational_sigma =...
                     repmat(self.variational_sigma, nData, 1);
             end
-            
-            %Coarse FEM to coarse random field cells map
-            
         end
         
-        function [self] = load(self)
+        function load(self)
             %Initialize params theta_c, theta_cf
                         
             %Coarse mesh object
@@ -134,6 +137,12 @@ classdef ModelParams
             load('./data/gridS.mat');
             self.gridSX = gridSX;
             self.gridSY = gridSY;
+            
+            load('./data/interpolationMode.mat');
+            self.interpolationMode = interpolationMode;
+            
+            load('./data/smoothingParameter.mat');
+            self.smoothingParameter = smoothingParameter;
             
             try
                 temp = dlmread('./data/Sigma_theta_c');
@@ -170,7 +179,7 @@ classdef ModelParams
             disp('done')
         end
         
-        function [] = printCurrentParams(self, mode)
+        function printCurrentParams(self, mode)
             %Print current model params on screen
             
             if strcmp(mode, 'local')
@@ -193,7 +202,7 @@ classdef ModelParams
             
         end
         
-        function self = fineScaleInterp(self, X)
+        function fineScaleInterp(self, X)
             %Precompute shape function interp. on every fine scale vertex
             
             nData = numel(X);
@@ -204,17 +213,23 @@ classdef ModelParams
             self.saveParams('W');
         end
         
-        function self = plot_params(self, figHandle,...
-                thetaArray, SigmaArray, nSX, nSY)
+        function plot_params(self, figHandle, thetaArray, SigmaArray)
             %Plots the current theta_c
             
-            if nargin < 6
-                self = self.load;
-                nSX = numel(self.gridSX);
-                nSY = numel(self.gridSY);
-                SigmaArray = dlmread('./data/sigma_c');
-                thetaArray = dlmread('./data/theta_c');
+            %short notation
+            nSX = numel(self.gridSX); nSY = numel(self.gridSY);
+            if any(self.interpolationMode)
+                nSX = nSX + 1; nSY = nSY + 1;
+            end
+            
+            if nargin < 2
                 figHandle = figure;
+                if nargin < 3
+                    thetaArray = dlmread('./data/theta_c');
+                    if nargin < 4
+                        SigmaArray = dlmread('./data/sigma_c');
+                    end
+                end
             end
             
             sb1 = subplot(3, 2, 1, 'Parent', figHandle);
@@ -259,7 +274,7 @@ classdef ModelParams
             sb6.YDir = 'normal';
         end
                 
-        function [] = saveParams(self, params)
+        function saveParams(self, params)
             if ~exist('./data/', 'dir')
                 mkdir('./data/');
             end
@@ -351,6 +366,18 @@ classdef ModelParams
                 gridSX = self.gridSX;
                 gridSY = self.gridSY;
                 save(filename, 'gridSX', 'gridSY');
+            end
+            
+            %Interpolation mode
+            if contains(params, 'interp')
+                interpolationMode = self.interpolationMode;
+                save('./data/interpolationMode.mat', 'interpolationMode');
+            end
+            
+            %Smoothing parameter for interpolated data
+            if contains(params, 'smooth')
+                smoothingParameter = self.smoothingParameter;
+                save('./data/smoothingParameter.mat', 'smoothingParameter');
             end
             
             %Parameters of variational distributions on log lambda_c

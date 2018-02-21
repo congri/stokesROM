@@ -19,11 +19,13 @@ condTransOpts.type = 'log';
 condTransOpts.limits = [1e-16, 1e16];
 
 %grid vectors
-gridX = (1/4)*ones(1, 4);   %coarse FEM
+gridX = ones(1, 4);   %coarse FEM
+gridX = gridX/sum(gridX);
 gridY = gridX;
 gridRF = RectangularMesh([.5 .5]);
 gridRF.split_cell(gridRF.cells{4});
-gridSX = [.125, .25, .5, ones(1, 26), .5, .25, .125];   %p_cf S grid
+gridRF.split_cell(gridRF.cells{1});
+gridSX = ones(1, 128);   %p_cf S grid
 gridSX = gridSX/sum(gridSX);
 gridSY = gridSX;
 
@@ -32,44 +34,57 @@ p_bc = @(x) 0;
 %influx?
 u_bc{1} = 'u_x=0.25 - (x[1] - 0.5)*(x[1] - 0.5)';
 u_bc{2} = 'u_y=0.0';
+u_bc{1} = 'u_x=1.0 + 2.0*x[1]';
+u_bc{2} = 'u_y=-3.0 + 2.0*x[0]';
 %% Initialize reduced order model object:
-
 rom = StokesROM;
 
 %% Read training data, initialize parameters and evaluate features:
 
-rom = rom.readTrainingData(samples, u_bc);
+rom.readTrainingData(samples, u_bc);
 N_train = numel(rom.trainingData.samples);
-rom.trainingData = rom.trainingData.countVertices();
+rom.trainingData.countVertices();
 
-rom = rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX,...
-    gridSY);
+rom.modelParams = ModelParams;
+rom.modelParams.interpolationMode = 'cubic';  %Interpolation on regular 
+                                              %finescale grid, including solid
+                                              %phase
+rom.modelParams.smoothingParameter = 2;       %only applies for interp. data
+rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX, gridSY);
+
 rom.modelParams.condTransOpts = condTransOpts;
-rom.modelParams = rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
+if any(rom.modelParams.interpolationMode)
+    rom.trainingData.interpolate(gridSX, gridSY,...
+        rom.modelParams.interpolationMode, rom.modelParams.smoothingParameter);
+    rom.modelParams.fineScaleInterp(rom.trainingData.X_interp);
+else
+    rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
+end
 rom.modelParams.saveParams('gtcscscf');
 rom.modelParams.saveParams('coarseMesh');
 rom.modelParams.saveParams('priorType');
 rom.modelParams.saveParams('condTransOpts');
 rom.modelParams.saveParams('gridRF');
 rom.modelParams.saveParams('gridS');
-rom.trainingData = rom.trainingData.evaluateFeatures(gridRF);
+rom.modelParams.saveParams('interp');
+rom.modelParams.saveParams('smooth');
+rom.trainingData.evaluateFeatures(gridRF);
 
 if strcmp(normalization, 'rescale')
-    rom.trainingData = rom.trainingData.rescaleDesignMatrix;
+    rom.trainingData.rescaleDesignMatrix;
 end
 
 if strcmp(mode, 'local')
-    rom.trainingData = rom.trainingData.shapeToLocalDesignMat;
+    rom.trainingData.shapeToLocalDesignMat;
 end
 %theta_c must be initialized after design matrices exist
 rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
-rom.trainingData = rom.trainingData.vtxToCell(gridSX, gridSY);
+rom.trainingData.vtxToCell(gridSX, gridSY, rom.modelParams.interpolationMode);
 
 %Step width for stochastic optimization in VI
 sw =[4e-2*ones(1, gridRF.nCells), 1e-3*ones(1, gridRF.nCells)];
 
 %% Bring variational distribution params in form for unconstrained optimization
-rom.modelParams.variational_mu
 varDistParamsVec{1} = [rom.modelParams.variational_mu{1},...
     -2*log(rom.modelParams.variational_sigma{1})];
 varDistParamsVec = repmat(varDistParamsVec, N_train, 1);
@@ -89,9 +104,14 @@ while ~converged
         %Setting up a handle to the distribution q_n
         %this transfers less data in parfor loops
         P_n_minus_mu = rom.trainingData.P{n} - muField;
-        W_cf_n = rom.modelParams.W_cf{n};
+        if any(rom.modelParams.interpolationMode)
+            W_cf_n = rom.modelParams.W_cf{1};
+            S_n = rom.modelParams.sigma_cf.s0;
+        else
+            W_cf_n = rom.modelParams.W_cf{n};
+            S_n = rom.modelParams.sigma_cf.s0(rom.trainingData.cellOfVertex{n});
+        end
         %S_n is a vector of variances at vertices
-        S_n = rom.modelParams.sigma_cf.s0(rom.trainingData.cellOfVertex{n});
         S_cf_n.sumLogS = sum(log(S_n));
         S_cf_n.Sinv_vec = 1./S_n;
         Sinv = sparse(1:length(S_n), 1:length(S_n), S_cf_n.Sinv_vec);
@@ -125,7 +145,11 @@ while ~converged
         XSqMean(:, n) = varDistParams{n}.XSqMean;
         
         P_n_minus_mu = rom.trainingData.P{n} - muField;
-        W_cf_n = rom.modelParams.W_cf{n};
+        if any(rom.modelParams.interpolationMode)
+            W_cf_n = rom.modelParams.W_cf{1};
+        else
+            W_cf_n = rom.modelParams.W_cf{n};
+        end
         p_cf_expHandle_n = @(X) sqMisfit(X, condTransOpts,...
             coarseMesh, P_n_minus_mu, W_cf_n, rf2fem);
         %Expectations under variational distributions
@@ -139,7 +163,7 @@ while ~converged
     
     %M-step: determine optimal parameters given the sample set
     tic
-    rom = rom.M_step(XMean, XSqMean, sqDist);
+    rom.M_step(XMean, XSqMean, sqDist);
     M_step_time = toc
     
     
@@ -155,15 +179,14 @@ while ~converged
         end
         thetaArray = [thetaArray, rom.modelParams.theta_c];
         SigmaArray = [SigmaArray, full(diag(rom.modelParams.Sigma_c))];
-        rom.modelParams.plot_params(...
-            figParams, thetaArray', SigmaArray', numel(gridSX), numel(gridSY));
+        rom.modelParams.plot_params(figParams, thetaArray', SigmaArray');
                 
         % Plot data and reconstruction (modal value)
         if ~exist('figResponse')
             figResponse = figure;
         end
         %plot modal lambda_c and corresponding -training- data reconstruction
-        rom.plotCurrentState(figResponse, 0, condTransOpts);
+        rom.plotCurrentState(figResponse, 3, condTransOpts);
     end
     
     %collect data and write it to disk periodically to save memory

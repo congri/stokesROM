@@ -1,10 +1,10 @@
-classdef StokesData
+classdef StokesData < handle
     %class for fine scale data of Stokes equation
     
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 128
-        nExclusions = [128, 1025]   %[min, max] pos. number of circ. exclusions
+        nExclusions = [128, 513]   %[min, max] pos. number of circ. exclusions
         margins = [-1, .02, -1, .02]    %[l., u.] margin for impermeable phase
         r_params = [-4.6, .15]    %[lo., up.] bound on random blob radius
         coordDist = 'gauss'
@@ -15,6 +15,9 @@ classdef StokesData
         
         %The properties below are saved as cell arrays (1 cell = 1 sample)
         X       %coordinates of mesh vertices as cell array
+        X_interp%coordinates of interpolation mesh, if data is interpolated
+        input_bitmap  %bitmap of microstr.; true is pore, false is solid phase
+                %onto regular mesh
         P       %pressure at vertices
         U       %velocity at vertices
         cells   %cell-to-vertex map
@@ -39,7 +42,7 @@ classdef StokesData
             end
         end
         
-        function self = setPathName(self)
+        function setPathName(self)
             if isempty(self.pathname)
                 self.pathname = strcat('/home/constantin/python/',...
                     'data/stokesEquation/meshes/');
@@ -57,7 +60,7 @@ classdef StokesData
             end
         end
         
-        function self = readData(self, quantities)
+        function readData(self, quantities)
             %Reads in Stokes equation data from fenics
             %samples:          samples to load
             %quantities:       identifier for the quantities to load,
@@ -67,7 +70,7 @@ classdef StokesData
             %                  'c' for cell-to-vertex map
             %                  'm' for microstructural data
             
-            self = self.setPathName;
+            self.setPathName;
             
             cellIndex = 1;
             for n = self.samples
@@ -79,11 +82,11 @@ classdef StokesData
                 
                 if exist(filename, 'file')
                     
-                    if any(quantities == 'x')
+                    if contains(quantities, 'x')
                         self.X{cellIndex} = file.x;
                     end
                     
-                    if any(quantities == 'p')
+                    if contains(quantities, 'p')
                         rescale_p = true;
                         if rescale_p
                             p_temp = file.p';
@@ -95,17 +98,17 @@ classdef StokesData
                         self.P{cellIndex} = p_temp;
                     end
                     
-                    if any(quantities == 'u')
+                    if contains(quantities, 'u')
                         self.U{cellIndex} = file.u;
                     end
                     
-                    if any(quantities == 'c')
+                    if contains(quantities, 'c')
                         cellfile = matfile(char(strcat(self.pathname, 'mesh',...
                             num2str(n), '.mat')));
                         self.cells{cellIndex} = cellfile.cells;
                     end
                     
-                    if any(quantities == 'm')
+                    if contains(quantities, 'm')
                         datafile = char(strcat(self.pathname,...
                             'microstructureInformation', num2str(n), '.mat'));
                         self.microstructData{cellIndex} = load(datafile);
@@ -118,7 +121,146 @@ classdef StokesData
             end
         end
         
-        function self = countVertices(self)
+        function interpolate(self, fineGridX, fineGridY, interpolationMode, ...
+                smoothingParameter)
+            %Interpolates finescale data onto a regular rectangular grid
+            %specified by fineGridX, fineGridY
+            if nargin < 4
+                interpolationMode = 'linear';
+            end
+            if nargin < 5
+                smoothingParameter = [];
+            end
+            
+            fineGridX = [0, cumsum(fineGridX)];
+            fineGridY = [0, cumsum(fineGridY)];
+            
+            if isempty(self.X)
+                self.readData('x');
+            end
+            
+            %Specify query grid
+            [xq, yq] = meshgrid(fineGridX, fineGridY);
+            for n = 1:numel(self.P)
+                if ~isempty(self.P)
+                    p_interp = griddata(self.X{n}(:, 1), self.X{n}(:, 2), ...
+                        self.P{n}, xq(:), yq(:), interpolationMode);
+                    %replace original data by interpolated data
+                    if ~isempty(smoothingParameter)
+                        p_interp = reshape(p_interp, numel(fineGridX), ...
+                            numel(fineGridY));
+                        p_interp = imgaussfilt(p_interp, smoothingParameter);
+                        p_interp = p_interp(:);
+                    end
+                    self.P{n} = p_interp;
+                end
+                
+                if ~isempty(self.U)
+                    u_interp_x = griddata(self.X{n}(:, 1), self.X{n}(:, 2), ...
+                        self.U{n}(:, 1), xq(:), yq(:), interpolationMode);
+                    u_interp_y = griddata(self.X{n}(:, 1), self.X{n}(:, 2), ...
+                        self.U{n}(:, 2), xq(:), yq(:), interpolationMode);
+                    %replace original data by interpolated data
+                    self.U{n} = [];
+                    self.U{n} = [u_interp_x, u_interp_y];
+                end
+            end
+            self.X_interp{1} = [xq(:), yq(:)];
+        end
+        
+        function dataVar = computeDataVariance(self, samples, quantity,...
+                fineGridX, fineGridY, interpolationMode, smoothingParameter)
+            %Computes variance of Stokes data over whole data set
+            %keep in mind python indexing for samples
+            
+            self.samples = samples;
+            disp('Reading in data...')
+            self.readData(quantity);
+            disp('... data read in.')
+            
+            if isempty(self.X_interp)
+                %Data has not yet been interpolated onto a regular grid
+                if nargin < 7
+                    %no smoothing
+                    smoothingParameter = [];
+                end
+                if nargin < 6
+                    interpolationMode = 'linear';
+                end
+                if nargin < 5
+                    fineGridY = fineGridX;
+                end
+                self.interpolate(fineGridX, fineGridY, interpolationMode,...
+                    smoothingParameter);
+            end
+            
+            %Compute first and second moments
+            meanQuantity = 0;
+            meanSquaredQuantity = 0;
+            for n = 1:numel(samples)
+                n
+                if strcmp(quantity, 'p')
+                    meanQuantity = (1/n)*((n - 1)*meanQuantity + self.P{n});
+                    meanSquaredQuantity =...
+                        (1/n)*((n - 1)*meanSquaredQuantity + self.P{n}.^2);
+                elseif strcmp(quantity, 'u')
+                    meanQuantity = (1/n)*((n - 1)*meanQuantity + self.U{n}(:));
+                    meanSquaredQuantity =...
+                        (1/n)*((n - 1)*meanSquaredQuantity + self.U{n}(:).^2);
+                else
+                    error('unknown quantity');
+                end
+            end
+            dataVar = meanSquaredQuantity - meanQuantity.^2;
+            meanDataVar = mean(dataVar);
+        end
+        
+        function input2bitmap(self, gridX, gridY)
+            %Converts input microstructures to bitmap images
+            %Feed in grid vectors for vertex coordinates, not elements!
+            %first index in input_bitmap is x-index!
+            
+            if isempty(self.X)
+                self.readData('x');
+            end
+            if isempty(self.microstructData)
+                self.readData('m');
+            end
+            
+            if nargin < 3
+                gridY = gridX;
+            end
+            
+            %gridX, gridY must be row vectors
+            if size(gridX, 1) > 1
+                gridX = gridX';
+            end
+            if size(gridX, 1) > 1
+                gridY = gridY';
+            end
+            
+            
+            centroids_x = movmean(gridX, 2); centroids_x = centroids_x(2:end);
+            centroids_y = movmean(gridY, 2); centroids_y = centroids_y(2:end);
+            
+            for n = 1:numel(self.X)
+                self.input_bitmap{n} = true(numel(gridX) - 1, numel(gridY) - 1);
+                %Loop over all element centroids and check if they are within 
+                %the domain or not
+                    dist_x_sq = (self.microstructData{n}.diskCenters(:, 1)...
+                        - centroids_x).^2;
+                    dist_y_sq = (self.microstructData{n}.diskCenters(:, 2)...
+                        - centroids_y).^2;
+                    for circle = 1:numel(self.microstructData{n}.diskRadii)
+                        %set pixels inside circle to false
+                        dist_sq = dist_x_sq(circle, :)' + dist_y_sq(circle, :);
+                        self.input_bitmap{n}(dist_sq < self...
+                            .microstructData{n}.diskRadii(circle)^2) = false;
+                    end
+            end
+        end
+        
+        function countVertices(self)
             self.N_vertices_tot = 0;
             if isempty(self.P)
                 self = self.readData('p');
@@ -129,9 +271,15 @@ classdef StokesData
             end
         end
         
-        function self = vtxToCell(self, gridX, gridY)
-            %Mapping from vertex to macro-cell given by grid vectors gridX,
-            %gridY
+        function vtxToCell(self, gridX, gridY, interpolationMode)
+            %Mapping from vertex to cell of rectangular grid specified by
+            %grid vectors gridX, gridY
+            if nargin < 4
+                interpolationMode = false;
+            end
+            if nargin < 3
+                gridY = gridX;
+            end
             cumsumX = cumsum(gridX);
             cumsumX(end) = cumsumX(end) + 1e-12;  %include vertices on boundary
             cumsumY = cumsum(gridY);
@@ -142,16 +290,24 @@ classdef StokesData
             if isempty(self.X)
                 self = self.readData('x');
             end
+            if any(interpolationMode)
+                if isempty(self.X_interp)
+                    self = self.interpolate(gridX, gridY, interpolationMode);
+                end
+                X = self.X_interp;
+            else
+                X = self.X;
+            end
             
-            for n = 1:numel(self.X)
-                self.cellOfVertex{n} = zeros(size(self.X{n}, 1), 1);
-                for vtx = 1:size(self.X{n}, 1)
+            for n = 1:numel(X)
+                self.cellOfVertex{n} = zeros(size(X{n}, 1), 1);
+                for vtx = 1:size(X{n}, 1)
                     nx = 1;
-                    while(self.X{n}(vtx, 1) > cumsumX(nx))
+                    while(X{n}(vtx, 1) > cumsumX(nx))
                         nx = nx + 1;
                     end
                     ny = 1;
-                    while(self.X{n}(vtx, 2) > cumsumY(ny))
+                    while(X{n}(vtx, 2) > cumsumY(ny))
                         ny = ny + 1;
                     end
                     self.cellOfVertex{n}(vtx) = nx + (ny - 1)*Nx;
@@ -159,10 +315,10 @@ classdef StokesData
             end
         end
         
-        function self = evaluateFeatures(self, gridRF)
+        function evaluateFeatures(self, gridRF)
             %Evaluates the feature functions
             if isempty(self.microstructData)
-                self = self.readData('m');
+                self.readData('m');
             end
             
             %constant 1
@@ -225,19 +381,19 @@ classdef StokesData
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
-            %specific surface of non-overlap. polydis. spheres
-            for n = 1:numel(self.samples)
-                phi = specificSurface(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridRF);
-                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
-            end
-            
-            %log specific surface of non-overlap. polydis. spheres
-            for n = 1:numel(self.samples)
-                phi =log(specificSurface(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridRF) + eps);
-                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
-            end
+%             %specific surface of non-overlap. polydis. spheres
+%             for n = 1:numel(self.samples)
+%                 phi = specificSurface(self.microstructData{n}.diskCenters,...
+%                     self.microstructData{n}.diskRadii, gridRF);
+%                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+%             end
+%             
+%             %log specific surface of non-overlap. polydis. spheres
+%             for n = 1:numel(self.samples)
+%                 phi =log(specificSurface(self.microstructData{n}.diskCenters,...
+%                     self.microstructData{n}.diskRadii, gridRF) + eps);
+%                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+%             end
             
             %pore lin. path for non-overlap. polydis. spheres
             %last entry is distance
@@ -263,7 +419,7 @@ classdef StokesData
             
         end
         
-        function self = shapeToLocalDesignMat(self)
+        function shapeToLocalDesignMat(self)
             %Sets separate coefficients theta_c for each macro-cell in a single
             %microstructure sample. Don't execute before rescaling/
             %standardization of design Matrix!
@@ -305,7 +461,7 @@ classdef StokesData
             end
         end
         
-        function self = rescaleDesignMatrix(self, featFuncMin, featFuncMax)
+        function rescaleDesignMatrix(self, featFuncMin, featFuncMax)
             %Rescale design matrix s.t. outputs are between 0 and 1
             disp('Rescale design matrix...')
             
@@ -325,12 +481,12 @@ classdef StokesData
             end
             
             %Check if design Matrices are real and finite
-            self = self.checkDesignMatrices;
+            self.checkDesignMatrices;
             self.saveNormalization('rescaling', featFuncMin, featFuncMax);
             disp('done')
         end
         
-        function self = checkDesignMatrices(self)
+        function checkDesignMatrices(self)
             %Check for finiteness
             for n = 1:numel(self.designMatrix)
                 if(~all(all(all(isfinite(self.designMatrix{n})))))
@@ -371,23 +527,22 @@ classdef StokesData
         end
         
         function [triHandles, pltHandles, figHandle, cb] =...
-                plotData(self, samples)
+                plot(self, samples)
             %Plots the fine scale data and returns handles
-            
+                        
             %Load data if not yet loaded
             if isempty(self.cells)
-                self = self.readData('c');
+                self.readData('c');
             end
             if isempty(self.X)
-                self = self.readData('x');
+                self.readData('x');
             end
             if isempty(self.P)
-                self = self.readData('p');
+                self.readData('p');
             end
             if isempty(self.U)
-                self = self.readData('u');
+                self.readData('u');
             end
-            
             
             figHandle = figure;
             pltIndex = 1;
@@ -395,7 +550,7 @@ classdef StokesData
             for n = samples
                 figure(figHandle);
                 %pressure field
-                pltHandles(1, pltIndex) = subplot(2, N, pltIndex);
+                pltHandles(1, pltIndex) = subplot(3, N, pltIndex);
                 triHandles(1, pltIndex) =...
                     trisurf(self.cells{n}, self.X{n}(:, 1),...
                     self.X{n}(:, 2), self.P{n});
@@ -413,7 +568,7 @@ classdef StokesData
                 
                 %velocity field (norm)
                 u_norm = sqrt(sum(self.U{n}.^2));
-                pltHandles(2, pltIndex) = subplot(2, N, pltIndex + N);
+                pltHandles(2, pltIndex) = subplot(3, N, pltIndex + N);
                 triHandles(2, pltIndex) = trisurf(self.cells{n},...
                    self.X{n}(:, 1), self.X{n}(:, 2), u_norm);
                 triHandles(2, pltIndex).LineStyle = 'none';
@@ -427,6 +582,22 @@ classdef StokesData
                 cb(2, pltIndex) = colorbar;
                 cb(2, pltIndex).Label.String = 'velocity norm $|u|$';
                 cb(2, pltIndex).Label.Interpreter = 'latex';
+                
+                %velocity field (norm), 2d
+                pltHandles(3, pltIndex) = subplot(3, N, pltIndex + 2*N);
+                triHandles(3, pltIndex) = trisurf(self.cells{n},...
+                   self.X{n}(:, 1), self.X{n}(:, 2), u_norm);
+                triHandles(3, pltIndex).LineStyle = 'none';
+                axis square;
+                axis tight;
+                view(2);
+                grid off;
+                box on;
+                xticks({});
+                yticks({});
+                cb(3, pltIndex) = colorbar;
+                cb(3, pltIndex).Label.String = 'velocity norm $|u|$';
+                cb(3, pltIndex).Label.Interpreter = 'latex';
                 pltIndex = pltIndex + 1;
             end
         end

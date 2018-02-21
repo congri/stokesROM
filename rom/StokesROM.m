@@ -1,11 +1,7 @@
-classdef StokesROM
+classdef StokesROM < handle
     %Class for reduced order model of Stokes equation
     
     properties
-        
-        %Grid of p_cf variance
-        gridSX
-        gridSY
         
         %StokesData object
         trainingData
@@ -20,17 +16,16 @@ classdef StokesROM
             %Constructor
         end
         
-        function [self] = readTrainingData(self, samples, u_bc)
+        function readTrainingData(self, samples, u_bc)
             %Sets trainingData to StokesData object
             self.trainingData = StokesData(samples, u_bc);
-            self.trainingData = self.trainingData.readData('px');
+            self.trainingData.readData('px');
         end
         
-        function [self] = initializeModelParams(self, p_bc, u_bc, mode,...
-                gridX, gridY, gridRF, gridSX, gridSY)
+        function initializeModelParams(self, p_bc, u_bc, mode, gridX, gridY,...
+                gridRF, gridSX, gridSY)
             %Initialize params theta_c, theta_cf
             
-            self.modelParams = ModelParams;
             self.modelParams.gridSX = gridSX;
             self.modelParams.gridSY = gridSY;
             self.modelParams.gridRF = gridRF;
@@ -59,10 +54,8 @@ classdef StokesROM
                 p_bc, u_bc_handle);
             
             nData = numel(self.trainingData.samples);
-            nSCells = numel(gridSX)*numel(gridSY);
             
-            self.modelParams = self.modelParams.initialize(gridRF.nCells,...
-                nData, nSCells, mode);
+            self.modelParams.initialize(gridRF.nCells, nData, mode);
                         
             %Parameters from previous runs can be deleted here
             if exist('./data/', 'dir')
@@ -70,7 +63,7 @@ classdef StokesROM
             end
         end
         
-        function self = M_step(self, XMean, XSqMean, sqDist_p_cf)
+        function M_step(self, XMean, XSqMean, sqDist_p_cf)
             
             if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
                     strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
@@ -84,11 +77,18 @@ classdef StokesROM
                 c = self.modelParams.VRVM_c + .5*nTrain;
                 Ncells_gridS = numel(self.modelParams.gridSX)*...
                     numel(self.modelParams.gridSY);
-                sqDistSum = zeros(Ncells_gridS, 1);
-                for j = 1:Ncells_gridS
+                if any(self.modelParams.interpolationMode)
+                    sqDistSum = 0;
                     for n = 1:numel(self.trainingData.samples)
-                        sqDistSum(j)= sqDistSum(j) + mean(sqDist_p_cf{n}(j ==...
-                            self.trainingData.cellOfVertex{n}));
+                        sqDistSum = sqDistSum + sqDist_p_cf{n};
+                    end
+                else
+                    sqDistSum = zeros(Ncells_gridS, 1);
+                    for j = 1:Ncells_gridS
+                        for n = 1:numel(self.trainingData.samples)
+                            sqDistSum(j)= sqDistSum(j) + mean(sqDist_p_cf{n}(...
+                                j == self.trainingData.cellOfVertex{n}));
+                        end
                     end
                 end
                 f = self.modelParams.VRVM_f + .5*sqDistSum;
@@ -158,7 +158,7 @@ classdef StokesROM
             end
         end
         
-        function self = update_p_c(self, XMean, XSqMean)
+        function update_p_c(self, XMean, XSqMean)
             %% Find optimal theta_c and Sigma_c self-consistently:
             %update theta_c, then Sigma_c, then theta_c and so on
             
@@ -370,7 +370,7 @@ classdef StokesROM
             self.modelParams.Sigma_c = Sigma_c;
         end
         
-        function self = update_p_cf(self, sqDist_p_cf)
+        function update_p_cf(self, sqDist_p_cf)
             
             Ncells_gridS = numel(self.modelParams.gridSX)*...
                 numel(self.modelParams.gridSY);
@@ -386,7 +386,7 @@ classdef StokesROM
             mean_s0 = mean(self.modelParams.sigma_cf.s0)
         end
         
-        function [] = plotCurrentState(self, fig, dataOffset, condTransOpts)
+        function plotCurrentState(self, fig, dataOffset, condTransOpts)
             %Plots the current modal effective property and the modal
             %reconstruction for 2 -training- samples
             for i = 1:2
@@ -408,14 +408,28 @@ classdef StokesROM
                 cbp_lambda = colorbar('Parent', fig);
                 sb2 = subplot(2, 3, 2 + (i - 1)*3, 'Parent', fig);
                 if isempty(self.trainingData.cells)
-                    self.trainingData = self.trainingData.readData('c');
+                    self.trainingData.readData('c');
                 end
+                if any(self.modelParams.interpolationMode)
+                    nx = numel(self.modelParams.gridSX) + 1;
+                    ny = numel(self.modelParams.gridSY) + 1;
+                    XX = reshape(self.trainingData.X_interp{1}(:, 1), nx, ny);
+                    YY = reshape(self.trainingData.X_interp{1}(:, 2), nx, ny);
+                    P = reshape(self.trainingData.P{i + dataOffset}, nx, ny);
+                    trihandle = surf(XX, YY, P, 'Parent', sb2);
+                else
                 trihandle = trisurf(self.trainingData.cells{i + dataOffset},...
                     self.trainingData.X{i + dataOffset}(:, 1),...
                     self.trainingData.X{i + dataOffset}(:, 2),...
                     self.trainingData.P{i + dataOffset}, 'Parent', sb2);
+                end
                 trihandle.LineStyle = 'none';
                 axis(sb2, 'tight');
+                sb2.ZLim = [mean(self.trainingData.P{i + dataOffset}) - ...
+                    std(self.trainingData.P{i + dataOffset}), ...
+                    mean(self.trainingData.P{i + dataOffset}) + ...
+                    std(self.trainingData.P{i + dataOffset})];
+                caxis(sb2, sb2.ZLim);
                 axis(sb2, 'square');
                 sb2.View = [0, 90];
                 sb2.GridLineStyle = 'none';
@@ -436,22 +450,37 @@ classdef StokesROM
                 
                 Tc = coarseFEMout.Tff';
                 Tc = Tc(:);
-                reconstruction = self.modelParams.W_cf{i + dataOffset}*Tc;
-                
-                trihandle2 = trisurf(self.trainingData.cells{i + dataOffset},...
-                    self.trainingData.X{i + dataOffset}(:, 1),...
-                    self.trainingData.X{i + dataOffset}(:, 2),...
-                    reconstruction, 'Parent', sb3);
+                if any(self.modelParams.interpolationMode)
+                    reconstruction = reshape(self.modelParams.W_cf{1}*Tc,nx,ny);
+                    trihandle2 = surf(XX, YY, reconstruction, 'Parent', sb3);
+                else
+                    reconstruction = self.modelParams.W_cf{i + dataOffset}*Tc;
+                    trihandle2 =...
+                        trisurf(self.trainingData.cells{i + dataOffset},...
+                        self.trainingData.X{i + dataOffset}(:, 1),...
+                        self.trainingData.X{i + dataOffset}(:, 2),...
+                        reconstruction, 'Parent', sb3);
+                end
                 trihandle2.LineStyle = 'none';
                 trihandle2.FaceColor = 'b';
                 hold(sb3, 'on');
-                trihandle3 = trisurf(self.trainingData.cells{i + dataOffset},...
-                    self.trainingData.X{i + dataOffset}(:, 1),...
-                    self.trainingData.X{i + dataOffset}(:, 2),...
-                    self.trainingData.P{i + dataOffset}, 'Parent', sb3);
+                if any(self.modelParams.interpolationMode)
+                    trihandle3 = surf(XX, YY, P, 'Parent', sb3);
+                else
+                    trihandle3 =...
+                        trisurf(self.trainingData.cells{i + dataOffset},...
+                        self.trainingData.X{i + dataOffset}(:, 1),...
+                        self.trainingData.X{i + dataOffset}(:, 2),...
+                        self.trainingData.P{i + dataOffset}, 'Parent', sb3);
+                end
                 trihandle3.LineStyle = 'none';
                 hold(sb3, 'off');
                 axis(sb3, 'tight');
+                sb3.ZLim = [mean(self.trainingData.P{i + dataOffset}) - ...
+                    std(self.trainingData.P{i + dataOffset}), ...
+                    mean(self.trainingData.P{i + dataOffset}) + ...
+                    std(self.trainingData.P{i + dataOffset})];
+                caxis(sb3, sb3.ZLim);
                 axis(sb3, 'square');
                 sb3.Box = 'on';
                 sb3.BoxStyle = 'full';
@@ -462,7 +491,7 @@ classdef StokesROM
             drawnow
         end
         
-        function [predMean, predStd, meanEffCond, meanSqDist] =...
+        function [predMean, predStd, meanEffCond, meanSqDist, sqDist] =...
                 predict(self, testStokesData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
@@ -479,31 +508,29 @@ classdef StokesROM
             
             %Load test data
             if isempty(testStokesData.X)
-                testStokesData = testStokesData.readData('x');
+                testStokesData.readData('x');
             end
             if isempty(testStokesData.P)
-                testStokesData = testStokesData.readData('p');
+                testStokesData.readData('p');
             end
             
             if isempty(self.modelParams)
                 %Read in trained params form ./data folder
                 self.modelParams = ModelParams;
-                self.modelParams = self.modelParams.load;
+                self.modelParams.load;
                 self.modelParams.rf2fem = self.modelParams.gridRF.map2fine(...
                     self.modelParams.coarseMesh.gridX,...
                     self.modelParams.coarseMesh.gridY);
             end
             
-            testStokesData =...
-                testStokesData.evaluateFeatures(self.modelParams.gridRF);
+            testStokesData.evaluateFeatures(self.modelParams.gridRF);
             if exist('./data/featureFunctionMin', 'file')
                 featFuncMin = dlmread('./data/featureFunctionMin');
                 featFuncMax = dlmread('./data/featureFunctionMax');
-                testStokesData = testStokesData.rescaleDesignMatrix(...
-                    featFuncMin, featFuncMax);
+                testStokesData.rescaleDesignMatrix(featFuncMin, featFuncMax);
             end
             if strcmp(mode, 'local')
-                testStokesData = testStokesData.shapeToLocalDesignMat;
+                testStokesData.shapeToLocalDesignMat;
             end
             
             
@@ -564,24 +591,38 @@ classdef StokesROM
             
             %% Run coarse model and sample from p_cf
             disp('Solving coarse model and sample from p_cf...')
+            intp = any(self.modelParams.interpolationMode);
+            if intp
+                testStokesData.interpolate(self.modelParams.gridSX,...
+                    self.modelParams.gridSY,...
+                    self.modelParams.interpolationMode, ...
+                    self.modelParams.smoothingParameter);
+            end
             for n = 1:nTest
                 predMeanArray{n} = zeros(size(testStokesData.P{n}));
             end
             predVarArray = predMeanArray;
-            mean_P_sq = predMeanArray;
+            mean_squared_response = predMeanArray;
             
             cm = self.modelParams.coarseMesh;
             %Compute shape function interpolation matrices W
-            self.modelParams =...
+            if intp
+                self.modelParams.fineScaleInterp(testStokesData.X_interp);
+            else
                 self.modelParams.fineScaleInterp(testStokesData.X);
+            end
             W_cf = self.modelParams.W_cf;
             %S_n is a vector of variances at vertices
-            testStokesData= testStokesData.vtxToCell(self.modelParams.gridSX,...
-                self.modelParams.gridSY);
+            testStokesData.vtxToCell(self.modelParams.gridSX,...
+                self.modelParams.gridSY, self.modelParams.interpolationMode);
             P = testStokesData.P;
-            for n = 1:nTest
-                S{n} = self.modelParams.sigma_cf.s0(...
-                    testStokesData.cellOfVertex{n});
+            if intp
+                S = self.modelParams.sigma_cf.s0;
+            else
+                for n = 1:nTest
+                    S{n} = self.modelParams.sigma_cf.s0(...
+                        testStokesData.cellOfVertex{n});
+                end
             end
             
             for n = 1:nTest
@@ -594,29 +635,43 @@ classdef StokesROM
                     Tctemp = FEMout.Tff';
                     
                     %sample from p_cf
-                    mu_cf = W_cf{n}*Tctemp(:);
+                    if intp
+                        mu_cf = W_cf{1}*Tctemp(:);
+                    else
+                        mu_cf = W_cf{n}*Tctemp(:);
+                    end
                     
                     %only for diagonal S!!
                     %Sequentially compute mean and <Tf^2> to save memory
                     predMeanArray{n} = ((i - 1)/i)*predMeanArray{n}...
                         + (1/i)*mu_cf;  %U_f-integration can be done analyt.
-                    mean_P_sq{n} = ((i - 1)/i)*mean_P_sq{n} + (1/i)*mu_cf.^2;
+                    mean_squared_response{n} = ((i - 1)/i)*...
+                        mean_squared_response{n} + (1/i)*mu_cf.^2;
                 end
-                mean_P_sq{n} = mean_P_sq{n} + S{n};
+                if intp
+                    mean_squared_response{n} = mean_squared_response{n} + S;
+                else
+                    mean_squared_response{n} = mean_squared_response{n} + S{n};
+                end
                 
                 %abs to avoid negative variance due to numerical error
-                predVarArray{n} = abs(mean_P_sq{n} - predMeanArray{n}.^2);
+                predVarArray{n} = abs(mean_squared_response{n...
+                    } - predMeanArray{n}.^2);
                 %meanTf_meanMCErr = mean(sqrt(predVarArray{n}/nSamples))
                 
-                meanMahaErrTemp{n} = mean(sqrt(abs((1./(predVarArray{n})).*...
-                    (P{n} - predMeanArray{n}).^2)));
-                sqDist{n} = (P{n} - predMeanArray{n}).^2;
-                meanSqDistTemp{n} = mean(sqDist{n});
+                %Remove response of first vertex as this is an essential node
+                %ATTENTION: THIS IS ONLY VALID FOR B.C.'s WHERE VERTEX 1 IS THE 
+                %ONLY ESSENTIAL VERTEX
+                meanMahaErrTemp{n} =...
+                    mean(sqrt(abs((1./(predVarArray{n}(2:end))).*...
+                    (P{n}(2:end) - predMeanArray{n}(2:end)).^2)));
+                sqDist{n} = (P{n}(2:end) - predMeanArray{n}(2:end)).^2;
+                meanSqDistTemp{n} = mean(sqDist{n});    %mean over vertices
                 
-                logLikelihood{n} = -.5*numel(P{n})*log(2*pi) -...
-                    .5*sum(log(predVarArray{n}), 'omitnan') - ...
-                    .5*sum(sqDist{n}./predVarArray{n}, 'omitnan');
-                logPerplexity{n} = -(1/(numel(P{n})))*logLikelihood{n};
+                logLikelihood{n} = -.5*numel(P{n}(2:end))*log(2*pi) -...
+                    .5*sum(log(predVarArray{n}(2:end)), 'omitnan') - ...
+                    .5*sum(sqDist{n}./predVarArray{n}(2:end), 'omitnan');
+                logPerplexity{n} = -(1/(numel(P{n}(2:end))))*logLikelihood{n};
             end
             
             meanMahalanobisError = mean(cell2mat(meanMahaErrTemp));
@@ -631,16 +686,25 @@ classdef StokesROM
             if plotPrediction
                 fig = figure('units','normalized','outerposition',[0 0 1 1]);
                 pltstart = 0;
-                if isempty(testStokesData.cells)
-                    testStokesData = testStokesData.readData('c');
+                if(isempty(testStokesData.cells) && ~intp)
+                    testStokesData.readData('c');
                 end
                 for i = 1:6
                     %truth
                     splt(i) = subplot(2, 3, i);
-                    thdl = trisurf(testStokesData.cells{i + pltstart},...
-                        testStokesData.X{i + pltstart}(:, 1),...
-                        testStokesData.X{i + pltstart}(:, 2),...
-                        testStokesData.P{i + pltstart}, 'Parent', splt(i));
+                    if intp
+                        nSX = numel(self.modelParams.gridSX) + 1;
+                        nSY = numel(self.modelParams.gridSY) + 1;
+                        XX = reshape(testStokesData.X_interp{1}(:, 1), nSX,nSY);
+                        YY = reshape(testStokesData.X_interp{1}(:, 2), nSX,nSY);
+                        P = reshape(testStokesData.P{i + pltstart}, nSX, nSY);
+                        thdl = surf(XX, YY, P, 'Parent', splt(i));
+                    else
+                        thdl = trisurf(testStokesData.cells{i + pltstart},...
+                            testStokesData.X{i + pltstart}(:, 1),...
+                            testStokesData.X{i + pltstart}(:, 2),...
+                            testStokesData.P{i + pltstart}, 'Parent', splt(i));
+                    end
                     thdl.LineStyle = 'none';
                     axis(splt(i), 'tight');
                     axis(splt(i), 'square');
@@ -654,28 +718,48 @@ classdef StokesROM
                     
                     %predictive mean
                     hold on;
-                    thdlpred = trisurf(testStokesData.cells{i + pltstart},...
-                        testStokesData.X{i + pltstart}(:, 1),...
-                        testStokesData.X{i + pltstart}(:, 2),...
-                        predMeanArray{i + pltstart}, 'Parent', splt(i));
+                    if intp
+                        thdlpred = surf(XX, YY, reshape(...
+                            predMeanArray{i + pltstart}, nSX, nSY),...
+                            'Parent', splt(i));
+                    else
+                        thdlpred= trisurf(testStokesData.cells{i + pltstart},...
+                            testStokesData.X{i + pltstart}(:, 1),...
+                            testStokesData.X{i + pltstart}(:, 2),...
+                            predMeanArray{i + pltstart}, 'Parent', splt(i));
+                    end
                     thdlpred.LineStyle = 'none';
                     thdlpred.FaceColor = 'b';
                     
                     %predictive mean + std
-                    thdlpstd = trisurf(testStokesData.cells{i + pltstart},...
-                        testStokesData.X{i + pltstart}(:, 1),...
-                        testStokesData.X{i + pltstart}(:, 2),...
-                        predMeanArray{i + pltstart} +...
-                        sqrt(predVarArray{i + pltstart}), 'Parent', splt(i));
+                    if intp
+                        thdlpstd = surf(XX, YY,...
+                            reshape(predMeanArray{i + pltstart} +...
+                            sqrt(predVarArray{i + pltstart}), nSX, nSY),...
+                            'Parent', splt(i));
+                    else
+                        thdlpstd= trisurf(testStokesData.cells{i + pltstart},...
+                            testStokesData.X{i + pltstart}(:, 1),...
+                            testStokesData.X{i + pltstart}(:, 2),...
+                            predMeanArray{i + pltstart} +...
+                            sqrt(predVarArray{i + pltstart}),'Parent', splt(i));
+                    end
                     thdlpstd.LineStyle = 'none';
                     thdlpstd.FaceColor = [.85 .85 .85];
                     
                     %predictive mean - std
-                    thdlmstd = trisurf(testStokesData.cells{i + pltstart},...
-                        testStokesData.X{i + pltstart}(:, 1),...
-                        testStokesData.X{i + pltstart}(:, 2),...
-                        predMeanArray{i + pltstart} -...
-                        sqrt(predVarArray{i + pltstart}), 'Parent', splt(i));
+                    if intp
+                        thdlmstd = surf(XX, YY,...
+                            reshape(predMeanArray{i + pltstart} -...
+                            sqrt(predVarArray{i + pltstart}), nSX, nSY),...
+                            'Parent', splt(i));
+                    else
+                        thdlmstd= trisurf(testStokesData.cells{i + pltstart},...
+                            testStokesData.X{i + pltstart}(:, 1),...
+                            testStokesData.X{i + pltstart}(:, 2),...
+                            predMeanArray{i + pltstart} -...
+                            sqrt(predVarArray{i + pltstart}),'Parent', splt(i));
+                    end
                     thdlmstd.LineStyle = 'none';
                     thdlmstd.FaceColor = [.85 .85 .85];
                     

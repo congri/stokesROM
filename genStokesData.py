@@ -26,7 +26,7 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(24, 1024)  # vector of random meshes to load
+meshes = np.arange(0, 23)  # vector of random meshes to load
 porousMedium = 'nonOverlappingCircles'    #circles or randomField
 nElements = 128
 
@@ -51,8 +51,8 @@ r_params = (-4.6, .15)
 
 
 # Flow boundary condition for velocity on domain boundary
-u_x = '0.25 - (x[1] - 0.5)*(x[1] - 0.5)'
-u_y = '0.0'
+u_x = '0.8 - 2.0*x[1]'
+u_y = '1.2 - 2.0*x[0]'
 flowField = df.Expression((u_x, u_y), degree=2)
 
 
