@@ -24,6 +24,7 @@ coordinateDist = 'gauss'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 # negative margin means no margin
 margins = (-1, .025, -1, .025)
+substractCorners = True     #Substracts circles from domain corners s.t. flow cannot pass
 radiiDist = 'logn'
 r_params = (-4.6, .15)
 coordinate_cov = [[0.04, 0], [0, 100]]
@@ -210,6 +211,16 @@ elif mode == 'nonOverlappingCircles':
         print('nExclusions = ', nExclusions)
         exclusionCenters = np.empty([0, 2])
         exclusionRadii = np.empty([0, 1])
+        if substractCorners:
+            exclusionCenters = np.append(exclusionCenters, np.array([[0.0, 0.0]]), axis=0)
+            exclusionCenters = np.append(exclusionCenters, np.array([[1.0, 0.0]]), axis=0)
+            exclusionCenters = np.append(exclusionCenters, np.array([[0.0, 1.0]]), axis=0)
+            exclusionCenters = np.append(exclusionCenters, np.array([[1.0, 1.0]]), axis=0)
+            exclusionRadii = np.append(exclusionRadii, 0.03)
+            exclusionRadii = np.append(exclusionRadii, 0.03)
+            exclusionRadii = np.append(exclusionRadii, 0.03)
+            exclusionRadii = np.append(exclusionRadii, 0.03)
+
         currentExclusions = 0
         t_start = time.time()
         t_elapsed = 0

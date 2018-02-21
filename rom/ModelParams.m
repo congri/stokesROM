@@ -16,6 +16,7 @@ classdef ModelParams < handle
         gridSX
         gridSY
         interpolationMode
+        smoothingParameter
         
         %Surrogate FEM mesh
         coarseMesh
@@ -139,6 +140,9 @@ classdef ModelParams < handle
             
             load('./data/interpolationMode.mat');
             self.interpolationMode = interpolationMode;
+            
+            load('./data/smoothingParameter.mat');
+            self.smoothingParameter = smoothingParameter;
             
             try
                 temp = dlmread('./data/Sigma_theta_c');
@@ -368,6 +372,12 @@ classdef ModelParams < handle
             if contains(params, 'interp')
                 interpolationMode = self.interpolationMode;
                 save('./data/interpolationMode.mat', 'interpolationMode');
+            end
+            
+            %Smoothing parameter for interpolated data
+            if contains(params, 'smooth')
+                smoothingParameter = self.smoothingParameter;
+                save('./data/smoothingParameter.mat', 'smoothingParameter');
             end
             
             %Parameters of variational distributions on log lambda_c

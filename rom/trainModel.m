@@ -22,9 +22,9 @@ gridX = ones(1, 4);   %coarse FEM
 gridX = gridX/sum(gridX);
 gridY = gridX;
 gridRF = RectangularMesh([.5 .5]);
-% gridRF.split_cell(gridRF.cells{4});
-% gridRF.split_cell(gridRF.cells{1});
-gridSX = ones(1, 64);   %p_cf S grid
+gridRF.split_cell(gridRF.cells{4});
+gridRF.split_cell(gridRF.cells{1});
+gridSX = ones(1, 128);   %p_cf S grid
 gridSX = gridSX/sum(gridSX);
 gridSY = gridSX;
 
@@ -33,6 +33,8 @@ p_bc = @(x) 0;
 %influx?
 u_bc{1} = 'u_x=0.25 - (x[1] - 0.5)*(x[1] - 0.5)';
 u_bc{2} = 'u_y=0.0';
+u_bc{1} = 'u_x=1.0 + 2.0*x[1]';
+u_bc{2} = 'u_y=-3.0 + 2.0*x[0]';
 %% Initialize reduced order model object:
 rom = StokesROM;
 
@@ -47,12 +49,13 @@ rom.modelParams = ModelParams;
 rom.modelParams.interpolationMode = 'cubic';  %Interpolation on regular 
                                               %finescale grid, including solid
                                               %phase
+rom.modelParams.smoothingParameter = 2;       %only applies for interp. data
 rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX, gridSY);
 
 rom.modelParams.condTransOpts = condTransOpts;
 if any(rom.modelParams.interpolationMode)
     rom.trainingData.interpolate(gridSX, gridSY,...
-        rom.modelParams.interpolationMode);
+        rom.modelParams.interpolationMode, rom.modelParams.smoothingParameter);
     rom.modelParams.fineScaleInterp(rom.trainingData.X_interp);
 else
     rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
@@ -64,6 +67,7 @@ rom.modelParams.saveParams('condTransOpts');
 rom.modelParams.saveParams('gridRF');
 rom.modelParams.saveParams('gridS');
 rom.modelParams.saveParams('interp');
+rom.modelParams.saveParams('smooth');
 rom.trainingData.evaluateFeatures(gridRF);
 
 if strcmp(normalization, 'rescale')
@@ -182,7 +186,7 @@ while ~converged
             figResponse = figure;
         end
         %plot modal lambda_c and corresponding -training- data reconstruction
-        rom.plotCurrentState(figResponse, 0, condTransOpts);
+        rom.plotCurrentState(figResponse, 3, condTransOpts);
     end
     
     %collect data and write it to disk periodically to save memory

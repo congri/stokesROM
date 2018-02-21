@@ -4,7 +4,7 @@ classdef StokesData < handle
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 128
-        nExclusions = [128, 1025]   %[min, max] pos. number of circ. exclusions
+        nExclusions = [128, 513]   %[min, max] pos. number of circ. exclusions
         margins = [-1, .02, -1, .02]    %[l., u.] margin for impermeable phase
         r_params = [-4.6, .15]    %[lo., up.] bound on random blob radius
         coordDist = 'gauss'
@@ -121,11 +121,15 @@ classdef StokesData < handle
             end
         end
         
-        function interpolate(self, fineGridX, fineGridY, interpolationMode)
+        function interpolate(self, fineGridX, fineGridY, interpolationMode, ...
+                smoothingParameter)
             %Interpolates finescale data onto a regular rectangular grid
             %specified by fineGridX, fineGridY
             if nargin < 4
                 interpolationMode = 'linear';
+            end
+            if nargin < 5
+                smoothingParameter = [];
             end
             
             fineGridX = [0, cumsum(fineGridX)];
@@ -142,6 +146,12 @@ classdef StokesData < handle
                     p_interp = griddata(self.X{n}(:, 1), self.X{n}(:, 2), ...
                         self.P{n}, xq(:), yq(:), interpolationMode);
                     %replace original data by interpolated data
+                    if ~isempty(smoothingParameter)
+                        p_interp = reshape(p_interp, numel(fineGridX), ...
+                            numel(fineGridY));
+                        p_interp = imgaussfilt(p_interp, smoothingParameter);
+                        p_interp = p_interp(:);
+                    end
                     self.P{n} = p_interp;
                 end
                 
@@ -156,6 +166,53 @@ classdef StokesData < handle
                 end
             end
             self.X_interp{1} = [xq(:), yq(:)];
+        end
+        
+        function dataVar = computeDataVariance(self, samples, quantity,...
+                fineGridX, fineGridY, interpolationMode, smoothingParameter)
+            %Computes variance of Stokes data over whole data set
+            %keep in mind python indexing for samples
+            
+            self.samples = samples;
+            disp('Reading in data...')
+            self.readData(quantity);
+            disp('... data read in.')
+            
+            if isempty(self.X_interp)
+                %Data has not yet been interpolated onto a regular grid
+                if nargin < 7
+                    %no smoothing
+                    smoothingParameter = [];
+                end
+                if nargin < 6
+                    interpolationMode = 'linear';
+                end
+                if nargin < 5
+                    fineGridY = fineGridX;
+                end
+                self.interpolate(fineGridX, fineGridY, interpolationMode,...
+                    smoothingParameter);
+            end
+            
+            %Compute first and second moments
+            meanQuantity = 0;
+            meanSquaredQuantity = 0;
+            for n = 1:numel(samples)
+                n
+                if strcmp(quantity, 'p')
+                    meanQuantity = (1/n)*((n - 1)*meanQuantity + self.P{n});
+                    meanSquaredQuantity =...
+                        (1/n)*((n - 1)*meanSquaredQuantity + self.P{n}.^2);
+                elseif strcmp(quantity, 'u')
+                    meanQuantity = (1/n)*((n - 1)*meanQuantity + self.U{n}(:));
+                    meanSquaredQuantity =...
+                        (1/n)*((n - 1)*meanSquaredQuantity + self.U{n}(:).^2);
+                else
+                    error('unknown quantity');
+                end
+            end
+            dataVar = meanSquaredQuantity - meanQuantity.^2;
+            meanDataVar = mean(dataVar);
         end
         
         function input2bitmap(self, gridX, gridY)
@@ -472,21 +529,20 @@ classdef StokesData < handle
         function [triHandles, pltHandles, figHandle, cb] =...
                 plot(self, samples)
             %Plots the fine scale data and returns handles
-            
+                        
             %Load data if not yet loaded
             if isempty(self.cells)
-                self = self.readData('c');
+                self.readData('c');
             end
             if isempty(self.X)
-                self = self.readData('x');
+                self.readData('x');
             end
             if isempty(self.P)
-                self = self.readData('p');
+                self.readData('p');
             end
             if isempty(self.U)
-                self = self.readData('u');
+                self.readData('u');
             end
-            
             
             figHandle = figure;
             pltIndex = 1;

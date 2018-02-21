@@ -425,6 +425,11 @@ classdef StokesROM < handle
                 end
                 trihandle.LineStyle = 'none';
                 axis(sb2, 'tight');
+                sb2.ZLim = [mean(self.trainingData.P{i + dataOffset}) - ...
+                    std(self.trainingData.P{i + dataOffset}), ...
+                    mean(self.trainingData.P{i + dataOffset}) + ...
+                    std(self.trainingData.P{i + dataOffset})];
+                caxis(sb2, sb2.ZLim);
                 axis(sb2, 'square');
                 sb2.View = [0, 90];
                 sb2.GridLineStyle = 'none';
@@ -471,6 +476,11 @@ classdef StokesROM < handle
                 trihandle3.LineStyle = 'none';
                 hold(sb3, 'off');
                 axis(sb3, 'tight');
+                sb3.ZLim = [mean(self.trainingData.P{i + dataOffset}) - ...
+                    std(self.trainingData.P{i + dataOffset}), ...
+                    mean(self.trainingData.P{i + dataOffset}) + ...
+                    std(self.trainingData.P{i + dataOffset})];
+                caxis(sb3, sb3.ZLim);
                 axis(sb3, 'square');
                 sb3.Box = 'on';
                 sb3.BoxStyle = 'full';
@@ -481,7 +491,7 @@ classdef StokesROM < handle
             drawnow
         end
         
-        function [predMean, predStd, meanEffCond, meanSqDist] =...
+        function [predMean, predStd, meanEffCond, meanSqDist, sqDist] =...
                 predict(self, testStokesData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
@@ -584,13 +594,15 @@ classdef StokesROM < handle
             intp = any(self.modelParams.interpolationMode);
             if intp
                 testStokesData.interpolate(self.modelParams.gridSX,...
-                    self.modelParams.gridSY,self.modelParams.interpolationMode);
+                    self.modelParams.gridSY,...
+                    self.modelParams.interpolationMode, ...
+                    self.modelParams.smoothingParameter);
             end
             for n = 1:nTest
                 predMeanArray{n} = zeros(size(testStokesData.P{n}));
             end
             predVarArray = predMeanArray;
-            mean_P_sq = predMeanArray;
+            mean_squared_response = predMeanArray;
             
             cm = self.modelParams.coarseMesh;
             %Compute shape function interpolation matrices W
@@ -633,27 +645,33 @@ classdef StokesROM < handle
                     %Sequentially compute mean and <Tf^2> to save memory
                     predMeanArray{n} = ((i - 1)/i)*predMeanArray{n}...
                         + (1/i)*mu_cf;  %U_f-integration can be done analyt.
-                    mean_P_sq{n} = ((i - 1)/i)*mean_P_sq{n} + (1/i)*mu_cf.^2;
+                    mean_squared_response{n} = ((i - 1)/i)*...
+                        mean_squared_response{n} + (1/i)*mu_cf.^2;
                 end
                 if intp
-                    mean_P_sq{n} = mean_P_sq{n} + S;
+                    mean_squared_response{n} = mean_squared_response{n} + S;
                 else
-                    mean_P_sq{n} = mean_P_sq{n} + S{n};
+                    mean_squared_response{n} = mean_squared_response{n} + S{n};
                 end
                 
                 %abs to avoid negative variance due to numerical error
-                predVarArray{n} = abs(mean_P_sq{n} - predMeanArray{n}.^2);
+                predVarArray{n} = abs(mean_squared_response{n...
+                    } - predMeanArray{n}.^2);
                 %meanTf_meanMCErr = mean(sqrt(predVarArray{n}/nSamples))
                 
-                meanMahaErrTemp{n} = mean(sqrt(abs((1./(predVarArray{n})).*...
-                    (P{n} - predMeanArray{n}).^2)));
-                sqDist{n} = (P{n} - predMeanArray{n}).^2;
-                meanSqDistTemp{n} = mean(sqDist{n});
+                %Remove response of first vertex as this is an essential node
+                %ATTENTION: THIS IS ONLY VALID FOR B.C.'s WHERE VERTEX 1 IS THE 
+                %ONLY ESSENTIAL VERTEX
+                meanMahaErrTemp{n} =...
+                    mean(sqrt(abs((1./(predVarArray{n}(2:end))).*...
+                    (P{n}(2:end) - predMeanArray{n}(2:end)).^2)));
+                sqDist{n} = (P{n}(2:end) - predMeanArray{n}(2:end)).^2;
+                meanSqDistTemp{n} = mean(sqDist{n});    %mean over vertices
                 
-                logLikelihood{n} = -.5*numel(P{n})*log(2*pi) -...
-                    .5*sum(log(predVarArray{n}), 'omitnan') - ...
-                    .5*sum(sqDist{n}./predVarArray{n}, 'omitnan');
-                logPerplexity{n} = -(1/(numel(P{n})))*logLikelihood{n};
+                logLikelihood{n} = -.5*numel(P{n}(2:end))*log(2*pi) -...
+                    .5*sum(log(predVarArray{n}(2:end)), 'omitnan') - ...
+                    .5*sum(sqDist{n}./predVarArray{n}(2:end), 'omitnan');
+                logPerplexity{n} = -(1/(numel(P{n}(2:end))))*logLikelihood{n};
             end
             
             meanMahalanobisError = mean(cell2mat(meanMahaErrTemp));
