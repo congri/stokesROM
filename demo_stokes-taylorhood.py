@@ -36,16 +36,27 @@ import numpy as np
 
 # Load mesh and subdomains
 mesh = df.Mesh("./dolfin_fine.xml.gz")
+#mesh = df.UnitSquareMesh(64, 64)
 sub_domains = df.MeshFunction("size_t", mesh, "./dolfin_fine_subdomains.xml.gz")
 
 df.plot(mesh)
-df.plot(sub_domains)
+# df.plot(sub_domains)
 
 class UpDown(df.SubDomain):
     def inside(self, x, on_boundary):
         return x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS
 
+class LeftRight(df.SubDomain):
+    def inside(self, x, on_boundary):
+        return x[0] > 1.0 - df.DOLFIN_EPS or x[0] < df.DOLFIN_EPS
+
+class Origin(df.SubDomain):
+    def inside(self, x, on_boundary):
+        return x[0] < df.DOLFIN_EPS and x[1] < df.DOLFIN_EPS
+
 upDown = UpDown()
+leftRight = LeftRight()
+origin = Origin()
 '''
 # Define function spaces
 V = VectorFunctionSpace(mesh, "CG", 2)
@@ -54,8 +65,14 @@ W = V * Q
 '''
 
 # Define mixed function space (Taylor-Hood)
-u_e = df.VectorElement("CG", mesh.ufl_cell(), 2)
-p_e = df.FiniteElement("CG", mesh.ufl_cell(), 1)
+u_e = df.VectorElement('CG', mesh.ufl_cell(), 4)
+p_e = df.FiniteElement('CG', mesh.ufl_cell(), 1)
+
+#Stabilization
+h = df.CellSize(mesh)
+beta = 0.2
+delta = beta*h**2
+
 mixedEl = df.MixedElement([u_e, p_e])
 W = df.FunctionSpace(mesh, mixedEl)
 
@@ -66,16 +83,20 @@ bc0 = df.DirichletBC(W.sub(0), noslip, sub_domains, 0)
 
 # Inflow boundary condition for velocity
 # x0 = 1
-inflow = df.Expression(("-sin(x[1]*pi)", "0.0"), degree=2)
-bc1 = df.DirichletBC(W.sub(0), inflow, sub_domains, 1)
+inflow = df.Expression(('- 1.0 - 2.0*x[1]', '- 3.0 - 2*x[0]'), degree=2)
+bc1 = df.DirichletBC(W.sub(0), inflow, upDown)
+bc2 = df.DirichletBC(W.sub(0), inflow, leftRight)
 
 # Boundary condition for pressure at outflow
 # x0 = 0
-zero = df.Constant(0)
-bc2 = df.DirichletBC(W.sub(1), zero, sub_domains, 2)
+pField = df.Expression('2*x[0]', degree=2)
+bc3 = df.DirichletBC(W.sub(1), pField, upDown)
+bc4 = df.DirichletBC(W.sub(1), pField, leftRight)
+
+bc_point = df.DirichletBC(W.sub(1), df.Constant(0.0), origin, method='pointwise')
 
 # Collect boundary conditions
-bcs = [bc0, bc1]
+bcs = [bc0, bc1, bc2, bc_point]
 
 # Define variational problem
 (u, p) = df.TrialFunctions(W)
@@ -83,6 +104,10 @@ bcs = [bc0, bc1]
 f = df.Constant((0, 0))
 a = (df.inner(df.grad(u), df.grad(v)) - df.div(v)*p + q*df.div(u))*df.dx
 L = df.inner(f, v)*df.dx
+
+# Stabilization
+# a += delta*df.inner(df.grad(p), df.grad(q))*df.dx
+# L += delta*df.inner(f, df.grad(q))*df.dx
 
 # Compute solution
 w = df.Function(W)
@@ -104,7 +129,7 @@ ufile_pvd = File("velocity.pvd")
 ufile_pvd << u
 pfile_pvd = File("pressure.pvd")
 pfile_pvd << p
-
+'''
 
 # Save solution to mat file for easy read-in in matlab
 sio.savemat('./solutionDolfin.mat',
@@ -112,8 +137,8 @@ sio.savemat('./solutionDolfin.mat',
     'x': mesh.coordinates(), 'cells': mesh.cells() + 1.0})
 
 # Plot solution
-plot(u)
-plot(p)
-interactive()
+df.plot(u)
+fig = plt.figure()
+df.plot(p)
+df.interactive()
 plt.show()
-'''
