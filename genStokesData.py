@@ -41,18 +41,24 @@ randFieldParams = [5.0]
 lengthScale = [.008, .008]
 
 # For circular exclusions
+'''
 nExclusionsMin = 128
 nExclusionsMax = 513
+'''
+nExclusionsDist = 'logn'
+nExclusionParams = (5.6, .6)
 coordinateDistribution = 'gauss'
+coordinate_cov = [[0.04, 0], [0, 100]]
+c_params = [[.5, .5], np.array(coordinate_cov)]
 radiiDistribution = 'logn'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
-margins = (-1, .02, -1, .02)
-r_params = (-4.6, .15)
+margins = (.02, .02, .02, .02)
+r_params = (-4.5, .15)
 
 
 # Flow boundary condition for velocity on domain boundary
-u_x = '0.8 - 2.0*x[1]'
-u_y = '1.2 - 2.0*x[0]'
+u_x = '-0.8 + 2.0*x[1]'
+u_y = '-1.2 + 2.0*x[0]'
 flowField = df.Expression((u_x, u_y), degree=2)
 
 
@@ -67,9 +73,23 @@ elif porousMedium == 'circles':
                  '/coordDist=' + coordinateDistribution + '_margins=' + str(margins) + '/radiiDist=' +\
                  radiiDistribution + '_r_params=' + str(r_params)
 elif porousMedium == 'nonOverlappingCircles':
+    '''
     foldername = foldername + '/nNonOverlapCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) +\
         '/coordDist=' + coordinateDistribution + '_margins=' + str(margins) + '/radiiDist=' +\
         radiiDistribution + '_r_params=' + str(r_params)
+    '''
+    if nExclusionsDist == 'uniform':
+        foldername = foldername + '/nNonOverlapCircExcl=' + str(nExclusionParams[0]) + '-' + str(nExclusionParams[1]) +\
+            '/coordDist=' + coordinateDistribution
+    elif nExclusionsDist == 'logn':
+        foldername = foldername + '/nNonOverlapCircExcl=logn' + str(nExclusionParams[0]) + '-' + str(nExclusionParams[1]) + \
+                     '/coordDist=' + coordinateDistribution
+
+    if coordinateDistribution == 'gauss':
+        foldername += '_mu=' + str(c_params[0]) + 'cov=' + str(coordinate_cov)
+
+    foldername += '_margins=' + str(margins) +\
+        '/radiiDist=' + radiiDistribution + '_r_params=' + str(r_params)
 
 
 # Set external boundaries of domain
@@ -134,9 +154,12 @@ for meshNumber in meshes:
     # BC's on domain boundary
     bc2 = df.DirichletBC(W.sub(0), flowField, domainBoundary)
 
+    # Zero pressure at origin
+    bc3 = df.DirichletBC(W.sub(1), df.Constant(0.0), origin, method='pointwise')
+
 
     # Collect boundary conditions
-    bcs = [bc1, bc2]
+    bcs = [bc1, bc2, bc3]
     print('boundary conditions set.')
 
 

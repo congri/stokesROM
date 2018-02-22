@@ -19,14 +19,14 @@ foldername1 = '/home/constantin/python/data/stokesEquation/meshes/meshSize=' + s
 
 #Parameters only for 'circles' mode
 nExclusionsDist='logn'
-nExclusionParams = (5.5, .5)
+nExclusionParams = (5.6, .6)
 coordinateDist = 'gauss'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 # negative margin means no margin
-margins = (-1, .025, -1, .025)
-substractCorners = True     #Substracts circles from domain corners s.t. flow cannot pass
+margins = (0.01, .01, .01, .01)
+substractCorners = False     #Substracts circles from domain corners s.t. flow cannot pass
 radiiDist = 'logn'
-r_params = (-4.6, .15)
+r_params = (-4.5, .15)
 coordinate_cov = [[0.04, 0], [0, 100]]
 c_params = [[.5, .5], np.array(coordinate_cov)]
 
