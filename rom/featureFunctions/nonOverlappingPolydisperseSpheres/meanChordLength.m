@@ -9,7 +9,7 @@ A0 = A;
 
 n = 1;
 for cll = gridRF.cells
-    if isvalid(cll{1})
+    if isvalid(cll{1})  %check if cell has been deleted during splitting
         radii_in_n = diskRadii(cll{1}.inside(diskCenters));
         meanRadii(n) = mean(radii_in_n);
         meanSqRadii(n) = mean(radii_in_n.^2);
@@ -24,7 +24,7 @@ exclfrac = 1 - porefrac;
 
 
 lc = .5*pi*(meanSqRadii./meanRadii).*(porefrac./exclfrac);
-if any(any(meanRadii == 0))
+if any(~isfinite(lc))
     %warning('Setting mean chord length of cells with no inclusion to 0.')
     lc(isnan(lc)) = sqrt(A(isnan(lc))); %set to ~ cell edge length
 end

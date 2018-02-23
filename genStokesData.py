@@ -26,7 +26,7 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(0, 23)  # vector of random meshes to load
+meshes = np.arange(0, 1025)  # vector of random meshes to load
 porousMedium = 'nonOverlappingCircles'    #circles or randomField
 nElements = 128
 
@@ -46,14 +46,14 @@ nExclusionsMin = 128
 nExclusionsMax = 513
 '''
 nExclusionsDist = 'logn'
-nExclusionParams = (5.6, .6)
+nExclusionParams = (5.5, .6)
 coordinateDistribution = 'gauss'
 coordinate_cov = [[0.04, 0], [0, 100]]
 c_params = [[.5, .5], np.array(coordinate_cov)]
 radiiDistribution = 'logn'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
-margins = (.02, .02, .02, .02)
-r_params = (-4.5, .15)
+margins = (.01, .01, .01, .01)
+r_params = (-5.0, .15)
 
 
 # Flow boundary condition for velocity on domain boundary
@@ -155,11 +155,11 @@ for meshNumber in meshes:
     bc2 = df.DirichletBC(W.sub(0), flowField, domainBoundary)
 
     # Zero pressure at origin
-    bc3 = df.DirichletBC(W.sub(1), df.Constant(0.0), origin, method='pointwise')
+    # bc3 = df.DirichletBC(W.sub(1), df.Constant(0.0), origin, method='pointwise')
 
 
     # Collect boundary conditions
-    bcs = [bc1, bc2, bc3]
+    bcs = [bc1, bc2]
     print('boundary conditions set.')
 
 

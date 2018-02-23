@@ -276,6 +276,8 @@ elif mode == 'nonOverlappingCircles':
                 exclusionCenters = np.append(exclusionCenters, exclusionCenter, axis=0)
                 exclusionRadii = np.append(exclusionRadii, exclusionRadius)
                 currentExclusions += 1
+            t_elapsed = time.time() - t_start
+            print(t_elapsed)
         print('Non-overlapping disks drawn.')
 
         domain = pm.substractCircles(exclusionCenters, exclusionRadii)
