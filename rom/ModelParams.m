@@ -260,7 +260,12 @@ classdef ModelParams < handle
             axis(sb4, 'square');
             
             sb5 = subplot(3, 2, 5, 'Parent', figHandle);
-            bar(self.gamma, 'linewidth', 1, 'Parent', sb5)
+            if strcmp(self.prior_theta_c, 'sharedVRVM')
+                bar(self.gamma(1:(numel(self.theta_c)/self.gridRF.nCells)),...
+                    'linewidth', 1, 'Parent', sb5)
+            else
+                bar(self.gamma, 'linewidth', 1, 'Parent', sb5)
+            end
             axis(sb5, 'tight');
             sb5.YLabel.String = '$\gamma$';
             sb5.YScale = 'log';

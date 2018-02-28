@@ -12,7 +12,7 @@ import time
 
 # Global parameters
 mode = 'nonOverlappingCircles'
-nMeshes = 3
+nMeshes = 8
 nElements = 128  # PDE discretization
 foldername1 = '/home/constantin/python/data/stokesEquation/meshes/meshSize=' + str(nElements)
 
@@ -224,7 +224,7 @@ elif mode == 'nonOverlappingCircles':
         currentExclusions = 0
         t_start = time.time()
         t_elapsed = 0
-        t_lim = 60.0
+        t_lim = 60
         print('Drawing non-overlapping disks...')
         while currentExclusions < nExclusions and t_elapsed < t_lim:
             if coordinateDist == 'uniform':
@@ -277,7 +277,6 @@ elif mode == 'nonOverlappingCircles':
                 exclusionRadii = np.append(exclusionRadii, exclusionRadius)
                 currentExclusions += 1
             t_elapsed = time.time() - t_start
-            print(t_elapsed)
         print('Non-overlapping disks drawn.')
 
         domain = pm.substractCircles(exclusionCenters, exclusionRadii)

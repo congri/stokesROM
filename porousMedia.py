@@ -31,8 +31,7 @@ def findPolygones(image, isovalue, showImg=False):
     return contours
 
 def generateMesh(domain, discretization=128):
-    """Generates a finite element mesh using mshr based on an indicator function
-    specifying the domain"""
+    """Generates a finite element mesh using mshr"""
 
     print('generating FE mesh...')
     t = time.time()

@@ -46,19 +46,19 @@ nExclusionsMin = 128
 nExclusionsMax = 513
 '''
 nExclusionsDist = 'logn'
-nExclusionParams = (5.5, .6)
+nExclusionParams = (6.5, .7)
 coordinateDistribution = 'gauss'
-coordinate_cov = [[0.04, 0], [0, 100]]
+coordinate_cov = [[0.035, 0.0], [0.0, 100.0]]
 c_params = [[.5, .5], np.array(coordinate_cov)]
 radiiDistribution = 'logn'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 margins = (.01, .01, .01, .01)
-r_params = (-5.0, .15)
+r_params = (-3.5, .25)
 
 
 # Flow boundary condition for velocity on domain boundary
-u_x = '-0.8 + 2.0*x[1]'
-u_y = '-1.2 + 2.0*x[0]'
+u_x = '-0.5 + 1.0*x[1]'
+u_y = '-0.1 + 1.0*x[0]'
 flowField = df.Expression((u_x, u_y), degree=2)
 
 

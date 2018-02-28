@@ -4,13 +4,13 @@ classdef StokesData < handle
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 128
-        numberParams = [5.5, .6]   %[min, max] pos. number of circ. exclusions
+        numberParams = [6.5, .7]   %[min, max] pos. number of circ. exclusions
         numberDist = 'logn';
         margins = [.01, .01, .01, .01]    %[l., u.] margin for impermeable phase
-        r_params = [-4.0, .15]    %[lo., up.] bound on random blob radius
+        r_params = [-4.0, .25]    %[lo., up.] bound on random blob radius
         coordDist = 'gauss'
         coordDist_mu = '[0.5, 0.5]'   %only for gauss
-        coordDist_cov = '[[0.04, 0], [0, 100]]'
+        coordDist_cov = '[[0.035, 0.0], [0.0, 100.0]]'
         radiiDist = 'logn'
         samples
         %base name of file path
@@ -214,7 +214,6 @@ classdef StokesData < handle
             meanQuantity = 0;
             meanSquaredQuantity = 0;
             for n = 1:numel(samples)
-                n
                 if strcmp(quantity, 'p')
                     meanQuantity = (1/n)*((n - 1)*meanQuantity + self.P{n});
                     meanSquaredQuantity =...
@@ -419,6 +418,67 @@ classdef StokesData < handle
                     self.microstructData{n}.diskRadii, gridRF, .02);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
+            
+            %Chord length densities
+            dist = .15;
+            for n = 1:numel(self.samples)
+                phi = chordLengthDensity(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, dist);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            dist = .1;
+            for n = 1:numel(self.samples)
+                phi = chordLengthDensity(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, dist);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            dist = .05;
+            for n = 1:numel(self.samples)
+                phi = chordLengthDensity(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, dist);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            dist = .025;
+            for n = 1:numel(self.samples)
+                phi = chordLengthDensity(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, dist);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %Nearest surface functions
+            dist = .04;
+            for n = 1:numel(self.samples)
+                [e_v, h_v] = voidNearestSurfaceExclusion(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii,...
+                    gridRF, dist);
+                self.designMatrix{n} = [self.designMatrix{n}, e_v(:), h_v];
+            end
+            dist = .03;
+            for n = 1:numel(self.samples)
+                [e_v, h_v] = voidNearestSurfaceExclusion(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii,...
+                    gridRF, dist);
+                self.designMatrix{n} = [self.designMatrix{n}, e_v(:), h_v];
+            end
+            dist = .02;
+            for n = 1:numel(self.samples)
+                [e_v, h_v] = voidNearestSurfaceExclusion(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii,...
+                    gridRF, dist);
+                self.designMatrix{n} = [self.designMatrix{n}, e_v(:), h_v];
+            end
+            dist = .01;
+            for n = 1:numel(self.samples)
+                [e_v, h_v] = voidNearestSurfaceExclusion(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii,...
+                    gridRF, dist);
+                self.designMatrix{n} = [self.designMatrix{n}, e_v(:), h_v];
+            end
+            
             
             %mean pore chord length non-overlap. polydis. spheres
             for n = 1:numel(self.samples)
