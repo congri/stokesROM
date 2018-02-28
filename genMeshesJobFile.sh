@@ -1,13 +1,13 @@
 NMESHES=1024
 NELEMENTS=128
-NEX1=6    #number of exclusion parameters
-NEX2=1
-RPARAMSLO=-4.6
-RPARAMSHI=0.15
-MARGIN_LO=-1
-MARGIN_R=0.02
-MARGIN_U=-1
-MARGIN_LE=0.02
+NEX1=6.5    #number of exclusion parameters
+NEX2=1.0
+RPARAMSLO=-5.6
+RPARAMSHI=0.5
+MARGIN_LO=0.01
+MARGIN_R=0.01
+MARGIN_U=0.01
+MARGIN_LE=0.01
 
 
 CORES=1
@@ -15,7 +15,7 @@ CORES=1
 
 #Set up file paths
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
-JOBNAME="genMesh_nElements=${NELEMENTS}nExMin=${NEXMIN}nExMax=${NEXMAX}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
+JOBNAME="genMesh_nElements=${NELEMENTS}nParams1=${NEXMIN}nParams2=${NEXMAX}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
 JOBDIR="/home/constantin/python/jobs/$JOBNAME"
 
 #Create job directory and copy source code
@@ -42,7 +42,7 @@ sed -i \"15s/.*/nMeshes = $NMESHES/\" ./generateMeshes.py
 sed -i \"16s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./generateMeshes.py
 sed -i \"22s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./generateMeshes.py
 sed -i \"26s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./generateMeshes.py
-sed -i \"28s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./generateMeshes.py
+sed -i \"29s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./generateMeshes.py
 
 
 
