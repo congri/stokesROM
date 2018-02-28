@@ -426,9 +426,9 @@ classdef StokesROM < handle
                 trihandle.LineStyle = 'none';
                 axis(sb2, 'tight');
                 sb2.ZLim = [mean(self.trainingData.P{i + dataOffset}) - ...
-                    std(self.trainingData.P{i + dataOffset}), ...
+                    3*std(self.trainingData.P{i + dataOffset}), ...
                     mean(self.trainingData.P{i + dataOffset}) + ...
-                    std(self.trainingData.P{i + dataOffset})];
+                    3*std(self.trainingData.P{i + dataOffset})];
                 caxis(sb2, sb2.ZLim);
                 axis(sb2, 'square');
                 sb2.View = [0, 90];
@@ -477,9 +477,9 @@ classdef StokesROM < handle
                 hold(sb3, 'off');
                 axis(sb3, 'tight');
                 sb3.ZLim = [mean(self.trainingData.P{i + dataOffset}) - ...
-                    std(self.trainingData.P{i + dataOffset}), ...
+                    3*std(self.trainingData.P{i + dataOffset}), ...
                     mean(self.trainingData.P{i + dataOffset}) + ...
-                    std(self.trainingData.P{i + dataOffset})];
+                    3*std(self.trainingData.P{i + dataOffset})];
                 caxis(sb3, sb3.ZLim);
                 axis(sb3, 'square');
                 sb3.Box = 'on';
@@ -550,6 +550,7 @@ classdef StokesROM < handle
             
             stdLogS = [];   %for parfor
             
+            self.modelParams.Sigma_theta_c = 1e-6*eye(numel(self.modelParams.gamma));
             for i = 1:nTest
                 if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
                         strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
@@ -557,12 +558,17 @@ classdef StokesROM < handle
                         (self.modelParams.Sigma_c\...
                         testStokesData.designMatrix{i}) + ...
                         inv(self.modelParams.Sigma_theta_c);
+                    
                     SigmaTilde = inv(SigmaTildeInv);
+                    
                     Sigma_c_inv_Phi = self.modelParams.Sigma_c\...
                         testStokesData.designMatrix{i};
+                    
                     precisionLambda_c = inv(self.modelParams.Sigma_c) - ...
                         Sigma_c_inv_Phi*SigmaTilde*Sigma_c_inv_Phi';
+                    
                     Sigma_lambda_c = inv(precisionLambda_c);
+                    
                     mu_lambda_c = Sigma_lambda_c*Sigma_c_inv_Phi*(SigmaTilde/...
                        self.modelParams.Sigma_theta_c)*self.modelParams.theta_c;
                 else

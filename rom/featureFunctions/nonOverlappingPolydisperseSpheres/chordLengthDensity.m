@@ -1,6 +1,6 @@
-function [lc] = meanChordLength(diskCenters, diskRadii, gridRF)
+function [cld] = chordLengthDensity(diskCenters, diskRadii, gridRF, distance)
 %Mean chord length for non-overlapping polydisp. spheres
-%according to Torquato 6.40
+%according to Torquato 6.39
 
 meanRadii = zeros(gridRF.nCells, 1);
 meanSqRadii = zeros(gridRF.nCells, 1);
@@ -28,3 +28,5 @@ if any(~isfinite(lc))
     %warning('Setting mean chord length of cells with no inclusion to 0.')
     lc(isnan(lc)) = sqrt(A(isnan(lc))); %set to ~ cell edge length
 end
+
+cld = (1./lc).*exp(-(distance./lc));

@@ -11,7 +11,7 @@ A0 = A;
 circle_surfaces = pi*diskRadii.^2;
 n = 1;
 for cll = gridRF.cells
-    if isvalid(cll{1})
+    if isvalid(cll{1})  %check if cell has been deleted during splitting
         A(n) = cll{1}.surface;
         A0(n) = A(n);
         circles_in_n = cll{1}.inside(diskCenters);

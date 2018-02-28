@@ -12,7 +12,7 @@ import time
 
 # Global parameters
 mode = 'nonOverlappingCircles'
-nMeshes = 3
+nMeshes = 8
 nElements = 128  # PDE discretization
 foldername1 = '/home/constantin/python/data/stokesEquation/meshes/meshSize=' + str(nElements)
 
