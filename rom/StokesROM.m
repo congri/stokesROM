@@ -550,7 +550,9 @@ classdef StokesROM < handle
             
             stdLogS = [];   %for parfor
             
-            self.modelParams.Sigma_theta_c = 1e-6*eye(numel(self.modelParams.gamma));
+            %to use point estimate for theta
+%             self.modelParams.Sigma_theta_c =...
+%                 1e-6*eye(numel(self.modelParams.gamma));
             for i = 1:nTest
                 if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
                         strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))

@@ -146,7 +146,7 @@ classdef ModelParams < handle
             
             try
                 temp = dlmread('./data/Sigma_theta_c');
-                temp = temp(end, :);
+                %temp = temp(end, :);
                 self.Sigma_theta_c = reshape(temp, sqrt(numel(temp)),...
                     sqrt(numel(temp)));
             catch
