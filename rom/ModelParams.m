@@ -17,6 +17,7 @@ classdef ModelParams < handle
         gridSY
         interpolationMode
         smoothingParameter
+        boundarySmoothingPixels = -1;   %only smooths boundary if positive
         
         %Surrogate FEM mesh
         coarseMesh
@@ -250,7 +251,7 @@ classdef ModelParams < handle
             
             sb4 = subplot(3, 2, 4, 'Parent', figHandle);
             
-            sigma_c_plot = self.rf2fem*diag(self.Sigma_c);
+            sigma_c_plot = sqrt(self.rf2fem*diag(self.Sigma_c));
             im = imagesc(reshape(sigma_c_plot, self.coarseMesh.nElX,...
                 self.coarseMesh.nElY)', 'Parent', sb4);
             sb4.YDir = 'normal';

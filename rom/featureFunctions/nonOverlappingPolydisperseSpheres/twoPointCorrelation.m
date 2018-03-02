@@ -23,10 +23,13 @@ for cll = gridRF.cells
             
             %x2 is at distance 'distance' to x1 -- reject if x2 is not in cell
             x2 = [Inf, Inf];
-            while(~cll{1}.inside(x2))
+            tic;
+            t_elapsed = 0;
+            while(~cll{1}.inside(x2) && t_elapsed < 5)
                 phi = 2*pi*rand;
                 dx = distance*[cos(phi), sin(phi)];
                 x2 = x1 + dx;
+                t_elapsed = toc;
             end
             %Check if the points lie within a circle, i.e. outside domain
             isout1 = any(sum((x1 - diskCenters).^2, 2) < diskRadiiSq');

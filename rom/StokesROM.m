@@ -491,8 +491,8 @@ classdef StokesROM < handle
             drawnow
         end
         
-        function [predMean, predStd, meanEffCond, meanSqDist, sqDist] =...
-                predict(self, testStokesData, mode)
+        function [predMeanArray, predVarArray, meanEffCond, meanSqDist,...
+                sqDist] = predict(self, testStokesData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
             %   mode:       'local' for separate theta_c's per macro-cell
@@ -722,6 +722,10 @@ classdef StokesROM < handle
                     splt(i).YTick = [];
                     splt(i).Box = 'on';
                     splt(i).BoxStyle = 'full';
+                    splt(i).ZLim = [mean(self.trainingData.P{i + pltstart}) - ...
+                    3*std(self.trainingData.P{i + pltstart}), ...
+                    mean(self.trainingData.P{i + pltstart}) + ...
+                    3*std(self.trainingData.P{i + pltstart})];
                     cbp_true = colorbar('Parent', fig);
                     
                     %predictive mean
@@ -754,6 +758,7 @@ classdef StokesROM < handle
                     end
                     thdlpstd.LineStyle = 'none';
                     thdlpstd.FaceColor = [.85 .85 .85];
+                    thdlpstd.FaceAlpha = .7;
                     
                     %predictive mean - std
                     if intp
@@ -770,16 +775,12 @@ classdef StokesROM < handle
                     end
                     thdlmstd.LineStyle = 'none';
                     thdlmstd.FaceColor = [.85 .85 .85];
+                    thdlmstd.FaceAlpha = .7;
                     
                     
                 end
             end
             
-            
-            
-            
-            predMean = 0;
-            predStd = 0;
         end
         
         function [d_log_p_cf_sqMean] = findMeshRefinement(self)
