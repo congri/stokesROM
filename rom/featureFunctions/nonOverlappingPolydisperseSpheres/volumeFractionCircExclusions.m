@@ -21,7 +21,11 @@ for cll = gridRF.cells
 end
 
 porefrac = A./A0;
+<<<<<<< HEAD
 porefrac(porefrac <= 0) = eps;  %this can happen if circles lie on boundary
+=======
+porefrac(porefrac <= 0) = eps;  %can happen if circles lie on boundary
+>>>>>>> 52d4d5f4e64e64a7e29b0c49dd45f77f717a1d43
 
 end
 

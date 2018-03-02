@@ -491,8 +491,8 @@ classdef StokesROM < handle
             drawnow
         end
         
-        function [predMeanArray, predVarArray, meanEffCond, meanSqDist, sqDist] =...
-                predict(self, testStokesData, mode)
+        function [predMeanArray, predVarArray, meanEffCond, meanSqDist,...
+                sqDist] = predict(self, testStokesData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
             %   mode:       'local' for separate theta_c's per macro-cell
@@ -550,7 +550,7 @@ classdef StokesROM < handle
             
             stdLogS = [];   %for parfor
             
-            %point estimate for theta?
+            %to use point estimate for theta
 %             self.modelParams.Sigma_theta_c =...
 %                 1e-6*eye(numel(self.modelParams.gamma));
             for i = 1:nTest
@@ -781,11 +781,6 @@ classdef StokesROM < handle
                 end
             end
             
-            
-            
-            
-            predMean = 0;
-            predStd = 0;
         end
         
         function [d_log_p_cf_sqMean] = findMeshRefinement(self)

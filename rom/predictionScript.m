@@ -10,6 +10,7 @@ u_bc{2} = 'u_y=0.0';
 
 rom = StokesROM;
 testSamples = 33:38;
+
 testData = StokesData(testSamples, u_bc);
 [predMean, predVar, effDiff, meanSqDist, sqDist] =...
     rom.predict(testData, 'local');

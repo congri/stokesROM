@@ -4,7 +4,7 @@ classdef StokesData < handle
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 128
-        numberParams = [5.0, 1.0]   %[min, max] pos. number of circ. exclusions
+        numberParams = [5.0, 1.1]   %[min, max] pos. number of circ. exclusions
         numberDist = 'logn';
         margins = [-1, .01, -1, .01]    %[l., u.] margin for impermeable phase
         r_params = [-4.0, .7]    %[lo., up.] bound on random blob radius
@@ -139,9 +139,13 @@ classdef StokesData < handle
         end
         
         function interpolate(self, fineGridX, fineGridY, interpolationMode, ...
-                smoothingParameter)
+                smoothingParameter, boundarySmoothingPixels)
             %Interpolates finescale data onto a regular rectangular grid
             %specified by fineGridX, fineGridY
+            
+            if nargin < 3
+                fineGridY = fineGridX;
+            end
             if nargin < 4
                 interpolationMode = 'linear';
             end
@@ -166,7 +170,20 @@ classdef StokesData < handle
                     if ~isempty(smoothingParameter)
                         p_interp = reshape(p_interp, numel(fineGridX), ...
                             numel(fineGridY));
-                        p_interp = imgaussfilt(p_interp, smoothingParameter);
+                        if boundarySmoothingPixels > 0
+                            %only smooth boundary
+                            p_temp = imgaussfilt(p_interp, smoothingParameter);
+                            p_interp(1:boundarySmoothingPixels, :) = ...
+                                p_temp(1:boundarySmoothingPixels, :);
+                            p_interp((end - boundarySmoothingPixels):end,:)=...
+                                p_temp((end - boundarySmoothingPixels):end,:);
+                            p_interp(:, 1:boundarySmoothingPixels) = ...
+                                p_temp(:, 1:boundarySmoothingPixels);
+                            p_interp(:, (end - boundarySmoothingPixels):end)=...
+                                p_temp(:, (end - boundarySmoothingPixels):end);
+                        else
+                            p_interp= imgaussfilt(p_interp, smoothingParameter);
+                        end
                         p_interp = p_interp(:);
                     end
                     self.P{n} = p_interp;
@@ -174,9 +191,9 @@ classdef StokesData < handle
                 
                 if ~isempty(self.U)
                     u_interp_x = griddata(self.X{n}(:, 1), self.X{n}(:, 2), ...
-                        self.U{n}(:, 1), xq(:), yq(:), interpolationMode);
+                        self.U{n}(1, :), xq(:), yq(:), interpolationMode);
                     u_interp_y = griddata(self.X{n}(:, 1), self.X{n}(:, 2), ...
-                        self.U{n}(:, 2), xq(:), yq(:), interpolationMode);
+                        self.U{n}(2, :), xq(:), yq(:), interpolationMode);
                     %replace original data by interpolated data
                     self.U{n} = [];
                     self.U{n} = [u_interp_x, u_interp_y];

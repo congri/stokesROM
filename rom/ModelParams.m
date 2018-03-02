@@ -17,6 +17,7 @@ classdef ModelParams < handle
         gridSY
         interpolationMode
         smoothingParameter
+        boundarySmoothingPixels = -1;   %only smooths boundary if positive
         
         %Surrogate FEM mesh
         coarseMesh
