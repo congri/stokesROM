@@ -491,7 +491,7 @@ classdef StokesROM < handle
             drawnow
         end
         
-        function [predMean, predStd, meanEffCond, meanSqDist, sqDist] =...
+        function [predMeanArray, predVarArray, meanEffCond, meanSqDist, sqDist] =...
                 predict(self, testStokesData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
@@ -550,7 +550,9 @@ classdef StokesROM < handle
             
             stdLogS = [];   %for parfor
             
-            self.modelParams.Sigma_theta_c = 1e-6*eye(numel(self.modelParams.gamma));
+            %point estimate for theta?
+%             self.modelParams.Sigma_theta_c =...
+%                 1e-6*eye(numel(self.modelParams.gamma));
             for i = 1:nTest
                 if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
                         strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
@@ -720,6 +722,10 @@ classdef StokesROM < handle
                     splt(i).YTick = [];
                     splt(i).Box = 'on';
                     splt(i).BoxStyle = 'full';
+                    splt(i).ZLim = [mean(testStokesData.P{i + pltstart}) - ...
+                    3*std(testStokesData.P{i + pltstart}), ...
+                    mean(testStokesData.P{i + pltstart}) + ...
+                    3*std(testStokesData.P{i + pltstart})];
                     cbp_true = colorbar('Parent', fig);
                     
                     %predictive mean
@@ -752,6 +758,7 @@ classdef StokesROM < handle
                     end
                     thdlpstd.LineStyle = 'none';
                     thdlpstd.FaceColor = [.85 .85 .85];
+                    thdlpstd.FaceAlpha = .7;
                     
                     %predictive mean - std
                     if intp
@@ -768,6 +775,7 @@ classdef StokesROM < handle
                     end
                     thdlmstd.LineStyle = 'none';
                     thdlmstd.FaceColor = [.85 .85 .85];
+                    thdlmstd.FaceAlpha = .7;
                     
                     
                 end

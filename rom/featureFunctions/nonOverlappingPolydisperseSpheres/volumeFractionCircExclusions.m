@@ -21,6 +21,7 @@ for cll = gridRF.cells
 end
 
 porefrac = A./A0;
+porefrac(porefrac <= 0) = eps;  %this can happen if circles lie on boundary
 
 end
 

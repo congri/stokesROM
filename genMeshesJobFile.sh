@@ -1,12 +1,12 @@
 NMESHES=1024
 NELEMENTS=128
-NEX1=6.5    #number of exclusion parameters
+NEX1=5.0    #number of exclusion parameters
 NEX2=1.0
-RPARAMSLO=-5.6
-RPARAMSHI=0.5
-MARGIN_LO=0.01
+RPARAMSLO=-4.0
+RPARAMSHI=0.7
+MARGIN_LO=-1
 MARGIN_R=0.01
-MARGIN_U=0.01
+MARGIN_U=-1
 MARGIN_LE=0.01
 
 
@@ -15,7 +15,7 @@ CORES=1
 
 #Set up file paths
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
-JOBNAME="genMesh_nElements=${NELEMENTS}nParams1=${NEXMIN}nParams2=${NEXMAX}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
+JOBNAME="genMesh_nElements=${NELEMENTS}nParams1=${NEX1}nParams2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
 JOBDIR="/home/constantin/python/jobs/$JOBNAME"
 
 #Create job directory and copy source code

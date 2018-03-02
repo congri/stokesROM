@@ -6,7 +6,7 @@ addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 addpath('./mesh')
 %% Define parameters here:
 
-nTrain = 4;
+nTrain = 64;
 samples = 0:(nTrain - 1);
 max_EM_iter = 800;  %maximum EM iterations
 muField = 0;        %mean function in p_cf
@@ -32,8 +32,8 @@ p_bc = @(x) 0;
 %influx?
 % u_bc{1} = 'u_x=0.25 - (x[1] - 0.5)*(x[1] - 0.5)';
 % u_bc{2} = 'u_y=0.0';
-u_bc{1} = 'u_x=-0.8 + 2.0*x[1]';
-u_bc{2} = 'u_y=-1.2 + 2.0*x[0]';
+u_bc{1} = 'u_x=1.0';
+u_bc{2} = 'u_y=0.0';
 %% Initialize reduced order model object:
 rom = StokesROM;
 

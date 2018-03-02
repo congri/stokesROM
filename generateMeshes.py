@@ -27,8 +27,8 @@ margins = (0.01, .01, .01, .01)
 substractCorners = False     #Substracts circles from domain corners s.t. flow cannot pass
 radiiDist = 'logn'
 r_params = (-4.5, .15)
-coordinate_cov = [[0.035, 0.0], [0.0, 0.08]]
-c_params = [[.4, .6], np.array(coordinate_cov)]
+coordinate_cov = [[0.035, 0.0], [0.0, 0.8]]
+c_params = [[.5, .5], np.array(coordinate_cov)]
 
 
 #parameters only for 'randomField' mode

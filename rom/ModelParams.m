@@ -36,7 +36,7 @@ classdef ModelParams < handle
         VRVM_d = 1e-10;
         VRVM_e = 1e-10;
         VRVM_f = 1e-10;
-        VRVM_iter = 200; %iterations with fixed q(lambda_c)
+        VRVM_iter = 500; %iterations with fixed q(lambda_c)
         
         %% Parameters of variational distributions
         variational_mu
@@ -146,7 +146,6 @@ classdef ModelParams < handle
             
             try
                 temp = dlmread('./data/Sigma_theta_c');
-                temp = temp(end, :);
                 self.Sigma_theta_c = reshape(temp, sqrt(numel(temp)),...
                     sqrt(numel(temp)));
             catch
@@ -250,7 +249,7 @@ classdef ModelParams < handle
             
             sb4 = subplot(3, 2, 4, 'Parent', figHandle);
             
-            sigma_c_plot = self.rf2fem*diag(self.Sigma_c);
+            sigma_c_plot = sqrt(self.rf2fem*diag(self.Sigma_c));
             im = imagesc(reshape(sigma_c_plot, self.coarseMesh.nElX,...
                 self.coarseMesh.nElY)', 'Parent', sb4);
             sb4.YDir = 'normal';

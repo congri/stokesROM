@@ -4,13 +4,13 @@ classdef StokesData < handle
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 128
-        numberParams = [6.5, .7]   %[min, max] pos. number of circ. exclusions
+        numberParams = [5.0, 1.0]   %[min, max] pos. number of circ. exclusions
         numberDist = 'logn';
-        margins = [.01, .01, .01, .01]    %[l., u.] margin for impermeable phase
-        r_params = [-4.0, .25]    %[lo., up.] bound on random blob radius
+        margins = [-1, .01, -1, .01]    %[l., u.] margin for impermeable phase
+        r_params = [-4.0, .7]    %[lo., up.] bound on random blob radius
         coordDist = 'gauss'
         coordDist_mu = '[0.5, 0.5]'   %only for gauss
-        coordDist_cov = '[[0.035, 0.0], [0.0, 100.0]]'
+        coordDist_cov = '[[0.035, 0.0], [0.0, 0.8]]'
         radiiDist = 'logn'
         samples
         %base name of file path
@@ -63,8 +63,9 @@ classdef StokesData < handle
 %                     {', '}, num2str(self.r_params(2)), ')/'));
                 self.pathname = char(strcat(self.pathname, 'meshSize=',...
                     num2str(self.meshSize), '/nNonOverlapCircExcl=',...
-                    self.numberDist, num2str(self.numberParams(1)), '-', ...
-                    num2str(self.numberParams(2)), ...
+                    self.numberDist,...
+                    sprintf('%.1f', self.numberParams(1)), '-', ...
+                    sprintf('%.1f', self.numberParams(2)), ...
                     '/coordDist=', self.coordDist, '_mu=', self.coordDist_mu,...
                     'cov=', self.coordDist_cov, '_margins=(',...
                     num2str(self.margins(1)), {', '},...
@@ -495,13 +496,13 @@ classdef StokesData < handle
             end
             
             %2-point correlation
-            dist = .15;
+            dist = .1;
             for n = 1:numel(self.samples)
                 phi= twoPointCorrelation(self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridRF, true, dist);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
-            dist = .1;
+            dist = .075;
             for n = 1:numel(self.samples)
                 phi= twoPointCorrelation(self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridRF, true, dist);
@@ -522,14 +523,14 @@ classdef StokesData < handle
             
             
             %log 2-point correlation
-            dist = .15;
+            dist = .1;
             for n = 1:numel(self.samples)
                 phi = log(twoPointCorrelation(...
                     self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridRF, true, dist)+eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
-            dist = .1;
+            dist = .075;
             for n = 1:numel(self.samples)
                 phi = log(twoPointCorrelation(...
                     self.microstructData{n}.diskCenters,...
