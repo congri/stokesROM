@@ -6,7 +6,7 @@ addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 addpath('./mesh')
 %% Define parameters here:
 
-nTrain = 16;
+nTrain = 4;
 samples = 0:(nTrain - 1);
 max_EM_iter = 800;  %maximum EM iterations
 muField = 0;        %mean function in p_cf
@@ -48,7 +48,7 @@ rom.modelParams = ModelParams;
 rom.modelParams.interpolationMode = 'cubic';  %Interpolation on regular 
                                               %finescale grid, including solid
                                               %phase
-rom.modelParams.smoothingParameter = 2;      %only applies for interp. data;
+rom.modelParams.smoothingParameter = 5;      %only applies for interp. data;
                                               %empty for no smoothing
 rom.modelParams.boundarySmoothingPixels = 5;
 rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX, gridSY);
