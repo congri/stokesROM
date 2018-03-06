@@ -46,7 +46,7 @@ nExclusionsMin = 128
 nExclusionsMax = 513
 '''
 nExclusionsDist = 'logn'
-nExclusionParams = (5.0, 1.9)
+nExclusionParams = (5.0, 1.0)
 coordinateDistribution = 'gauss'
 coordinate_cov = [[0.035, 0.0], [0.0, 0.08]]
 c_params = [[.4, .6], np.array(coordinate_cov)]
@@ -57,8 +57,8 @@ r_params = (-4.0, .7)
 
 
 # Flow boundary condition for velocity on domain boundary
-u_x = '-0.8 + 2*x[1]'
-u_y = '-1.2 + 2*x[0]'
+u_x = '-0.8 + 2.0*x[1]'
+u_y = '-1.2 + 2.0*x[0]'
 flowField = df.Expression((u_x, u_y), degree=2)
 
 

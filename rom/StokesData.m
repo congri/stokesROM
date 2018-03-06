@@ -4,7 +4,7 @@ classdef StokesData < handle
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 128
-        numberParams = [5.0, 1.1]   %[min, max] pos. number of circ. exclusions
+        numberParams = [5.0, 1.0]   %[min, max] pos. number of circ. exclusions
         numberDist = 'logn';
         margins = [-1, .01, -1, .01]    %[l., u.] margin for impermeable phase
         r_params = [-4.0, .7]    %[lo., up.] bound on random blob radius

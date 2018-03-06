@@ -144,12 +144,12 @@ classdef ModelParams < handle
             
             load('./data/smoothingParameter.mat');
             self.smoothingParameter = smoothingParameter;
+            load('./data/boundarySmoothingPixels.mat');
+            self.boundarySmoothingPixels = boundarySmoothingPixels;
             
             try
-                temp = dlmread('./data/Sigma_theta_c');
-                %temp = temp(end, :);
-                self.Sigma_theta_c = reshape(temp, sqrt(numel(temp)),...
-                    sqrt(numel(temp)));
+                load('./data/Sigma_theta_c.mat');
+                self.Sigma_theta_c = Sigma_theta_c;
             catch
                 warning('Sigma_theta_c not found.');
             end
@@ -238,10 +238,14 @@ classdef ModelParams < handle
             axis(sb1, 'tight');
             sb1.YLim = [(min(thetaArray(end, :)) - 1),...
                 (max(thetaArray(end, :)) + 1)];
+            sb1.XLabel.String = 'iter';
+            sb1.YLabel.String = '$\theta_c$';
             
             sb2 = subplot(3, 2, 2, 'Parent', figHandle);
             bar(self.theta_c, 'linewidth', 1, 'Parent', sb2)
             axis(sb2, 'tight');
+            sb2.XLabel.String = 'component $i$';
+            sb2.YLabel.String = '$\theta_{c,i}$';
             
             sb3 = subplot(3,2,3, 'Parent', figHandle);
             semilogy(sqrt(SigmaArray), 'linewidth', 1, 'Parent', sb3)
@@ -337,14 +341,9 @@ classdef ModelParams < handle
             
             %Sigma_theta_c (variance of posterior on theta_c)
             if contains(params, 'stc')
-                filename = './data/Sigma_theta_c';
-                stc = self.Sigma_theta_c(:)';
-                onlyFinal = true;
-                if onlyFinal
-                    save(filename, 'stc', '-ascii');
-                else
-                    save(filename, 'stc', '-ascii', '-append');
-                end
+                filename = './data/Sigma_theta_c.mat';
+                Sigma_theta_c = self.Sigma_theta_c;
+                save(filename, 'Sigma_theta_c');
             end
             
             %sigma
@@ -384,6 +383,9 @@ classdef ModelParams < handle
             if contains(params, 'smooth')
                 smoothingParameter = self.smoothingParameter;
                 save('./data/smoothingParameter.mat', 'smoothingParameter');
+                boundarySmoothingPixels = self.boundarySmoothingPixels;
+                save('./data/boundarySmoothingPixels.mat',...
+                    'boundarySmoothingPixels');
             end
             
             %Parameters of variational distributions on log lambda_c
