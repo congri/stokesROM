@@ -31,13 +31,13 @@ classdef ModelParams < handle
         %% Model hyperparameters
         prior_theta_c = 'sharedVRVM'
         gamma   %Gaussian precision of prior on theta_c
-        VRVM_a = 1e-10;
-        VRVM_b = 1e-10;
-        VRVM_c = 1e-10;
-        VRVM_d = 1e-10;
-        VRVM_e = 1e-10;
-        VRVM_f = 1e-10;
-        VRVM_iter = 500; %iterations with fixed q(lambda_c)
+        VRVM_a = eps;
+        VRVM_b = eps;
+        VRVM_c = 1e1;
+        VRVM_d = eps;
+        VRVM_e = eps;
+        VRVM_f = eps;
+        VRVM_iter = 5; %iterations with fixed q(lambda_c)
         
         %% Parameters of variational distributions
         variational_mu
@@ -145,10 +145,12 @@ classdef ModelParams < handle
             load('./data/smoothingParameter.mat');
             self.smoothingParameter = smoothingParameter;
             
+            load('./data/boundarySmoothingPixels.mat');
+            self.boundarySmoothingPixels = boundarySmoothingPixels;
+            
             try
-                temp = dlmread('./data/Sigma_theta_c');
-                self.Sigma_theta_c = reshape(temp, sqrt(numel(temp)),...
-                    sqrt(numel(temp)));
+                load('./data/Sigma_theta_c.mat');
+                self.Sigma_theta_c = Sigma_theta_c;
             catch
                 warning('Sigma_theta_c not found.');
             end
@@ -336,14 +338,9 @@ classdef ModelParams < handle
             
             %Sigma_theta_c (variance of posterior on theta_c)
             if contains(params, 'stc')
-                filename = './data/Sigma_theta_c';
-                stc = self.Sigma_theta_c(:)';
-                onlyFinal = true;
-                if onlyFinal
-                    save(filename, 'stc', '-ascii');
-                else
-                    save(filename, 'stc', '-ascii', '-append');
-                end
+                filename = './data/Sigma_theta_c.mat';
+                Sigma_theta_c = self.Sigma_theta_c;
+                save(filename, 'Sigma_theta_c');
             end
             
             %sigma
@@ -383,6 +380,9 @@ classdef ModelParams < handle
             if contains(params, 'smooth')
                 smoothingParameter = self.smoothingParameter;
                 save('./data/smoothingParameter.mat', 'smoothingParameter');
+                boundarySmoothingPixels = self.boundarySmoothingPixels;
+                save('./data/boundarySmoothingPixels.mat',...
+                    'boundarySmoothingPixels');
             end
             
             %Parameters of variational distributions on log lambda_c

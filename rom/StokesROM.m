@@ -128,12 +128,16 @@ classdef StokesROM < handle
                         d = d + .5*PhiThetaSq_n;
                     end
                     tau_c = c./d;   %precision of p_c
+                    sqrt_tau_c = sqrt(tau_c);
                     tau_theta = diag(gamma);
                     sumPhiTau_cXMean = 0;
                     for n = 1:nTrain
-                        tau_theta = tau_theta +...
-                            self.trainingData.designMatrix{n}'*diag(tau_c)*...
-                            self.trainingData.designMatrix{n};
+                        %to ensure pos. def.
+                        A = diag(sqrt_tau_c)*self.trainingData.designMatrix{n};
+                        tau_theta = tau_theta + A'*A;
+%                         tau_theta = tau_theta +...
+%                             self.trainingData.designMatrix{n}'*diag(tau_c)*...
+%                             self.trainingData.designMatrix{n};
                         sumPhiTau_cXMean = sumPhiTau_cXMean + ...
                             self.trainingData.designMatrix{n}'*...
                             diag(tau_c)*XMean(:, n);
@@ -585,6 +589,7 @@ classdef StokesROM < handle
                         .5*(Sigma_lambda_c - Sigma_lambda_c'))))
                     Sigma_lambda_c = .5*(Sigma_lambda_c + Sigma_lambda_c');
                 end
+%                 Sigma_lambda_c = 1e-4*eye(size(Sigma_lambda_c));
                 Xsamples(:, :, i) = mvnrnd(mu_lambda_c',...
                     Sigma_lambda_c, nSamples_p_c)';
                 %Diffusivities
@@ -604,7 +609,8 @@ classdef StokesROM < handle
                 testStokesData.interpolate(self.modelParams.gridSX,...
                     self.modelParams.gridSY,...
                     self.modelParams.interpolationMode, ...
-                    self.modelParams.smoothingParameter);
+                    self.modelParams.smoothingParameter, ...
+                    self.modelParams.boundarySmoothingPixels);
             end
             for n = 1:nTest
                 predMeanArray{n} = zeros(size(testStokesData.P{n}));

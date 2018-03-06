@@ -4,13 +4,13 @@ classdef StokesData < handle
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 128
-        numberParams = [5.0, 1.1]   %[min, max] pos. number of circ. exclusions
+        numberParams = [5.0, 1.0]   %[min, max] pos. number of circ. exclusions
         numberDist = 'logn';
         margins = [-1, .01, -1, .01]    %[l., u.] margin for impermeable phase
         r_params = [-4.0, .7]    %[lo., up.] bound on random blob radius
         coordDist = 'gauss'
-        coordDist_mu = '[0.5, 0.5]'   %only for gauss
-        coordDist_cov = '[[0.035, 0.0], [0.0, 0.8]]'
+        coordDist_mu = '[0.4, 0.6]'   %only for gauss
+        coordDist_cov = '[[0.035, 0.0], [0.0, 0.08]]'
         radiiDist = 'logn'
         samples
         %base name of file path
@@ -392,6 +392,38 @@ classdef StokesData < handle
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
+            %exp interface area
+            for n = 1:numel(self.samples)
+                phi = exp(interfacePerVolume(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF));
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %sqrt interface area
+            for n = 1:numel(self.samples)
+                phi = sqrt(interfacePerVolume(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF) + eps);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %square interface area
+            for n = 1:numel(self.samples)
+                phi = (interfacePerVolume(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF)).^2;
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %cube interface area
+            for n = 1:numel(self.samples)
+                phi = (interfacePerVolume(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF)).^3;
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
             %mean distance between disk edges
             for n = 1:numel(self.samples)
                 phi = diskDistance(self.microstructData{n}.diskCenters,...
@@ -433,30 +465,54 @@ classdef StokesData < handle
             %last entry is distance
             for n = 1:numel(self.samples)
                 phi = matrixLinealPath(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, .1);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            for n = 1:numel(self.samples)
+                phi = matrixLinealPath(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, .08);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            for n = 1:numel(self.samples)
+                phi = matrixLinealPath(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, .06);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            for n = 1:numel(self.samples)
+                phi = matrixLinealPath(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, .04);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            for n = 1:numel(self.samples)
+                phi = matrixLinealPath(self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridRF, .02);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
             %Chord length densities
-            dist = .15;
-            for n = 1:numel(self.samples)
-                phi = chordLengthDensity(self.microstructData{n}.diskCenters,...
-                    self.microstructData{n}.diskRadii, gridRF, dist);
-                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
-            end
             dist = .1;
             for n = 1:numel(self.samples)
                 phi = chordLengthDensity(self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridRF, dist);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
-            dist = .05;
+            dist = .08;
             for n = 1:numel(self.samples)
                 phi = chordLengthDensity(self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridRF, dist);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
-            dist = .025;
+            dist = .06;
+            for n = 1:numel(self.samples)
+                phi = chordLengthDensity(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, dist);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            dist = .02;
             for n = 1:numel(self.samples)
                 phi = chordLengthDensity(self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridRF, dist);
@@ -464,6 +520,14 @@ classdef StokesData < handle
             end
             
             %Nearest surface functions
+            dist = .05;
+            for n = 1:numel(self.samples)
+                [e_v, h_v] = voidNearestSurfaceExclusion(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii,...
+                    gridRF, dist);
+                self.designMatrix{n} = [self.designMatrix{n}, e_v(:), h_v];
+            end
             dist = .04;
             for n = 1:numel(self.samples)
                 [e_v, h_v] = voidNearestSurfaceExclusion(...
@@ -509,6 +573,20 @@ classdef StokesData < handle
             for n = 1:numel(self.samples)
                 phi =log(meanChordLength(self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridRF) + eps);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %exp mean pore chord length non-overlap. polydis. spheres
+            for n = 1:numel(self.samples)
+                phi =exp(meanChordLength(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF));
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            %sqrt mean pore chord length non-overlap. polydis. spheres
+            for n = 1:numel(self.samples)
+                phi=sqrt(meanChordLength(self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF));
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
             end
             
@@ -564,6 +642,37 @@ classdef StokesData < handle
             dist = .025;
             for n = 1:numel(self.samples)
                 phi = log(twoPointCorrelation(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, true, dist)+eps);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            
+            
+            %sqrt 2-point correlation
+            dist = .1;
+            for n = 1:numel(self.samples)
+                phi = sqrt(twoPointCorrelation(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, true, dist)+eps);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            dist = .075;
+            for n = 1:numel(self.samples)
+                phi = sqrt(twoPointCorrelation(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, true, dist)+eps);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            dist = .05;
+            for n = 1:numel(self.samples)
+                phi = sqrt(twoPointCorrelation(...
+                    self.microstructData{n}.diskCenters,...
+                    self.microstructData{n}.diskRadii, gridRF, true, dist)+eps);
+                self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
+            end
+            dist = .025;
+            for n = 1:numel(self.samples)
+                phi = sqrt(twoPointCorrelation(...
                     self.microstructData{n}.diskCenters,...
                     self.microstructData{n}.diskRadii, gridRF, true, dist)+eps);
                 self.designMatrix{n} = [self.designMatrix{n}, phi(:)];
