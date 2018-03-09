@@ -6,7 +6,7 @@ addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 addpath('./mesh')
 %% Define parameters here:
 
-nTrain = 16;
+nTrain = 4;
 samples = 0:(nTrain - 1);
 max_EM_iter = 800;  %maximum EM iterations
 muField = 0;        %mean function in p_cf
@@ -16,13 +16,14 @@ normalization = 'rescale';
 
 %Conductivity transformation options
 condTransOpts.type = 'log';
-condTransOpts.limits = [1e-12, 1e4];
+condTransOpts.limits = [1e-11, 1e4];
 
 %grid vectors
 gridX = ones(1, 4);   %coarse FEM
 gridX = gridX/sum(gridX);
 gridY = gridX;
 gridRF = RectangularMesh([.25 .25 .25 .25]);
+% gridRF.split_cell(gridRF.cells{1});
 gridSX = ones(1, 128);   %p_cf S grid
 gridSX = gridSX/sum(gridSX);
 gridSY = gridSX;
@@ -31,6 +32,8 @@ gridSY = gridSX;
 p_bc = @(x) 0;
 %influx?
 % u_bc{1} = 'u_x=0.25 - (x[1] - 0.5)*(x[1] - 0.5)';
+% u_bc{2} = 'u_y=0.0';
+% u_bc{1} = 'u_x=1.0';
 % u_bc{2} = 'u_y=0.0';
 u_bc{1} = 'u_x=-0.8 + 2.0*x[1]';
 u_bc{2} = 'u_y=-1.2 + 2.0*x[0]';
@@ -44,12 +47,6 @@ N_train = numel(rom.trainingData.samples);
 rom.trainingData.countVertices();
 
 rom.modelParams = ModelParams;
-rom.modelParams.interpolationMode = 'cubic';  %Interpolation on regular 
-                                              %finescale grid, including solid
-                                              %phase
-rom.modelParams.smoothingParameter = 5;      %only applies for interp. data;
-                                              %empty for no smoothing
-rom.modelParams.boundarySmoothingPixels = 5;
 rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX, gridSY);
 
 rom.modelParams.condTransOpts = condTransOpts;

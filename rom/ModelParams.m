@@ -15,8 +15,8 @@ classdef ModelParams < handle
         sigma_cf
         gridSX
         gridSY
-        interpolationMode
-        smoothingParameter
+        interpolationMode = 'cubic'
+        smoothingParameter = 10
         boundarySmoothingPixels = -1;   %only smooths boundary if positive
         
         %Surrogate FEM mesh
@@ -33,11 +33,11 @@ classdef ModelParams < handle
         gamma   %Gaussian precision of prior on theta_c
         VRVM_a = eps;
         VRVM_b = eps;
-        VRVM_c = 1e1;
+        VRVM_c = 1e-1;   %is multiplied by nTrain!!!
         VRVM_d = eps;
         VRVM_e = eps;
         VRVM_f = eps;
-        VRVM_iter = 5; %iterations with fixed q(lambda_c)
+        VRVM_iter = 100; %iterations with fixed q(lambda_c)
         
         %% Parameters of variational distributions
         variational_mu
@@ -192,15 +192,16 @@ classdef ModelParams < handle
                 curr_Sigma_c = full(diag(self.Sigma_c))
                 if strcmp(self.prior_theta_c, 'sharedVRVM')
                     curr_gamma = self.gamma(1:...
-                        (numel(self.theta_c)/self.gridRF.nCells))
+                        (numel(self.theta_c)/self.gridRF.nCells));
                 else
-                    curr_gamma = self.gamma
+                    curr_gamma = self.gamma;
                 end
             else
                 curr_theta_c = self.theta_c
                 curr_Sigma_c = full(diag(self.Sigma_c))
-                curr_gamma = self.gamma
+                curr_gamma = self.gamma;
             end
+            curr_gamma = [curr_gamma(:), (1:numel(curr_gamma))']
             
         end
         

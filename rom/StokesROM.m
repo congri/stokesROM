@@ -74,7 +74,7 @@ classdef StokesROM < handle
                 %Parameters that do not change when q(lambda_c) is fixed
                 a = self.modelParams.VRVM_a + .5;
                 e = self.modelParams.VRVM_e + .5*nTrain;
-                c = self.modelParams.VRVM_c + .5*nTrain;
+                c = nTrain*self.modelParams.VRVM_c + .5*nTrain;
                 Ncells_gridS = numel(self.modelParams.gridSX)*...
                     numel(self.modelParams.gridSY);
                 if any(self.modelParams.interpolationMode)
@@ -393,13 +393,13 @@ classdef StokesROM < handle
         function plotCurrentState(self, fig, dataOffset, condTransOpts)
             %Plots the current modal effective property and the modal
             %reconstruction for 2 -training- samples
-            for i = 1:2
+            for i = 1:4
                 Lambda_eff_mode = conductivityBackTransform(...
                     self.trainingData.designMatrix{i + dataOffset}*...
                     self.modelParams.theta_c, condTransOpts);
                 Lambda_eff_mode = self.modelParams.rf2fem*...
                     Lambda_eff_mode;
-                sb1 = subplot(2, 3, 1 + (i - 1)*3, 'Parent', fig);
+                sb1 = subplot(4, 3, 1 + (i - 1)*3, 'Parent', fig);
                 imagesc(reshape(Lambda_eff_mode,...
                     self.modelParams.coarseMesh.nElX,...
                     self.modelParams.coarseMesh.nElY)', 'Parent', sb1)
@@ -410,7 +410,7 @@ classdef StokesROM < handle
                 sb1.XTick = [];
                 sb1.YTick = [];
                 cbp_lambda = colorbar('Parent', fig);
-                sb2 = subplot(2, 3, 2 + (i - 1)*3, 'Parent', fig);
+                sb2 = subplot(4, 3, 2 + (i - 1)*3, 'Parent', fig);
                 if isempty(self.trainingData.cells)
                     self.trainingData.readData('c');
                 end
@@ -444,7 +444,7 @@ classdef StokesROM < handle
                 
                 cbp_true = colorbar('Parent', fig);
                 
-                sb3 = subplot(2, 3, 3 + (i - 1)*3, 'Parent', fig);
+                sb3 = subplot(4, 3, 3 + (i - 1)*3, 'Parent', fig);
                 D = zeros(2, 2, self.modelParams.coarseMesh.nEl);
                 for j = 1:self.modelParams.coarseMesh.nEl
                     D(:, :, j) =  Lambda_eff_mode(j)*eye(2);
@@ -480,10 +480,10 @@ classdef StokesROM < handle
                 trihandle3.LineStyle = 'none';
                 hold(sb3, 'off');
                 axis(sb3, 'tight');
-                sb3.ZLim = [mean(self.trainingData.P{i + dataOffset}) - ...
-                    3*std(self.trainingData.P{i + dataOffset}), ...
-                    mean(self.trainingData.P{i + dataOffset}) + ...
-                    3*std(self.trainingData.P{i + dataOffset})];
+%                 sb3.ZLim = [mean(self.trainingData.P{i + dataOffset}) - ...
+%                     3*std(self.trainingData.P{i + dataOffset}), ...
+%                     mean(self.trainingData.P{i + dataOffset}) + ...
+%                     3*std(self.trainingData.P{i + dataOffset})];
                 caxis(sb3, sb3.ZLim);
                 axis(sb3, 'square');
                 sb3.Box = 'on';
@@ -496,7 +496,7 @@ classdef StokesROM < handle
         end
         
         function [predMeanArray, predVarArray, meanEffCond, meanSqDist,...
-                sqDist] = predict(self, testStokesData, mode)
+                sqDist, meanLogLikelihood] = predict(self, testStokesData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
             %   mode:       'local' for separate theta_c's per macro-cell
@@ -589,7 +589,7 @@ classdef StokesROM < handle
                         .5*(Sigma_lambda_c - Sigma_lambda_c'))))
                     Sigma_lambda_c = .5*(Sigma_lambda_c + Sigma_lambda_c');
                 end
-%                 Sigma_lambda_c = 1e-4*eye(size(Sigma_lambda_c));
+%                 Sigma_lambda_c = 1e-12*eye(size(Sigma_lambda_c));
                 Xsamples(:, :, i) = mvnrnd(mu_lambda_c',...
                     Sigma_lambda_c, nSamples_p_c)';
                 %Diffusivities
@@ -685,6 +685,8 @@ classdef StokesROM < handle
                 logLikelihood{n} = -.5*numel(P{n}(2:end))*log(2*pi) -...
                     .5*sum(log(predVarArray{n}(2:end)), 'omitnan') - ...
                     .5*sum(sqDist{n}./predVarArray{n}(2:end), 'omitnan');
+                %average over dof's
+                meanLogLikelihood(n) = logLikelihood{n}/numel(P{n}(2:end));
                 logPerplexity{n} = -(1/(numel(P{n}(2:end))))*logLikelihood{n};
             end
             
@@ -722,16 +724,16 @@ classdef StokesROM < handle
                     thdl.LineStyle = 'none';
                     axis(splt(i), 'tight');
                     axis(splt(i), 'square');
-                    splt(i).View = [10, 20];
+                    splt(i).View = [-80, 20];
                     splt(i).GridLineStyle = 'none';
                     splt(i).XTick = [];
                     splt(i).YTick = [];
                     splt(i).Box = 'on';
                     splt(i).BoxStyle = 'full';
-                    splt(i).ZLim = [mean(testStokesData.P{i + pltstart}) - ...
-                    3*std(testStokesData.P{i + pltstart}), ...
-                    mean(testStokesData.P{i + pltstart}) + ...
-                    3*std(testStokesData.P{i + pltstart})];
+%                     splt(i).ZLim = [mean(testStokesData.P{i + pltstart}) - ...
+%                     3*std(testStokesData.P{i + pltstart}), ...
+%                     mean(testStokesData.P{i + pltstart}) + ...
+%                     3*std(testStokesData.P{i + pltstart})];
                     cbp_true = colorbar('Parent', fig);
                     
                     %predictive mean
@@ -749,41 +751,42 @@ classdef StokesROM < handle
                     thdlpred.LineStyle = 'none';
                     thdlpred.FaceColor = 'b';
                     
-                    %predictive mean + std
-                    if intp
-                        thdlpstd = surf(XX, YY,...
-                            reshape(predMeanArray{i + pltstart} +...
-                            sqrt(predVarArray{i + pltstart}), nSX, nSY),...
-                            'Parent', splt(i));
-                    else
-                        thdlpstd= trisurf(testStokesData.cells{i + pltstart},...
-                            testStokesData.X{i + pltstart}(:, 1),...
-                            testStokesData.X{i + pltstart}(:, 2),...
-                            predMeanArray{i + pltstart} +...
-                            sqrt(predVarArray{i + pltstart}),'Parent', splt(i));
-                    end
-                    thdlpstd.LineStyle = 'none';
-                    thdlpstd.FaceColor = [.85 .85 .85];
-                    thdlpstd.FaceAlpha = .7;
-                    
-                    %predictive mean - std
-                    if intp
-                        thdlmstd = surf(XX, YY,...
-                            reshape(predMeanArray{i + pltstart} -...
-                            sqrt(predVarArray{i + pltstart}), nSX, nSY),...
-                            'Parent', splt(i));
-                    else
-                        thdlmstd= trisurf(testStokesData.cells{i + pltstart},...
-                            testStokesData.X{i + pltstart}(:, 1),...
-                            testStokesData.X{i + pltstart}(:, 2),...
-                            predMeanArray{i + pltstart} -...
-                            sqrt(predVarArray{i + pltstart}),'Parent', splt(i));
-                    end
-                    thdlmstd.LineStyle = 'none';
-                    thdlmstd.FaceColor = [.85 .85 .85];
-                    thdlmstd.FaceAlpha = .7;
-                    
-                    
+%                     %predictive mean + .5*std
+%                     if intp
+%                         thdlpstd = surf(XX, YY,...
+%                             reshape(predMeanArray{i + pltstart} +...
+%                             sqrt(predVarArray{i + pltstart}), nSX, nSY),...
+%                             'Parent', splt(i));
+%                     else
+%                         thdlpstd= trisurf(testStokesData.cells{i + pltstart},...
+%                             testStokesData.X{i + pltstart}(:, 1),...
+%                             testStokesData.X{i + pltstart}(:, 2),...
+%                             predMeanArray{i + pltstart} +...
+%                             .5*sqrt(predVarArray{i + pltstart}),...
+%                             'Parent', splt(i));
+%                     end
+%                     thdlpstd.LineStyle = 'none';
+%                     thdlpstd.FaceColor = [.85 .85 .85];
+%                     thdlpstd.FaceAlpha = .7;
+%                     
+%                     %predictive mean - .5*std
+%                     if intp
+%                         thdlmstd = surf(XX, YY,...
+%                             reshape(predMeanArray{i + pltstart} -...
+%                             sqrt(predVarArray{i + pltstart}), nSX, nSY),...
+%                             'Parent', splt(i));
+%                     else
+%                         thdlmstd= trisurf(testStokesData.cells{i + pltstart},...
+%                             testStokesData.X{i + pltstart}(:, 1),...
+%                             testStokesData.X{i + pltstart}(:, 2),...
+%                             predMeanArray{i + pltstart} -...
+%                             .5*sqrt(predVarArray{i + pltstart}),...
+%                             'Parent', splt(i));
+%                     end
+%                     thdlmstd.LineStyle = 'none';
+%                     thdlmstd.FaceColor = [.85 .85 .85];
+%                     thdlmstd.FaceAlpha = .7;
+
                 end
             end
             

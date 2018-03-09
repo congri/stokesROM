@@ -1,13 +1,13 @@
 NMESHES=1024
 NELEMENTS=128
-NEX1=5.0    #number of exclusion parameters
+NEX1=7.5    #number of exclusion parameters
 NEX2=1.0
-RPARAMSLO=-4.0
-RPARAMSHI=0.7
+RPARAMSLO=-4.5
+RPARAMSHI=0.5
 MARGIN_LO=-1
-MARGIN_R=0.01
+MARGIN_R=-1
 MARGIN_U=-1
-MARGIN_LE=0.01
+MARGIN_LE=-1
 
 
 CORES=1
