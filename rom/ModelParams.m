@@ -33,7 +33,7 @@ classdef ModelParams < handle
         gamma   %Gaussian precision of prior on theta_c
         VRVM_a = eps;
         VRVM_b = eps;
-        VRVM_c = 1e-1;   %is multiplied by nTrain!!!
+        VRVM_c = 1e-4;   %is multiplied by nTrain!!!
         VRVM_d = eps;
         VRVM_e = eps;
         VRVM_f = eps;
@@ -74,7 +74,7 @@ classdef ModelParams < handle
                     repmat(self.variational_sigma, nData, 1);
             else
                 %Initialize sigma_c to I
-                self.Sigma_c = 1e-4*eye(nElements);
+                self.Sigma_c = 1e-6*eye(nElements);
                 
                 nSX = numel(self.gridSX); nSY = numel(self.gridSY);
                 if any(self.interpolationMode)
@@ -86,7 +86,7 @@ classdef ModelParams < handle
                 if strcmp(self.prior_theta_c, 'RVM')
                     self.gamma = 1e-4*ones(size(self.theta_c));
                 elseif strcmp(self.prior_theta_c, 'VRVM')
-                    self.gamma = 1e-2*ones(size(self.theta_c));
+                    self.gamma = 1e-6*ones(size(self.theta_c));
                 elseif strcmp(self.prior_theta_c, 'sharedVRVM')
                     self.gamma = 1e-2*ones(size(self.theta_c));
                 elseif strcmp(self.prior_theta_c, 'none')

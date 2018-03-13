@@ -518,7 +518,8 @@ classdef StokesROM < handle
                 testStokesData.readData('p');
             end
             
-            if isempty(self.modelParams)
+            %if isempty(self.modelParams)
+            if true
                 %Read in trained params form ./data folder
                 self.modelParams = ModelParams;
                 self.modelParams.load;
@@ -557,9 +558,20 @@ classdef StokesROM < handle
             %to use point estimate for theta
 %             self.modelParams.Sigma_theta_c =...
 %                 1e-6*eye(numel(self.modelParams.gamma));
+%             eig(self.modelParams.Sigma_theta_c)
+%             pause
+%             self.modelParams.Sigma_c = 1e-6*self.modelParams.Sigma_c;
+%             self.modelParams.Sigma_c
+            self.modelParams.Sigma_c(self.modelParams.Sigma_c > 1e-1) = ...
+                1e-1;
+%             pause
             for i = 1:nTest
                 if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
                         strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
+                    if any(any(~isfinite(testStokesData.designMatrix{i})))
+                        testStokesData.designMatrix{i}
+                        pause
+                    end
                     SigmaTildeInv = testStokesData.designMatrix{i}'*...
                         (self.modelParams.Sigma_c\...
                         testStokesData.designMatrix{i}) + ...
@@ -611,7 +623,11 @@ classdef StokesROM < handle
                     self.modelParams.interpolationMode, ...
                     self.modelParams.smoothingParameter, ...
                     self.modelParams.boundarySmoothingPixels);
+                testStokesData.shiftData(true);%p = 0 at orig. otherwise remove!
+            else
+                testStokesData.shiftData(false);
             end
+            
             for n = 1:nTest
                 predMeanArray{n} = zeros(size(testStokesData.P{n}));
             end
@@ -726,8 +742,8 @@ classdef StokesROM < handle
                     axis(splt(i), 'square');
                     splt(i).View = [-80, 20];
                     splt(i).GridLineStyle = 'none';
-                    splt(i).XTick = [];
-                    splt(i).YTick = [];
+%                     splt(i).XTick = [];
+%                     splt(i).YTick = [];
                     splt(i).Box = 'on';
                     splt(i).BoxStyle = 'full';
 %                     splt(i).ZLim = [mean(testStokesData.P{i + pltstart}) - ...

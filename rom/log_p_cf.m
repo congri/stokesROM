@@ -7,6 +7,7 @@ function [log_p, d_log_p, Tc] = log_p_cf(...
 
 conductivity = conductivityBackTransform(Xn, condTransOpts);
 conductivity = rf2fem*conductivity;
+
 D = zeros(2, 2, coarseMesh.nEl);
 %Conductivity matrix D, only consider isotropic materials here
 for j = 1:coarseMesh.nEl
@@ -17,6 +18,7 @@ FEMout = heat2d(coarseMesh, D);
 
 Tc = FEMout.Tff';
 Tc = Tc(:);
+
 Tf_n_minus_mu_minus_WTc = Tf_n_minus_mu - W_cf_n*Tc;
 %only for diagonal S!
 log_p = -.5*(S_cf_n.sumLogS + (Tf_n_minus_mu_minus_WTc)'*...

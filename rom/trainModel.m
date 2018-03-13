@@ -6,7 +6,7 @@ addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 addpath('./mesh')
 %% Define parameters here:
 
-nTrain = 4;
+nTrain = 16;
 samples = 0:(nTrain - 1);
 max_EM_iter = 800;  %maximum EM iterations
 muField = 0;        %mean function in p_cf
@@ -31,10 +31,6 @@ gridSY = gridSX;
 %Boundary condition fields
 p_bc = @(x) 0;
 %influx?
-% u_bc{1} = 'u_x=0.25 - (x[1] - 0.5)*(x[1] - 0.5)';
-% u_bc{2} = 'u_y=0.0';
-% u_bc{1} = 'u_x=1.0';
-% u_bc{2} = 'u_y=0.0';
 u_bc{1} = 'u_x=-0.8 + 2.0*x[1]';
 u_bc{2} = 'u_y=-1.2 + 2.0*x[0]';
 %% Initialize reduced order model object:
@@ -56,9 +52,12 @@ if any(rom.modelParams.interpolationMode)
         rom.modelParams.smoothingParameter,...
         rom.modelParams.boundarySmoothingPixels);
     rom.modelParams.fineScaleInterp(rom.trainingData.X_interp);
+    interp = true;
 else
     rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
+    interp = false;
 end
+rom.trainingData.shiftData(interp, 'p'); %shifts p to 0 at origin
 rom.modelParams.saveParams('gtcscscf');
 rom.modelParams.saveParams('coarseMesh');
 rom.modelParams.saveParams('priorType');
@@ -81,7 +80,7 @@ rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
 rom.trainingData.vtxToCell(gridSX, gridSY, rom.modelParams.interpolationMode);
 
 %Step width for stochastic optimization in VI
-sw =[4e-2*ones(1, gridRF.nCells), 1e-3*ones(1, gridRF.nCells)];
+sw =[1e-1*ones(1, gridRF.nCells), 1e-1*ones(1, gridRF.nCells)];
 
 %% Bring variational distribution params in form for unconstrained optimization
 varDistParamsVec{1} = [rom.modelParams.variational_mu{1},...
@@ -131,12 +130,19 @@ while ~converged
     nRFc = gridRF.nCells;
     tic
     parfor n = 1:N_train
+        mx{n} = max_fun(lg_q{n}, varDistParamsVec{n}(1:16));
+        varDistParamsVec{n}(1:16) = mx{n};
         %Finding variational approximation to q_n
         [varDistParams{n}, varDistParamsVec{n}] =...
             efficientStochOpt(varDistParamsVec{n}, lg_q{n}, 'diagonalGauss',...
             sw, nRFc);
     end
     VI_time = toc
+    if sw(1) > 7e-3
+        %decrease adam step width
+        %does this improve VI as training proceeds?
+        sw = .9*sw;
+    end
     
     for n = 1:N_train
         %Compute expected values under variational approximation
@@ -174,7 +180,7 @@ while ~converged
     if plt
         %plot current parameters
         if ~exist('figParams')
-            figParams = figure;
+            figParams = figure('units','normalized','outerposition',[0 0 .5 1]);
         end
         thetaArray = [thetaArray, rom.modelParams.theta_c];
         SigmaArray = [SigmaArray, full(diag(rom.modelParams.Sigma_c))];
@@ -182,7 +188,8 @@ while ~converged
                 
         % Plot data and reconstruction (modal value)
         if ~exist('figResponse')
-            figResponse = figure;
+            figResponse =...
+                figure('units','normalized','outerposition',[0 0 1 1]);
         end
         %plot modal lambda_c and corresponding -training- data reconstruction
         rom.plotCurrentState(figResponse, 0, condTransOpts);

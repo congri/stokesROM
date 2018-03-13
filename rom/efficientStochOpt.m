@@ -6,19 +6,21 @@ function [varDistParams, x] =...
 debug = false;   %debug mode
 
 updateRule = 'adam';
-beta1 = .7;                     %the higher, the more important is momentum
-beta2 = .8;                    %curvature parameter
-epsilon = 1e-8;                  %curvature stabilization parameter
+% beta1 = .7;                     %the higher, the more important is momentum
+% beta2 = .8;                    %curvature parameter
+beta1 = .9;
+beta2 = .999;
+epsilon = 1e-4;                  %curvature stabilization parameter
 
-stepOffset = 10000;                %Robbins-Monro step offset
-nSamples = 20;                  %gradient samples per iteration
+stepOffset = 15;                %Robbins-Monro step offset
+nSamples = 1;                  %gradient samples per iteration
+maxIterations = 1e4;
+maxCompTime = 30;
 
 converged = false;
 steps = 0;
-maxIterations = 10000;
-maxCompTime = 10;
-tic;
 
+stepWidth_stepOffset = stepWidth*stepOffset;
 if strcmp(variationalDist, 'diagonalGauss')
     varDistParams.mu = x(1:dim);
     varDistParams.sigma = exp(-.5*x((dim + 1):end));
@@ -34,9 +36,26 @@ else
 end
 
 if debug
-    f = figure;
+    disp('starting stochastic optimization')
+    x_0 = x
+    f = figure(8);
+    f.Units = 'normalized';
+    f.OuterPosition = [0 0 1 1];
+    clf(f)
+    sb1 = subplot(1, 3, 1, 'Parent', f);
+    hold on;
+    title('$\mu$');
+    sb2 = subplot(1, 3, 2, 'Parent', f);
+    sb2.YScale = 'log';
+    hold on;
+    title('$\sigma$')
+    sb3 = subplot(1, 3, 3, 'Parent', f);
+    sb3.YScale = 'log';
+    hold on;
+    title('norm momentum');
 end
 
+tic;
 iter = 0;
 while ~converged
     
@@ -56,11 +75,11 @@ while ~converged
             + (1 - beta2)*gradient.^2;
         
         %Optimization update
-        x = x + (stepWidth*stepOffset/(stepOffset + steps)).*...
+        x = x + (stepWidth_stepOffset/(stepOffset + steps)).*...
             (1./(sqrt(uncenteredXVariance) + epsilon)).*momentum;
         
     elseif strcmp(updateRule, 'robbinsMonro')
-        delta = ((stepWidth*stepOffset)/(stepOffset + steps)).*gradient;
+        delta = ((stepWidth_stepOffset)/(stepOffset + steps)).*gradient;
         nDelta = norm(delta);
         stabilityFactor = 2;
         if(nDelta > stabilityFactor*norm(x))
@@ -87,18 +106,13 @@ while ~converged
     end
     
     if debug
-        figure(f);
-        if(mod(iter,1) == 0)
-            varDistParams.mu
-            varDistParams.sigma
-            subplot(1,2,1)
-            hold on;
-            title('mu')
-            plot(iter, varDistParams.mu, 'bx')
-            subplot(1,2,2)
-            hold on;
-            title('sigma')
-            plot(iter, varDistParams.sigma, 'rx')
+        plotStep = 10;
+        if(mod(iter, plotStep) == 0 && iter > plotStep)
+            %mu = varDistParams.mu
+            %sigma = varDistParams.sigma
+            plot(iter, varDistParams.mu, 'bx', 'Parent', sb1);
+            semilogy(iter, varDistParams.sigma, 'rx', 'Parent', sb2);
+            semilogy(iter, norm(momentum), 'kx', 'Parent', sb3);
             drawnow
         end
     end
@@ -112,6 +126,7 @@ while ~converged
         disp('Converged because max computation time exceeded')
     end
     iter = iter + 1;
+    nSamples = nSamples + 1;%this is purely heuristic! remove if unwanted
 end
 
 if strcmp(variationalDist, 'diagonalGauss')
@@ -122,4 +137,5 @@ elseif strcmp(variationalDist, 'fullRankGauss')
 else
     error('Unknown variational distribution')
 end
+
 

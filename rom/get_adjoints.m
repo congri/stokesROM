@@ -8,6 +8,5 @@ d_log_p_cf = WTSinv*Tf_i_minus_mu_minus_WTc;
 d_log_p_cf(~isnan(domain.essentialTemperatures)) = [];
 
 adjoints = K'\d_log_p_cf;
-
 end
 
