@@ -1,20 +1,20 @@
 BCX="u_x=-0.8 + 2.0*x[1]"
 BCY="u_y=-1.2 + 2.0*x[0]"
 
-N1=6.5
+N1=6.0
 N2=1.0
 R1=-4.5
-R2=0.5
-MARG1=-1
-MARG2=-1
-MARG3=-1
-MARG4=-1
-MU1=0.5
-MU2=0.5
-COV1=0.5
-COV2=0.5
+R2=0.6
+MARG1=0.01
+MARG2=0.01
+MARG3=0.01
+MARG4=0.01
+MU1=0.8
+MU2=0.3
+COV1=0.4
+COV2=0.6
 
-NTRAIN=64
+NTRAIN=12
 
 NCORES=8
 if [ $NTRAIN -lt $NCORES ]; then
@@ -23,10 +23,10 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="stokesTrain"
+NAMEBASE="gamm"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
-JOBNAME="${NAMEBASE}_nTrain=${NTRAIN}"
+JOBNAME="${DATESTR}_${NAMEBASE}_nTrain=${NTRAIN}"
 JOBDIR="/home/constantin/python/data/stokesEquation/meshes/meshSize=128/nNonOverlapCircExcl=logn${N1}-${N2}/coordDist=gauss_mu=[${MU1}, ${MU2}]cov=[[${COV1}, 0.0], [0.0, ${COV2}]]_margins=(${MARG1}, ${MARG2}, ${MARG3}, ${MARG4})/radiiDist=logn_r_params=(${R1}, ${R2})/${JOBNAME}"
 SPOOL_FILE=/home/constantin/spooledOutput/${DATESTR}_${JOBNAME}
 

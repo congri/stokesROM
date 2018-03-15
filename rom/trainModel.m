@@ -6,7 +6,7 @@ addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 addpath('./mesh')
 %% Define parameters here:
 
-nTrain = 16;
+nTrain = 8;
 samples = 0:(nTrain - 1);
 max_EM_iter = 800;  %maximum EM iterations
 muField = 0;        %mean function in p_cf
@@ -81,6 +81,8 @@ rom.trainingData.vtxToCell(gridSX, gridSY, rom.modelParams.interpolationMode);
 
 %Step width for stochastic optimization in VI
 sw =[1e-1*ones(1, gridRF.nCells), 1e-1*ones(1, gridRF.nCells)];
+sw_decay = .95; %decay factor per iteration
+sw_min = 8e-3*ones(size(sw));
 
 %% Bring variational distribution params in form for unconstrained optimization
 varDistParamsVec{1} = [rom.modelParams.variational_mu{1},...
@@ -95,6 +97,7 @@ EMiter = 0;
 epoch = 0;  %one epoch == one time seen every data point
 thetaArray = [];
 SigmaArray = [];
+gammaArray = [];
 ppool = parPoolInit(N_train);
 while ~converged
     
@@ -130,19 +133,18 @@ while ~converged
     nRFc = gridRF.nCells;
     tic
     parfor n = 1:N_train
-        mx{n} = max_fun(lg_q{n}, varDistParamsVec{n}(1:16));
-        varDistParamsVec{n}(1:16) = mx{n};
+        mx{n} = max_fun(lg_q{n}, varDistParamsVec{n}(1:nRFc));
+        varDistParamsVec{n}(1:nRFc) = mx{n};
         %Finding variational approximation to q_n
         [varDistParams{n}, varDistParamsVec{n}] =...
             efficientStochOpt(varDistParamsVec{n}, lg_q{n}, 'diagonalGauss',...
             sw, nRFc);
     end
     VI_time = toc
-    if sw(1) > 7e-3
-        %decrease adam step width
-        %does this improve VI as training proceeds?
-        sw = .9*sw;
-    end
+    
+    %Gradually reduce VI step width
+    sw = sw_decay*sw;
+    sw(sw < sw_min) = sw_min(sw < sw_min);
     
     for n = 1:N_train
         %Compute expected values under variational approximation
@@ -183,8 +185,10 @@ while ~converged
             figParams = figure('units','normalized','outerposition',[0 0 .5 1]);
         end
         thetaArray = [thetaArray, rom.modelParams.theta_c];
+        gammaArray = [gammaArray, rom.modelParams.gamma];
         SigmaArray = [SigmaArray, full(diag(rom.modelParams.Sigma_c))];
-        rom.modelParams.plot_params(figParams, thetaArray', SigmaArray');
+        rom.modelParams.plot_params(figParams, thetaArray', SigmaArray', ...
+            gammaArray');
                 
         % Plot data and reconstruction (modal value)
         if ~exist('figResponse')

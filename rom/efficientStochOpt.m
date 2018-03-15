@@ -126,7 +126,9 @@ while ~converged
         disp('Converged because max computation time exceeded')
     end
     iter = iter + 1;
-    nSamples = nSamples + 1;%this is purely heuristic! remove if unwanted
+    if mod(iter, 5) == 0
+        nSamples = nSamples + 1;%this is purely heuristic! remove if unwanted
+    end
 end
 
 if strcmp(variationalDist, 'diagonalGauss')

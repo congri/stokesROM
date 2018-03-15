@@ -16,7 +16,7 @@ classdef ModelParams < handle
         gridSX
         gridSY
         interpolationMode = 'cubic'
-        smoothingParameter = 10
+        smoothingParameter = 3;
         boundarySmoothingPixels = -1;   %only smooths boundary if positive
         
         %Surrogate FEM mesh
@@ -33,11 +33,11 @@ classdef ModelParams < handle
         gamma   %Gaussian precision of prior on theta_c
         VRVM_a = eps;
         VRVM_b = eps;
-        VRVM_c = 1e-4;   %is multiplied by nTrain!!!
+        VRVM_c = 1e-4;
         VRVM_d = eps;
         VRVM_e = eps;
         VRVM_f = eps;
-        VRVM_iter = 100; %iterations with fixed q(lambda_c)
+        VRVM_iter = 30; %iterations with fixed q(lambda_c)
         
         %% Parameters of variational distributions
         variational_mu
@@ -216,7 +216,8 @@ classdef ModelParams < handle
             self.saveParams('W');
         end
         
-        function plot_params(self, figHandle, thetaArray, SigmaArray)
+        function plot_params(self, figHandle, thetaArray, SigmaArray, ...
+                gammaArray)
             %Plots the current theta_c
             
             %short notation
@@ -264,10 +265,10 @@ classdef ModelParams < handle
             
             sb5 = subplot(3, 2, 5, 'Parent', figHandle);
             if strcmp(self.prior_theta_c, 'sharedVRVM')
-                bar(self.gamma(1:(numel(self.theta_c)/self.gridRF.nCells)),...
-                    'linewidth', 1, 'Parent', sb5)
+                plot(gammaArray(:, 1:(numel(self.theta_c)/...
+                    self.gridRF.nCells)), 'linewidth', 1, 'Parent', sb5)
             else
-                bar(self.gamma, 'linewidth', 1, 'Parent', sb5)
+                bar(gammaArray, 'linewidth', 1, 'Parent', sb5)
             end
             axis(sb5, 'tight');
             sb5.YLabel.String = '$\gamma$';
