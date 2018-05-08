@@ -7,7 +7,7 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="cell4"
+NAMEBASE="error"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
 JOBNAME="${NAMEBASE}_nTrain=${NTRAIN}"

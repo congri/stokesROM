@@ -6,9 +6,11 @@ addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 addpath('./mesh')
 %% Define parameters here:
 
-nTrain = 8;
-samples = 0:(nTrain - 1);
-max_EM_iter = 800;  %maximum EM iterations
+nTrain = 32;
+%nStart = randi(1023 - nTrain) - 1
+nStart = 0;
+samples = nStart:(nTrain - 1 + nStart);
+max_EM_iter = 400;  %maximum EM iterations
 muField = 0;        %mean function in p_cf
 
 mode = 'local';
@@ -16,29 +18,32 @@ normalization = 'rescale';
 
 %Conductivity transformation options
 condTransOpts.type = 'log';
-condTransOpts.limits = [1e-11, 1e4];
+condTransOpts.limits = [1e-10, 1e3];
 
 %grid vectors
-gridX = ones(1, 4);   %coarse FEM
+gridX = ones(1, 2);   %coarse FEM
 gridX = gridX/sum(gridX);
 gridY = gridX;
-gridRF = RectangularMesh([.25 .25 .25 .25]);
-% gridRF.split_cell(gridRF.cells{1});
+gridRF = RectangularMesh((1/2)*ones(1, 2));
+% gridRF.split_cell(gridRF.cells{4});
 gridSX = ones(1, 128);   %p_cf S grid
 gridSX = gridSX/sum(gridSX);
 gridSY = gridSX;
 
 %Boundary condition fields
-p_bc = @(x) 0;
+p_bc = @(x) 0.0;
 %influx?
-u_bc{1} = 'u_x=-0.8 + 2.0*x[1]';
-u_bc{2} = 'u_y=-1.2 + 2.0*x[0]';
+u_bc{1} = 'u_x=0.0-2.0*x[1]';
+u_bc{2} = 'u_y=1.0-2.0*x[0]';
+
+%random number seed based on time
+rng('shuffle');
 %% Initialize reduced order model object:
 rom = StokesROM;
 
 %% Read training data, initialize parameters and evaluate features:
 
-rom.readTrainingData(samples, u_bc);
+rom.readTrainingData(samples, u_bc, p_bc);
 N_train = numel(rom.trainingData.samples);
 rom.trainingData.countVertices();
 
@@ -211,3 +216,5 @@ while ~converged
         EMiter = EMiter + 1
     end
 end
+
+predictionScript;

@@ -22,6 +22,8 @@ for cll = gridRF.cells
 end
 
 porefrac = A./A0;
+porefrac(porefrac <= 0) = eps;  %can happen if circles lie on boundary
+
 
 L = porefrac.*...
     exp(-(2*distance*(1 - porefrac).*meanRadii)./(pi*porefrac.*meanSqRadii));
