@@ -4,6 +4,11 @@
 clear
 addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 addpath('./mesh')
+addpath('./aux')
+addpath('./comp')
+addpath('./FEM')
+addpath('rom')
+addpath('./VI')
 
 %Parameters from previous runs are deleted here
 if exist('./data/', 'dir')
