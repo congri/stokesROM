@@ -9,14 +9,16 @@ classdef ModelParams < handle
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
         gridRF
+        coarseGridX = (1/4)*ones(1, 4)
+        coarseGridY = (1/4)*ones(1, 4)
         
         %p_cf
         W_cf
         sigma_cf
-        gridSX
-        gridSY
+        fineGridX = (1/128)*ones(1, 128)
+        fineGridY = (1/128)*ones(1, 128)
         interpolationMode = 'cubic'
-        smoothingParameter = [];
+        smoothingParameter = 2;
         boundarySmoothingPixels = -1;   %only smooths boundary if positive
         
         %Surrogate FEM mesh
@@ -29,6 +31,7 @@ classdef ModelParams < handle
         condTransOpts
         
         %% Model hyperparameters
+        mode = 'local'  %separate theta_c's per macro-cell
         prior_theta_c = 'sharedVRVM'
         gamma   %Gaussian precision of prior on theta_c
         VRVM_a = eps;
@@ -44,10 +47,17 @@ classdef ModelParams < handle
         variational_sigma
         
         %% Parameters to rescale features
+        normalization = 'rescale'
         featureFunctionMean
         featureFunctionSqMean
         featureFunctionMin
         featureFunctionMax
+        
+        %% Training parameters
+        max_EM_iter = 400
+        
+        %% Settings
+        computeElbo = true
     end
     
     methods
@@ -76,7 +86,7 @@ classdef ModelParams < handle
                 %Initialize sigma_c to I
                 self.Sigma_c = 1e-6*eye(nElements);
                 
-                nSX = numel(self.gridSX); nSY = numel(self.gridSY);
+                nSX = numel(self.fineGridX); nSY = numel(self.fineGridY);
                 if any(self.interpolationMode)
                     nSX = nSX + 1; nSY = nSY + 1;
                 end
@@ -136,8 +146,8 @@ classdef ModelParams < handle
             
             self.sigma_cf.s0 = dlmread('./data/sigma_cf')';
             load('./data/gridS.mat');
-            self.gridSX = gridSX;
-            self.gridSY = gridSY;
+            self.fineGridX = fineGridX;
+            self.fineGridY = fineGridY;
             
             load('./data/interpolationMode.mat');
             self.interpolationMode = interpolationMode;
@@ -181,10 +191,10 @@ classdef ModelParams < handle
             disp('done')
         end
         
-        function printCurrentParams(self, mode)
+        function printCurrentParams(self)
             %Print current model params on screen
             
-            if strcmp(mode, 'local')
+            if strcmp(self.mode, 'local')
                 disp('theta_c: row = feature, column = macro-cell:')
                 curr_theta_c = reshape(self.theta_c,...
                     numel(self.theta_c)/self.gridRF.nCells,...
@@ -212,8 +222,6 @@ classdef ModelParams < handle
             for n = 1:nData
                 self.W_cf{n} = shapeInterp(self.coarseMesh, X{n});
             end
-            
-            self.saveParams('W');
         end
         
         function plot_params(self, figHandle, thetaArray, SigmaArray, ...
@@ -221,7 +229,7 @@ classdef ModelParams < handle
             %Plots the current theta_c
             
             %short notation
-            nSX = numel(self.gridSX); nSY = numel(self.gridSY);
+            nSX = numel(self.fineGridX); nSY = numel(self.fineGridY);
             if any(self.interpolationMode)
                 nSX = nSX + 1; nSY = nSY + 1;
             end
@@ -283,7 +291,7 @@ classdef ModelParams < handle
             sb6.YDir = 'normal';
         end
                 
-        function saveParams(self, params)
+        function write2file(self, params)
             if ~exist('./data/', 'dir')
                 mkdir('./data/');
             end
@@ -325,35 +333,35 @@ classdef ModelParams < handle
             end
             
             %gamma
-            if any(params == 'g')
+            if contains(params, 'thetaPriorHyperparam')
                 filename = './data/thetaPriorHyperparam';
                 thetaPriorHyperparam = self.gamma';
                 save(filename, 'thetaPriorHyperparam', '-ascii', '-append');
             end
             
             %theta_c
-            if contains(params, 'tc')
+            if contains(params, 'theta_c')
                 filename = './data/theta_c';
                 tc = self.theta_c';
                 save(filename, 'tc', '-ascii', '-append');
             end
             
             %Sigma_theta_c (variance of posterior on theta_c)
-            if contains(params, 'stc')
+            if contains(params, 'sigma_theta_c')
                 filename = './data/Sigma_theta_c.mat';
                 Sigma_theta_c = self.Sigma_theta_c;
                 save(filename, 'Sigma_theta_c');
             end
             
             %sigma
-            if contains(params, 'sc')
+            if contains(params, 'sigma_c')
                 filename = './data/sigma_c';
                 sc = full(diag(self.Sigma_c))';
                 save(filename, 'sc', '-ascii', '-append');
             end
             
             %S
-            if contains(params, 'scf')
+            if contains(params, 'sigma_cf')
                 filename = './data/sigma_cf';
                 scf = self.sigma_cf.s0';
                 onlyFinal = true;
@@ -367,9 +375,9 @@ classdef ModelParams < handle
             %grid of S
             if contains(params, 'gridS')
                 filename = './data/gridS.mat';
-                gridSX = self.gridSX;
-                gridSY = self.gridSY;
-                save(filename, 'gridSX', 'gridSY');
+                fineGridX = self.fineGridX;
+                fineGridY = self.fineGridY;
+                save(filename, 'fineGridX', 'fineGridY');
             end
             
             %Interpolation mode

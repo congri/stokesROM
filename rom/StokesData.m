@@ -13,6 +13,7 @@ classdef StokesData < handle
         coordDist_cov = '0.2_0.0_0.3'
         radiiDist = 'logn'
         samples
+        nSamples
         %base name of file path
         pathname = []
         
@@ -30,22 +31,18 @@ classdef StokesData < handle
         %Microstructural data, e.g. centers & radii of circular inclusions
         microstructData
         %Flow boundary conditions; C++ string
-        p_bc
-        u_bc
+        p_bc = '0.0';
+        u_bc = {'u_x=0.0-2.0*x[1]', 'u_y=1.0-2.0*x[0]'}
         %Design matrix
         designMatrix
     end
     
     methods
-        function self = StokesData(samples, u_bc, p_bc)
+        function self = StokesData(samples)
             %constructor
             self.samples = samples;
-            self.u_bc = u_bc;
-            if isa(p_bc, 'function_handle')
-                p_bc = func2str(p_bc);
-                p_bc = p_bc(5:end);
-            end
-            self.p_bc = p_bc;
+            self.nSamples = numel(samples);
+
             for n = 1:numel(samples)
                 self.designMatrix{n} = [];
             end
@@ -192,23 +189,12 @@ classdef StokesData < handle
             end
         end
         
-        function interpolate(self, fineGridX, fineGridY, interpolationMode, ...
-                smoothingParameter, boundarySmoothingPixels)
+        function interpolate(self, modelParams)
             %Interpolates finescale data onto a regular rectangular grid
             %specified by fineGridX, fineGridY
             
-            if nargin < 3
-                fineGridY = fineGridX;
-            end
-            if nargin < 4
-                interpolationMode = 'linear';
-            end
-            if nargin < 5
-                smoothingParameter = [];
-            end
-            
-            fineGridX = [0, cumsum(fineGridX)];
-            fineGridY = [0, cumsum(fineGridY)];
+            fineGridX = [0, cumsum(modelParams.fineGridX)];
+            fineGridY = [0, cumsum(modelParams.fineGridY)];
             
             if isempty(self.X)
                 self.readData('x');
@@ -218,31 +204,37 @@ classdef StokesData < handle
             [xq, yq] = meshgrid(fineGridX, fineGridY);
             for n = 1:numel(self.P)
                 if ~isempty(self.P)
-%                     p_interp = griddata(self.X{n}(:, 1), self.X{n}(:, 2), ...
-%                         self.P{n}, xq(:), yq(:), interpolationMode);
                     F = scatteredInterpolant(self.X{n}(:, 1),...
                         self.X{n}(:, 2), self.P{n});
                     p_interp = F(xq(:), yq(:));
                     
                     %replace original data by interpolated data
-                    if ~isempty(smoothingParameter)
+                    if ~isempty(modelParams.smoothingParameter)
                         p_interp = reshape(p_interp, numel(fineGridX), ...
                             numel(fineGridY));
-                        if boundarySmoothingPixels > 0
+                        if modelParams.boundarySmoothingPixels > 0
                             %only smooth boundary
-                            p_temp = imgaussfilt(p_interp,...
-                                smoothingParameter, 'Padding', 'symmetric');
-                            p_interp(1:boundarySmoothingPixels, :) = ...
-                                p_temp(1:boundarySmoothingPixels, :);
-                            p_interp((end - boundarySmoothingPixels):end,:)=...
-                                p_temp((end - boundarySmoothingPixels):end,:);
-                            p_interp(:, 1:boundarySmoothingPixels) = ...
-                                p_temp(:, 1:boundarySmoothingPixels);
-                            p_interp(:, (end - boundarySmoothingPixels):end)=...
-                                p_temp(:, (end - boundarySmoothingPixels):end);
+                            p_temp = imgaussfilt(p_interp, ...
+                                modelParams.smoothingParameter,...
+                                'Padding', 'symmetric');
+                            p_interp(1:modelParams.boundarySmoothingPixels,:)...
+                                = p_temp(1:...
+                                modelParams.boundarySmoothingPixels, :);
+                            p_interp((end - ...
+                                modelParams.boundarySmoothingPixels):end,:)=...
+                                p_temp((end -...
+                                modelParams.boundarySmoothingPixels):end,:);
+                            p_interp(:,...
+                                1:modelParams.boundarySmoothingPixels) = ...
+                                p_temp(:,1:modelParams.boundarySmoothingPixels);
+                            p_interp(:, (end -...
+                                modelParams.boundarySmoothingPixels):end)=...
+                                p_temp(:, (end -...
+                                modelParams.boundarySmoothingPixels):end);
                         else
-                            p_interp= imgaussfilt(p_interp,...
-                                smoothingParameter, 'Padding', 'symmetric');
+                            p_interp = imgaussfilt(p_interp,...
+                                modelParams.smoothingParameter,...
+                                'Padding', 'symmetric');
                         end
                         p_interp = p_interp(:);
                     end
@@ -365,28 +357,23 @@ classdef StokesData < handle
             end
         end
         
-        function vtxToCell(self, gridX, gridY, interpolationMode)
+        function vtx2Cell(self, modelParams)
             %Mapping from vertex to cell of rectangular grid specified by
             %grid vectors gridX, gridY
-            if nargin < 4
-                interpolationMode = false;
-            end
-            if nargin < 3
-                gridY = gridX;
-            end
-            cumsumX = cumsum(gridX);
+
+            cumsumX = cumsum(modelParams.fineGridX);
             cumsumX(end) = cumsumX(end) + 1e-12;  %include vertices on boundary
-            cumsumY = cumsum(gridY);
+            cumsumY = cumsum(modelParams.fineGridY);
             cumsumY(end) = cumsumY(end) + 1e-12;  %include vertices on boundary
             
-            Nx = numel(gridX);
+            Nx = numel(modelParams.fineGridX);
             
             if isempty(self.X)
                 self = self.readData('x');
             end
-            if any(interpolationMode)
+            if any(modelParams.interpolationMode)
                 if isempty(self.X_interp)
-                    self = self.interpolate(gridX, gridY, interpolationMode);
+                    self = self.interpolate(modelParams);
                 end
                 X = self.X_interp;
             else

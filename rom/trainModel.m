@@ -4,37 +4,27 @@
 clear
 addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 addpath('./mesh')
-%% Define parameters here:
 
-nTrain = 32;
+%Parameters from previous runs are deleted here
+if exist('./data/', 'dir')
+    rmdir('./data', 's'); %delete old params
+end
+mkdir('./data/');
+
+%% Try to define parameters in classes. Rest here:
+
+nTrain = 16;
 %nStart = randi(1023 - nTrain) - 1
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
-max_EM_iter = 400;  %maximum EM iterations
 muField = 0;        %mean function in p_cf
-
-mode = 'local';
-normalization = 'rescale';
 
 %Conductivity transformation options
 condTransOpts.type = 'log';
 condTransOpts.limits = [1e-10, 1e3];
 
-%grid vectors
-gridX = ones(1, 2);   %coarse FEM
-gridX = gridX/sum(gridX);
-gridY = gridX;
-gridRF = RectangularMesh((1/2)*ones(1, 2));
+gridRF = RectangularMesh((1/4)*ones(1, 4));
 % gridRF.split_cell(gridRF.cells{4});
-gridSX = ones(1, 128);   %p_cf S grid
-gridSX = gridSX/sum(gridSX);
-gridSY = gridSX;
-
-%Boundary condition fields
-p_bc = @(x) 0.0;
-%influx?
-u_bc{1} = 'u_x=0.0-2.0*x[1]';
-u_bc{2} = 'u_y=1.0-2.0*x[0]';
 
 %random number seed based on time
 rng('shuffle');
@@ -42,20 +32,16 @@ rng('shuffle');
 rom = StokesROM;
 
 %% Read training data, initialize parameters and evaluate features:
-
-rom.readTrainingData(samples, u_bc, p_bc);
-N_train = numel(rom.trainingData.samples);
+rom.trainingData = StokesData(samples);
+rom.trainingData.readData('px');
 rom.trainingData.countVertices();
 
 rom.modelParams = ModelParams;
-rom.initializeModelParams(p_bc, u_bc, '', gridX, gridY, gridRF, gridSX, gridSY);
+rom.initializeModelParams('', gridRF);
 
 rom.modelParams.condTransOpts = condTransOpts;
 if any(rom.modelParams.interpolationMode)
-    rom.trainingData.interpolate(gridSX, gridSY,...
-        rom.modelParams.interpolationMode,...
-        rom.modelParams.smoothingParameter,...
-        rom.modelParams.boundarySmoothingPixels);
+    rom.trainingData.interpolate(rom.modelParams);
     rom.modelParams.fineScaleInterp(rom.trainingData.X_interp);
     interp = true;
 else
@@ -63,26 +49,21 @@ else
     interp = false;
 end
 rom.trainingData.shiftData(interp, 'p'); %shifts p to 0 at origin
-rom.modelParams.saveParams('gtcscscf');
-rom.modelParams.saveParams('coarseMesh');
-rom.modelParams.saveParams('priorType');
-rom.modelParams.saveParams('condTransOpts');
-rom.modelParams.saveParams('gridRF');
-rom.modelParams.saveParams('gridS');
-rom.modelParams.saveParams('interp');
-rom.modelParams.saveParams('smooth');
+modelParams = rom.modelParams;
+save('./data/modelParams.mat', 'modelParams');
+clear modelParams;
 rom.trainingData.evaluateFeatures(gridRF);
 
-if strcmp(normalization, 'rescale')
+if strcmp(rom.modelParams.normalization, 'rescale')
     rom.trainingData.rescaleDesignMatrix;
 end
 
-if strcmp(mode, 'local')
+if strcmp(rom.modelParams.mode, 'local')
     rom.trainingData.shapeToLocalDesignMat;
 end
 %theta_c must be initialized after design matrices exist
 rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
-rom.trainingData.vtxToCell(gridSX, gridSY, rom.modelParams.interpolationMode);
+rom.trainingData.vtx2Cell(rom.modelParams);
 
 %Step width for stochastic optimization in VI
 sw =[1e-1*ones(1, gridRF.nCells), 1e-1*ones(1, gridRF.nCells)];
@@ -92,7 +73,7 @@ sw_min = 8e-3*ones(size(sw));
 %% Bring variational distribution params in form for unconstrained optimization
 varDistParamsVec{1} = [rom.modelParams.variational_mu{1},...
     -2*log(rom.modelParams.variational_sigma{1})];
-varDistParamsVec = repmat(varDistParamsVec, N_train, 1);
+varDistParamsVec = repmat(varDistParamsVec, nTrain, 1);
 %% 
 %% Actual training phase:
 % 
@@ -103,10 +84,10 @@ epoch = 0;  %one epoch == one time seen every data point
 thetaArray = [];
 SigmaArray = [];
 gammaArray = [];
-ppool = parPoolInit(N_train);
+ppool = parPoolInit(nTrain);
 while ~converged
     
-    for n = 1:N_train
+    for n = 1:nTrain
         %Setting up a handle to the distribution q_n
         %this transfers less data in parfor loops
         P_n_minus_mu = rom.trainingData.P{n} - muField;
@@ -137,7 +118,7 @@ while ~converged
     
     nRFc = gridRF.nCells;
     tic
-    parfor n = 1:N_train
+    parfor n = 1:nTrain
         mx{n} = max_fun(lg_q{n}, varDistParamsVec{n}(1:nRFc));
         varDistParamsVec{n}(1:nRFc) = mx{n};
         %Finding variational approximation to q_n
@@ -151,7 +132,7 @@ while ~converged
     sw = sw_decay*sw;
     sw(sw < sw_min) = sw_min(sw < sw_min);
     
-    for n = 1:N_train
+    for n = 1:nTrain
         %Compute expected values under variational approximation
         XMean(:, n) = varDistParams{n}.mu';
         XSqMean(:, n) = varDistParams{n}.XSqMean;
@@ -170,19 +151,17 @@ while ~converged
         sqDist{n} = p_cf_exp;
     end
     
-    
-    % romObj.varExpect_p_cf_exp_mean = mean(tempArray, 2);
-    
+        
     %M-step: determine optimal parameters given the sample set
     tic
-    rom.M_step(XMean, XSqMean, sqDist);
+    [elbo, cell_score] = rom.M_step(XMean, XSqMean, sqDist)
     M_step_time = toc
     
     
     
     Lambda_eff1_mode = conductivityBackTransform(...
         rom.trainingData.designMatrix{1}*rom.modelParams.theta_c, condTransOpts)
-    rom.modelParams.printCurrentParams(mode);
+    rom.modelParams.printCurrentParams;
     plt = feature('ShowFigureWindows');
     if plt
         %plot current parameters
@@ -202,15 +181,27 @@ while ~converged
         end
         %plot modal lambda_c and corresponding -training- data reconstruction
         rom.plotCurrentState(figResponse, 0, condTransOpts);
+        
+        if exist('elbo')
+            if ~exist('figElbo')
+                figElbo =...
+                figure('units','normalized','outerposition',[0 0 1 1]);
+            end
+            rom.plotElbo(figElbo, elbo, EMiter);
+        end
     end
     
-    %collect data and write it to disk periodically to save memory
-    rom.modelParams.saveParams('gtcscscfvardist') 
-    rom.modelParams.saveParams('stc')
+    %write parameters to disk to investigate convergence
+    rom.modelParams.write2file('thetaPriorHyperparam');
+    rom.modelParams.write2file('theta_c');
+    rom.modelParams.write2file('sigma_c');
+    modelParams = rom.modelParams;
+    save('./data/modelParams.mat', 'modelParams')
+    clear modelParams;
     save('./data/XMean', 'XMean');
     save('./data/XSqMean', 'XSqMean');
     
-    if EMiter > max_EM_iter
+    if EMiter > rom.modelParams.max_EM_iter
         converged = true;
     else
         EMiter = EMiter + 1
