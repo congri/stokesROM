@@ -28,6 +28,7 @@ gridRF = RectangularMesh((1/4)*ones(1, 4));
 
 %random number seed based on time
 rng('shuffle');
+
 %% Initialize reduced order model object:
 rom = StokesROM;
 

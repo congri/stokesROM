@@ -154,6 +154,8 @@ classdef ModelParams < handle
             
             load('./data/smoothingParameter.mat');
             self.smoothingParameter = smoothingParameter;
+            load('./data/boundarySmoothingPixels.mat');
+            self.boundarySmoothingPixels = boundarySmoothingPixels;
             
             load('./data/boundarySmoothingPixels.mat');
             self.boundarySmoothingPixels = boundarySmoothingPixels;
@@ -249,10 +251,14 @@ classdef ModelParams < handle
             axis(sb1, 'tight');
             sb1.YLim = [(min(thetaArray(end, :)) - 1),...
                 (max(thetaArray(end, :)) + 1)];
+            sb1.XLabel.String = 'iter';
+            sb1.YLabel.String = '$\theta_c$';
             
             sb2 = subplot(3, 2, 2, 'Parent', figHandle);
             bar(self.theta_c, 'linewidth', 1, 'Parent', sb2)
             axis(sb2, 'tight');
+            sb2.XLabel.String = 'component $i$';
+            sb2.YLabel.String = '$\theta_{c,i}$';
             
             sb3 = subplot(3,2,3, 'Parent', figHandle);
             semilogy(sqrt(SigmaArray), 'linewidth', 1, 'Parent', sb3)
