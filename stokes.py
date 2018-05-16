@@ -11,7 +11,7 @@ class StokesData():
     # Properties
     # All data parameters specified here
 
-    folderbase = '/home/constantin'
+    folderbase = '/home/constantin/cluster'
 
     # general parameters
     meshes = np.arange(0, 4)                       # vector of random meshes to load
@@ -208,7 +208,7 @@ class StokesData():
 stokesData = StokesData()
 #stokesData.genData()
 t = time.time()
-solution = stokesData.loadSolution(1)
+solution = stokesData.loadSolution(0)
 elapsed_time = time.time() - t
 print('Solution loaded. Time: ', elapsed_time)
 
