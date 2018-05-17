@@ -50,7 +50,7 @@ class StokesData(FlowProblem):
     viscosity = 1.0
 
     # general parameters
-    meshes = np.arange(0, 2)                       # vector of random meshes to load
+    meshes = np.arange(0, 4)                       # vector of random meshes to load
     nElements = 128
 
     # microstructure parameters
@@ -176,12 +176,18 @@ class StokesData(FlowProblem):
         mesh = df.Mesh(self.foldername + '/mesh' + str(meshNumber) + '.xml')
         return mesh
 
-    def saveSolution(self, solutionFunction, meshNumber):
+    def saveSolution(self, solutionFunction, meshNumber, type='python'):
         mesh = solutionFunction.function_space().mesh()
 
-        hdf = df.HDF5File(mesh.mpi_comm(), self.solutionfolder + '/solution' + str(meshNumber) + '.h5', "w")
-        hdf.write(solutionFunction, 'solution')
-        hdf.close()
+        if type =='python':
+            hdf = df.HDF5File(mesh.mpi_comm(), self.solutionfolder + '/solution' + str(meshNumber) + '.h5', "w")
+            hdf.write(solutionFunction, 'solution')
+            hdf.close()
+        elif type == 'matlab':
+            v, p = solutionFunction.split()
+            sio.savemat(self.solutionfolder + '/solution' + str(meshNumber) + '.mat',
+                        {'u': np.reshape(v.compute_vertex_values(), (2, -1)), 'p': p.compute_vertex_values(),
+                         'x': mesh.coordinates()})
 
     def loadSolution(self, meshNumber):
         mesh = self.loadMesh(meshNumber)
