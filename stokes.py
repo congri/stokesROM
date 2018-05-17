@@ -2,24 +2,56 @@
 The code architecture still needs to be specified."""
 
 import numpy as np
-import dolfin as df
 import os
 import scipy.io as sio
 import time
+import matplotlib.pyplot as plt
+import dolfin as df
+import dolfin_adjoint as dfa
 
-class StokesData():
+class FlowProblem:
+    """Base class for Stokes and Darcy simulators. Put physical quantities affecting both here."""
+    # boundary conditions, specified as dolfin expressions
+    # Flow boundary condition for velocity on domain boundary (avoid spaces for proper file path)
+    # should be of the form u = (a_x + a_xy y, a_y + a_xy x)
+    u_x = '0.0-2.0*x[1]'
+    u_y = '1.0-2.0*x[0]'
+    flowField = df.Expression((u_x, u_y), degree=2)
+    # Pressure boundary condition field
+    p_bc = '0.0'
+    pressureField = df.Expression(p_bc, degree=2)
+
+    bodyForce = df.Constant((0.0, 0.0))  # right hand side; how is this treated in Darcy?
+
+    class FlowBoundary(df.SubDomain):
+        def inside(self, x, on_boundary):
+            # SET FLOW BOUNDARIES HERE;
+            # pressure boundaries are the complementary boundary in Stokes and need to be specified below for Darcy
+            return x[1] > 1.0 - df.DOLFIN_EPS or (x[1] < df.DOLFIN_EPS and x[0] > df.DOLFIN_EPS) or \
+                   x[0] > 1.0 - df.DOLFIN_EPS or (x[0] < df.DOLFIN_EPS and x[1] > df.DOLFIN_EPS)
+    flowBoundary = FlowBoundary()
+
+    class PressureBoundary(df.SubDomain):
+        def inside(self, x, on_boundary):
+            # Set pressure boundaries here
+            return (x[0] < df.DOLFIN_EPS and x[1] < df.DOLFIN_EPS)
+    pressureBoundary = PressureBoundary()
+
+
+class StokesData(FlowProblem):
     # Properties
+
+    folderbase = '/home/constantin'
+
     # All data parameters specified here
-
-    folderbase = '/home/constantin/cluster'
-
-    # general parameters
-    meshes = np.arange(0, 4)                       # vector of random meshes to load
-    porousMedium = 'nonOverlappingDisks'            # circles or randomField
-    nElements = 128                                 #
+    medium = 'nonOverlappingDisks'  # circles or randomField
 
     # physical parameters
     viscosity = 1.0
+
+    # general parameters
+    meshes = np.arange(0, 2)                       # vector of random meshes to load
+    nElements = 128
 
     # microstructure parameters
     nExclusionsDist = 'logn'                        # number of exclusions distribution
@@ -30,38 +62,22 @@ class StokesData():
     radiiDist = 'logn'                              # dist. of disk radii
     rParams = (-4.5, 0.7)                           # mu and sigma of disk radii distribution
     margins = (0.01, 0.01, 0.01, 0.01)              # margins of exclusions to boundaries
+    interiorBCtype = 'noslip'                       # Boundary condition on exclusion boundary
 
-    # boundary conditions, specified as dolfin expressions
-    # Flow boundary condition for velocity on domain boundary (avoid spaces for proper file path)
-    # should be of the form u = (a_x + a_xy y, a_y + a_xy x)
-    u_x = '0.0-2.0*x[1]'
-    u_y = '1.0-2.0*x[0]'
-    flowField = df.Expression((u_x, u_y), degree=2)
-    # Pressure boundary condition field
-    p_bc = '0.0'
-    pressureField = df.Expression(p_bc, degree=2)
-    # Interior boundary condition
-    interiorBCtype = 'noslip'
-    bodyForce = df.Constant((0.0, 0.0))  # right hand side
-
-    class FlowBoundary(df.SubDomain):
-        def inside(self, x, on_boundary):
-            # SET FLOW BOUNDARIES HERE;
-            # pressure boundaries are the complementary boundary
-            return x[1] > 1.0 - df.DOLFIN_EPS or (x[1] < df.DOLFIN_EPS and x[0] > df.DOLFIN_EPS) or \
-                   x[0] > 1.0 - df.DOLFIN_EPS or (x[0] < df.DOLFIN_EPS and x[1] > df.DOLFIN_EPS)
+    # data storage
+    mesh = []
+    solution = []
 
 
     def __init__(self):
         # Constructor
-        self.flowBoundary = self.FlowBoundary()
         self.setFineDataPath()
         return
 
     def setFineDataPath(self):
         # set up finescale data path
         self.foldername = self.folderbase + '/python/data/stokesEquation/meshSize=' + str(self.nElements) + '/' \
-                     + self.porousMedium + '/margins=' + str(self.margins[0]) + '_' + str(self.margins[1]) + '_' \
+                     + self.medium + '/margins=' + str(self.margins[0]) + '_' + str(self.margins[1]) + '_' \
                      + str(self.margins[2]) + '_' + str(self.margins[3]) + '/N~' + self.nExclusionsDist
         if self.nExclusionsDist == 'logn':
             self.foldername += '/mu=' + str(self.nExclusionParams[0]) + '/sigma=' + str(self.nExclusionParams[1]) \
@@ -160,29 +176,24 @@ class StokesData():
         mesh = df.Mesh(self.foldername + '/mesh' + str(meshNumber) + '.xml')
         return mesh
 
+    def saveSolution(self, solutionFunction, meshNumber):
+        mesh = solutionFunction.function_space().mesh()
+
+        hdf = df.HDF5File(mesh.mpi_comm(), self.solutionfolder + '/solution' + str(meshNumber) + '.h5', "w")
+        hdf.write(solutionFunction, 'solution')
+        hdf.close()
+
     def loadSolution(self, meshNumber):
         mesh = self.loadMesh(meshNumber)
+
+        hdf = df.HDF5File(df.mpi_comm_world(), self.solutionfolder + '/solution' + str(meshNumber) + '.h5', "r")
+
         functionSpace = self.getFunctionSpace(mesh)
-        solution = df.Function(functionSpace, self.solutionfolder + '/solution' + str(meshNumber) + '.xml')
-        return solution, mesh, functionSpace
+        solution = df.Function(functionSpace)
+        hdf.read(solution, 'solution')
+        hdf.close()
 
-    def saveSolution(self, U, mesh, meshNumber, type='matlab'):
-        # Save solution to mat file for easy read-in in matlab
-        if not os.path.exists(self.solutionfolder):
-            os.makedirs(self.solutionfolder)
-
-        # Get sub-functions
-        u, p = U.split()
-        if type == 'matlab':
-            sio.savemat(self.solutionfolder + '/solution' + str(meshNumber) + '.mat',
-                    {'u': np.reshape(u.compute_vertex_values(), (2, -1)), 'p': p.compute_vertex_values(),
-                     'x': mesh.coordinates()})
-        elif type == 'python':
-            solutionFile = df.File(self.solutionfolder + '/solution' + str(meshNumber) + '.xml')
-            solutionFile << U
-        else:
-            raise ValueError('Unknown file format.')
-        return
+        return solution, mesh
 
     def genData(self):
         for meshNumber in self.meshes:
@@ -195,20 +206,66 @@ class StokesData():
             t = time.time()
             try:
                 solution = self.solvePDE(functionSpace, mesh, boundaryConditions)
-                self.saveSolution(solution, mesh, meshNumber, 'python')
+                self.saveSolution(solution, meshNumber)
                 elapsed_time = time.time() - t
-                print('equation system solved. Time: ', elapsed_time)
+                print('Stokes PDE solved. Time: ', elapsed_time)
             except:
                 print('Solver failed to converge. Passing to next mesh')
         return
 
+    def loadData(self, quantities):
+        # load and save data to object property
+        # quantities: list of quantities specified by strings: 'mesh', 'pressure', 'velocity'
+        for meshNumber in self.meshes:
+            if 'mesh' in quantities:
+                self.mesh.append(self.loadMesh(meshNumber))
+            if 'solution' in quantities:
+                U, _ = self.loadSolution(meshNumber)
+                self.solution.append(U)
+
+
+class DolfinPoisson(FlowProblem):
+    # Dolfin Darcy solver
+    # Create mesh and define function space
+    coarseMesh = df.UnitSquareMesh(2, 2)
+    solutionFunctionSpace = df.FunctionSpace(coarseMesh, 'CG', 1)
+    sourceTerm = df.Constant(0.0)
+
+    # Get boundary condition in dolfin form
+    def __init__(self):
+        # Is this translation of BC's correct?
+        self.bcPressure = df.DirichletBC(self.solutionFunctionSpace, self.pressureField,
+                              self.pressureBoundary, method='pointwise')
+        self.bcFlux = df.inner(df.FacetNormal(self.coarseMesh), self.flowField)
+        return
+
+    def solvePDE(self, diffusivity):
+        # Define variational problem
+        u = df.TrialFunction(self.solutionFunctionSpace)
+        v = df.TestFunction(self.solutionFunctionSpace)
+        a = diffusivity * df.inner(df.grad(v), df.grad(u)) * df.dx
+        L = self.sourceTerm * v * df.dx + self.bcFlux * v * df.ds
+
+        # Compute solution
+        u = df.Function(self.solutionFunctionSpace)
+        dfa.solve(a == L, u, self.bcPressure)
+        return u
+
+
 
 
 # tests
+df.set_log_level(30)
 stokesData = StokesData()
-#stokesData.genData()
-t = time.time()
-solution = stokesData.loadSolution(0)
-elapsed_time = time.time() - t
-print('Solution loaded. Time: ', elapsed_time)
+stokesData.genData()
+stokesData.loadData(('mesh', 'solution'))
+print(stokesData.solution[1])
+U = stokesData.solution[1]
+v, p = U.split()
+print(p)
+plt.figure()
+df.plot(p)
+plt.show()
+
+
 
