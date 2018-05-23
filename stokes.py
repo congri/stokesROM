@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import dolfin as df
 import dolfin_adjoint as dfa
 
+
 class FlowProblem:
     """Base class for Stokes and Darcy simulators. Put physical quantities affecting both here."""
     # boundary conditions, specified as dolfin expressions
@@ -91,14 +92,6 @@ class StokesData(FlowProblem):
         self.foldername += '/r~' + self.radiiDist + '/mu=' + str(self.rParams[0]) + '/sigma=' + str(self.rParams[1])
         self.solutionfolder = self.foldername + '/p_bc=' + self.p_bc + '/u_x=' + self.u_x + '_u_y=' + self.u_y
         return
-
-    def getFunctionSpace(self, mesh):
-        # Define mixed function space (Taylor-Hood)
-        u_e = df.VectorElement('CG', mesh.ufl_cell(), 2)
-        p_e = df.FiniteElement('CG', mesh.ufl_cell(), 1)
-        mixedEl = df.MixedElement([u_e, p_e])
-        functionSpace = df.FunctionSpace(mesh, mixedEl)
-        return functionSpace
 
     def getInteriorBC(self, functionSpace):
         # returns interior boundary bc for fenics
@@ -194,7 +187,7 @@ class StokesData(FlowProblem):
 
         hdf = df.HDF5File(df.mpi_comm_world(), self.solutionfolder + '/solution' + str(meshNumber) + '.h5', "r")
 
-        functionSpace = self.getFunctionSpace(mesh)
+        functionSpace = getFunctionSpace(mesh)
         solution = df.Function(functionSpace)
         hdf.read(solution, 'solution')
         hdf.close()
@@ -205,7 +198,7 @@ class StokesData(FlowProblem):
         for meshNumber in self.meshes:
             print('Current mesh number = ', meshNumber)
             mesh = self.loadMesh(meshNumber)
-            functionSpace = self.getFunctionSpace(mesh)
+            functionSpace = getFunctionSpace(mesh)
             interiorBC = self.getInteriorBC(functionSpace)
             outerBC = self.getOuterBC(functionSpace)
             boundaryConditions = [interiorBC, outerBC]
@@ -233,8 +226,9 @@ class StokesData(FlowProblem):
 class DolfinPoisson(FlowProblem):
     # Dolfin Darcy solver
     # Create mesh and define function space
-    coarseMesh = df.UnitSquareMesh(2, 2)
-    solutionFunctionSpace = df.FunctionSpace(coarseMesh, 'CG', 1)
+    mesh = df.UnitSquareMesh(2, 2)
+    solutionFunctionSpace = df.FunctionSpace(mesh, 'CG', 1)
+    diffusivityFunctionSpace = df.FunctionSpace(mesh, 'DG', 0)
     sourceTerm = df.Constant(0.0)
 
     # Get boundary condition in dolfin form
@@ -242,14 +236,14 @@ class DolfinPoisson(FlowProblem):
         # Is this translation of BC's correct?
         self.bcPressure = df.DirichletBC(self.solutionFunctionSpace, self.pressureField,
                               self.pressureBoundary, method='pointwise')
-        self.bcFlux = df.inner(df.FacetNormal(self.coarseMesh), self.flowField)
+        self.bcFlux = df.inner(df.FacetNormal(self.mesh), self.flowField)
         return
 
-    def solvePDE(self, diffusivity):
+    def solvePDE(self, diffusivityFunction):
         # Define variational problem
         u = df.TrialFunction(self.solutionFunctionSpace)
         v = df.TestFunction(self.solutionFunctionSpace)
-        a = diffusivity * df.inner(df.grad(v), df.grad(u)) * df.dx
+        a = diffusivityFunction * df.inner(df.grad(v), df.grad(u)) * df.dx
         L = self.sourceTerm * v * df.dx + self.bcFlux * v * df.ds
 
         # Compute solution
@@ -258,20 +252,68 @@ class DolfinPoisson(FlowProblem):
         return u
 
 
+class ReducedOrderModel():
+
+    coarseSolver = DolfinPoisson()
+
+    def log_p_cf(self, x, solution_n):
+        # Reconstruction distribution
+        #   x:              transformed effective diffusivity
+        #   solution_n:     full single solution with index n (velocity and pressure)
+        diffusivityFunction = df.Function(self.coarseSolver.diffusivityFunctionSpace)
+        diffusivityFunction.vector()[:] = diffusivityTransform(x, 'log', 'backward')
+
+        u_c = self.coarseSolver.solvePDE(diffusivityFunction)
+
+        # get correct subspace to project on
+        pFunSpace = df.FunctionSpace(solution_n.functionSpace().mesh(), 'CG', 1)
+        p_n, _ = solution_n.split()
+        difference = df.project(p_n - u_c, pFunSpace)
+        S = df.Expression('1.0', degree=2)
+        log_p = -.5*np.log(S) * df.dx - .5 * S * df.inner(difference, difference) * df.dx
+        log_p_functional = dfa.Functional(log_p)
+
+        # gradient
+        d_log_p = dfa.compute_gradient(log_p_functional, dfa.control(diffusivityFunction))
+
+        return log_p, d_log_p
 
 
-# tests
-df.set_log_level(30)
-stokesData = StokesData()
-stokesData.genData()
-stokesData.loadData(('mesh', 'solution'))
-print(stokesData.solution[1])
-U = stokesData.solution[1]
-v, p = U.split()
-print(p)
-plt.figure()
-df.plot(p)
-plt.show()
+# Static functions
+def getFunctionSpace(mesh):
+    # Define mixed function space (Taylor-Hood)
+    u_e = df.VectorElement('CG', mesh.ufl_cell(), 2)
+    p_e = df.FiniteElement('CG', mesh.ufl_cell(), 1)
+    mixedEl = df.MixedElement([u_e, p_e])
+    functionSpace = df.FunctionSpace(mesh, mixedEl)
+    return functionSpace
+
+
+def diffusivityTransform(x, type='log', dir='forward', limits=np.array([1e-12, 1e12])):
+    # Transformation to positive definite diffusivity from unbounded space, e.g. log diffusivity
+    #   'forward': from diffusivity to unbounded quantity
+    #   'backward': from unbounded quantity back to diffusivity
+
+    if dir == 'forward':
+        # from diffusivity to unbounded
+        print('not yet implemented')
+    elif dir == 'backward':
+        if type == 'logit':
+            # Logistic sigmoid transformation
+            diffusivity = (limits[1] - limits[0])/(1 + np.exp(-x)) + limits[0]
+        elif type == 'log':
+            diffusivity = np.exp(x)
+            diffusivity[diffusivity > limits[1]] = limits[1]
+            diffusivity[diffusivity < limits[0]] = limits[0]
+        elif type == 'log_lower_bound':
+            diffusivity = np.exp(x) + limits[0]
+            diffusivity[diffusivity > limits[1]] = limits[1]
+
+    return diffusivity
+
+
+
+
 
 
 
