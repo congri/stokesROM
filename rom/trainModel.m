@@ -28,8 +28,8 @@ muField = 0;        %mean function in p_cf
 condTransOpts.type = 'log';
 condTransOpts.limits = [1e-10, 1e3];
 
-gridRF = RectangularMesh((1/4)*ones(1, 4));
-% gridRF.split_cell(gridRF.cells{4});
+gridRF = RectangularMesh((1/2)*ones(1, 2));
+gridRF.split_cell(gridRF.cells{2});
 
 %random number seed based on time
 rng('shuffle');
