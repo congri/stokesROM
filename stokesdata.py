@@ -4,7 +4,7 @@ import numpy as np
 import scipy.io as sio
 import time
 from flowproblem import FlowProblem
-from modelparameters import ModelParameters
+import featurefunctions as ff
 import dolfin as df
 import fenics_adjoint as dfa
 
@@ -21,7 +21,7 @@ class StokesData(FlowProblem):
     viscosity = 1.0
 
     # general parameters
-    meshes = np.arange(0, 1)  # vector of random meshes to load
+    samples = np.arange(0, 1)  # vector of random meshes to load
     nElements = 128
 
     # microstructure parameters
@@ -169,7 +169,7 @@ class StokesData(FlowProblem):
         return solution, mesh
 
     def genData(self):
-        for meshNumber in self.meshes:
+        for meshNumber in self.samples:
             print('Current mesh number = ', meshNumber)
             mesh = self.loadMesh(meshNumber)
             functionSpace = getFunctionSpace(mesh)
@@ -190,7 +190,7 @@ class StokesData(FlowProblem):
     def loadData(self, quantities):
         # load and save data to object property
         # quantities: list of quantities specified by strings: 'mesh', 'pressure', 'velocity'
-        for meshNumber in self.meshes:
+        for meshNumber in self.samples:
             if 'mesh' in quantities:
                 self.mesh.append(self.loadMesh(meshNumber))
             if 'solution' in quantities:
@@ -206,6 +206,31 @@ class StokesData(FlowProblem):
                 _, p_n = solution_n.split()
                 p_n.set_allow_extrapolation(True)
                 self.p_interp.append(dfa.interpolate(p_n, modelParameters.pInterpSpace))
+
+    def loadMicrostructureInformation(self):
+        # Loads
+
+    def evaluateFeatures(self, modelParameters, writeTextFile=False):
+        # Evaluate feature functions and set up design matrix for sample n
+
+        Phi_n = np.empty((modelParameters.coarseMesh.num_cells(), 0))
+
+        if writeTextFile:
+            file = open('./data/featureFunctions.txt', 'w')
+
+        # Constant 1
+        Phi_n = np.append(Phi_n, np.ones((modelParameters.coarseMesh.num_cells(), 0)), axis=1)
+        if writeTextFile:
+            file.write('constant\n')
+
+        Phi_n = np.append(Phi_n, ff.volumeFractionCircExclusions(diskCenters, diskRadii, meshRF), axis=1)
+
+        print('Phi_n = ', Phi_n)
+
+        return Phi_n
+
+
+
 
 
 # Static functions

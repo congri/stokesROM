@@ -20,6 +20,8 @@ stokesData = StokesData()
 stokesData.loadData(('mesh', 'solution'))
 stokesData.interpolate('p', modelParameters)
 
+stokesData.evaluateFeatures(modelParameters)
+
 rom = ReducedOrderModel(modelParameters)
 x = np.random.normal(-8.9, 0.01, rom.coarseSolver.diffusivityFunctionSpace.dim())
 diffusivityFunction = dfa.Function(rom.coarseSolver.diffusivityFunctionSpace)
