@@ -3,6 +3,7 @@
 import numpy as np
 import scipy.io as sio
 import time
+import multiprocessing
 from flowproblem import FlowProblem
 import featurefunctions as ff
 import dolfin as df
@@ -21,7 +22,7 @@ class StokesData(FlowProblem):
     viscosity = 1.0
 
     # general parameters
-    samples = np.arange(0, 1)  # vector of random meshes to load
+    samples = np.arange(0, 4)  # vector of random meshes to load
     nElements = 128
 
     # microstructure parameters
@@ -40,6 +41,8 @@ class StokesData(FlowProblem):
     solution = []
     p_interp = []
     v_interp = []
+
+    designMatrix = [None] * samples.size
 
 
     def __init__(self):
@@ -207,30 +210,56 @@ class StokesData(FlowProblem):
                 p_n.set_allow_extrapolation(True)
                 self.p_interp.append(dfa.interpolate(p_n, modelParameters.pInterpSpace))
 
-    def loadMicrostructureInformation(self):
-        # Loads
-
-    def evaluateFeatures(self, modelParameters, writeTextFile=False):
+    def evaluateFeatures(self, Phi, sample_index, modelParameters, writeTextFile=False):
         # Evaluate feature functions and set up design matrix for sample n
 
-        Phi_n = np.empty((modelParameters.coarseMesh.num_cells(), 0))
+        Phi[sample_index] = np.empty((modelParameters.coarseMesh.num_cells(), 0))
 
-        if writeTextFile:
-            file = open('./data/featureFunctions.txt', 'w')
+        file = open('./data/featureFunctions.txt', 'w') if writeTextFile else False
 
         # Constant 1
-        Phi_n = np.append(Phi_n, np.ones((modelParameters.coarseMesh.num_cells(), 0)), axis=1)
-        if writeTextFile:
-            file.write('constant\n')
+        Phi[sample_index] = np.append(Phi[sample_index],
+                          np.ones((modelParameters.coarseMesh.num_cells(), 1)), axis=1)
+        file.write('constant\n') if writeTextFile else False
 
-        Phi_n = np.append(Phi_n, ff.volumeFractionCircExclusions(diskCenters, diskRadii, meshRF), axis=1)
-
-        print('Phi_n = ', Phi_n)
-
-        return Phi_n
-
+        Phi[sample_index] =\
+            np.append(Phi[sample_index], ff.volumeFractionCircExclusions(self.mesh[sample_index],
+                                                                 modelParameters.coarseMesh), axis=1)
+        file.write('poreFraction\n') if writeTextFile else False
 
 
+
+    def computeDesignMatrix(self, modelParameters, parallel_or_serial='parallel'):
+        # Evaluate features for all samples and write to design matrix property
+
+        if parallel_or_serial == 'parallel':
+
+            if __name__ == 'stokesdata':
+
+                manager = multiprocessing.Manager()
+                self.designMatrix = manager.dict()
+                # Set up processes
+                processes = []
+                # to write feature text file
+                processes.append(multiprocessing.Process(
+                    target=self.evaluateFeatures, args=(self.designMatrix, 0, modelParameters, True)))
+                for n in range(1, self.samples.size):
+                    processes.append(multiprocessing.Process(
+                        target=self.evaluateFeatures, args=(self.designMatrix, n, modelParameters, False)))
+
+                # Start processes
+                for process in processes:
+                    process.start()
+
+                # Join processes
+                for process in processes:
+                    process.join()
+
+        else:
+            self.designMatrix = self.samples.size * [None]
+            self.evaluateFeatures(self.designMatrix, 0, modelParameters, True)   # to write feature text file
+            for n in range(1, self.samples.size):
+                self.evaluateFeatures(self.designMatrix, n, modelParameters, False)
 
 
 # Static functions
@@ -241,3 +270,7 @@ def getFunctionSpace(mesh):
     mixedEl = df.MixedElement([u_e, p_e])
     functionSpace = df.FunctionSpace(mesh, mixedEl)
     return functionSpace
+
+
+
+
