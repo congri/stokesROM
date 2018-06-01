@@ -9,7 +9,7 @@ import dolfin as df
 import fenics_adjoint as dfa
 
 
-class StokesData(FlowProblem, ModelParameters):
+class StokesData(FlowProblem):
     # Properties
 
     folderbase = '/home/constantin/cluster'
@@ -45,6 +45,7 @@ class StokesData(FlowProblem, ModelParameters):
     def __init__(self):
         # Constructor
         self.setFineDataPath()
+
         return
 
     def setFineDataPath(self):
@@ -196,7 +197,7 @@ class StokesData(FlowProblem, ModelParameters):
                 U, _ = self.loadSolution(meshNumber)
                 self.solution.append(U)
 
-    def interpolate(self, quantities):
+    def interpolate(self, quantities, modelParameters):
         # interpolation of fine scale solution to a regular mesh
         # So far only implemented for pressure
         for solution_n in self.solution:
@@ -204,7 +205,7 @@ class StokesData(FlowProblem, ModelParameters):
             if 'p' in quantities:
                 _, p_n = solution_n.split()
                 p_n.set_allow_extrapolation(True)
-                self.p_interp.append(dfa.interpolate(p_n, self.pInterpSpace))
+                self.p_interp.append(dfa.interpolate(p_n, modelParameters.pInterpSpace))
 
 
 # Static functions

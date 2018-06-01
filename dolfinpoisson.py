@@ -4,6 +4,7 @@ import numpy as np
 from flowproblem import FlowProblem
 import dolfin as df
 import fenics_adjoint as dfa
+from scipy.sparse import csr_matrix
 
 
 class DolfinPoisson(FlowProblem):
@@ -48,14 +49,25 @@ class DolfinPoisson(FlowProblem):
 
         return u
 
-    def getStiffnessMatrixGradient(self):
+    def getAdjoints(self, diffusivityFunction, dJ):
+        u = df.TrialFunction(self.solutionFunctionSpace)
+        v = df.TestFunction(self.solutionFunctionSpace)
+        a = diffusivityFunction * df.inner(df.grad(v), df.grad(u)) * df.dx
 
+        K = df.assemble(a)
+        self.bcPressure.apply(K)
+        K = K.array()
+        adjoints = np.linalg.solve(K.T, dJ)
+
+        return adjoints
+
+    def getStiffnessMatrixGradient(self):
+        # For computational convenience: zeroth index of dK is zeroth index of K, first index is index
+        # of derivative and second index is first index of K
         if not len(self.stiffnessMatrixGradient):
-            u = df.TrialFunction(self.solutionFunctionSpace)
             v = df.TestFunction(self.solutionFunctionSpace)
             diffusivityFunction = df.Function(self.diffusivityFunctionSpace)
             diffusivityFunction.vector().set_local(np.ones(self.diffusivityFunctionSpace.dim()))
-            a = diffusivityFunction * df.inner(df.grad(v), df.grad(u)) * df.dx
 
             diff_0 = df.Function(self.diffusivityFunctionSpace)
             diff_0_vec = diffusivityFunction.vector().get_local().copy()
@@ -66,7 +78,9 @@ class DolfinPoisson(FlowProblem):
             self.bcPressure.apply(K_0)
             K_0 = K_0.array()
 
-            h = 1e-4
+            #Finite difference gradient is independent of h as K depends linear on diffusivity
+            h = 1.0
+            self.stiffnessMatrixGradient = np.zeros((self.diffusivityFunctionSpace.dim(), K_0.shape[0], K_0.shape[1]))
             for i in range(0, self.diffusivityFunctionSpace.dim()):
                 diff_tmp = df.Function(self.diffusivityFunctionSpace)
                 diff_tmp_vec = diffusivityFunction.vector().get_local().copy()
@@ -77,6 +91,8 @@ class DolfinPoisson(FlowProblem):
                 K_tmp = df.assemble(a_tmp)
                 self.bcPressure.apply(K_tmp)
                 K_tmp = K_tmp.array()
-                self.stiffnessMatrixGradient.append((K_tmp - K_0)/h)
+                self.stiffnessMatrixGradient[i, :, :] = (K_tmp - K_0)/h
+
+            self.stiffnessMatrixGradient = np.swapaxes(self.stiffnessMatrixGradient, 0, 1)
 
         return self.stiffnessMatrixGradient
