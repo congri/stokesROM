@@ -1,5 +1,6 @@
 """Bunch of static functions"""
 
+import pickle
 import numpy as np
 
 

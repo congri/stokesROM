@@ -3,7 +3,6 @@
 import numpy as np
 import math
 import dolfin as df
-import dolfin_adjoint as dfa
 
 
 def volumeFractionCircExclusions(fineMesh, meshRF):

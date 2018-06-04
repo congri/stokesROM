@@ -1,7 +1,6 @@
 
 
 import dolfin as df
-import fenics_adjoint as dfa
 
 
 class FlowProblem:
@@ -11,10 +10,10 @@ class FlowProblem:
     # should be of the form u = (a_x + a_xy y, a_y + a_xy x)
     u_x = '0.0-2.0*x[1]'
     u_y = '1.0-2.0*x[0]'
-    flowField = dfa.Expression((u_x, u_y), degree=2)
+    flowField = df.Expression((u_x, u_y), degree=2)
     # Pressure boundary condition field
     p_bc = '0.0'
-    pressureField = dfa.Expression(p_bc, degree=2)
+    pressureField = df.Expression(p_bc, degree=2)
 
     bodyForce = df.Constant((0.0, 0.0))  # right hand side; how is this treated in Darcy?
 
@@ -30,6 +29,6 @@ class FlowProblem:
         def inside(self, x, on_boundary):
             # Set pressure boundaries here -- only for Darcy, where no exclusions are present.
             # Therefore we can use 'on_boundary'
-            return x[0] < df.DOLFIN_EPS
+            return (x[0] < df.DOLFIN_EPS and x[1] < df.DOLFIN_EPS)
     pressureBoundary = PressureBoundary()
     # pressureBoundary = 'origin'

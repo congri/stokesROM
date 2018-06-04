@@ -2,12 +2,13 @@
 
 import numpy as np
 import scipy.io as sio
+import scipy.sparse as sp
 import time
 import multiprocessing
 from flowproblem import FlowProblem
 import featurefunctions as ff
 import dolfin as df
-import fenics_adjoint as dfa
+import warnings
 
 
 class StokesData(FlowProblem):
@@ -89,13 +90,13 @@ class StokesData(FlowProblem):
             raise ValueError('Unknown interior boundary condition.')
 
         # Boundary conditions for solid phase
-        bc = dfa.DirichletBC(functionSpace.sub(0), interiorBoundaryFlow, interiorBoundary,
+        bc = df.DirichletBC(functionSpace.sub(0), interiorBoundaryFlow, interiorBoundary,
                              method='topological', check_midpoint=False)
         return bc
 
     def getOuterBC(self, functionSpace):
         # BC's on outer domain boundary
-        bc = dfa.DirichletBC(functionSpace.sub(0), self.flowField, self.flowBoundary, method='pointwise')
+        bc = df.DirichletBC(functionSpace.sub(0), self.flowField, self.flowBoundary, method='pointwise')
         return bc
 
     def solvePDE(self, functionSpace, mesh, boundaryConditions):
@@ -165,7 +166,7 @@ class StokesData(FlowProblem):
         hdf = df.HDF5File(df.mpi_comm_world(), self.solutionfolder + '/solution' + str(meshNumber) + '.h5', "r")
 
         functionSpace = getFunctionSpace(mesh)
-        solution = dfa.Function(functionSpace)
+        solution = df.Function(functionSpace)
         hdf.read(solution, 'solution')
         hdf.close()
 
@@ -200,6 +201,20 @@ class StokesData(FlowProblem):
                 U, _ = self.loadSolution(meshNumber)
                 self.solution.append(U)
 
+    def shiftData(self, point=np.array([.0, .0]), value=.0, quantity='pressure'):
+        # Shifts solution to value 'value' at point 'point'
+
+        p_old = np.empty(1, dtype=float)
+        if quantity == 'pressure':
+            print('Shifting data s.t. pressure is ', value, ' at ', point, ' ...')
+            for p in self.p_interp:
+                p.eval(p_old, point)
+                shift_value = value - p_old
+                p.vector().set_local(p.vector().get_local() + shift_value)
+            print('...data shifted.')
+        else:
+            raise ValueError('shiftData only implemented for pressure field')
+
     def interpolate(self, quantities, modelParameters):
         # interpolation of fine scale solution to a regular mesh
         # So far only implemented for pressure
@@ -208,7 +223,7 @@ class StokesData(FlowProblem):
             if 'p' in quantities:
                 _, p_n = solution_n.split()
                 p_n.set_allow_extrapolation(True)
-                self.p_interp.append(dfa.interpolate(p_n, modelParameters.pInterpSpace))
+                self.p_interp.append(df.interpolate(p_n, modelParameters.pInterpSpace))
 
     def evaluateFeatures(self, Phi, sample_index, modelParameters, writeTextFile=False):
         # Evaluate feature functions and set up design matrix for sample n
@@ -227,7 +242,59 @@ class StokesData(FlowProblem):
                                                                  modelParameters.coarseMesh), axis=1)
         file.write('poreFraction\n') if writeTextFile else False
 
+    def computeFeatureFunctionMinMax(self):
+        # Computes min / max of feature function outputs over training data, separately for every macro cell
+        featFunMin = self.designMatrix[0].copy()
+        featFunMax = self.designMatrix[0].copy()
+        for Phi in self.designMatrix:
+            featFunMin[featFunMin > Phi] = Phi[featFunMin > Phi].copy()
+            featFunMax[featFunMax < Phi] = Phi[featFunMax < Phi].copy()
 
+        return featFunMin, featFunMax
+
+    def rescaleDesignMatrix(self, modelParams):
+        # Rescale design matrix to have feature function outputs between 0 and 1
+
+        print('Rescaling design matrix...')
+
+        if modelParams.featFunMin is None or modelParams.featFunMax is None:
+            modelParams.featFunMin, modelParams.featFunMax = self.computeFeatureFunctionMinMax()
+
+        featFunDiff = modelParams.featFunMax - modelParams.featFunMin
+        # To avoid irregularities due to rescaling (if every macro cell has the same feature function output).
+        # Like this, rescaling does not have any effect
+        modelParams.featFunMin[abs(featFunDiff) < np.finfo(float).eps] = 0.0
+        featFunDiff[abs(featFunDiff) < np.finfo(float).eps] = 1.0
+
+        for n in range(0, self.samples.size):
+            self.designMatrix[n] -= modelParams.featFunMin
+            self.designMatrix[n] /= featFunDiff
+
+        print('...design matrix rescaled.')
+
+    def normalizeDesignMatrix(self, modelParams):
+        if modelParams.normalization == 'rescale':
+            self.rescaleDesignMatrix(modelParams)
+        else:
+            warnings.warn('Unknown design matrix normalization. No normalization is performed.')
+
+    def shapeToLocalDesignMatrix(self, sparse=False):
+        # Reshape design matrix in such a way that it is suitable for local theta_c's
+        print('Reshaping design matrix for separate feature coefficients theta_c',
+              ' for each macro-cell in a microstructure...')
+
+        nElc, nFeatureFunctions = self.designMatrix[0].shape
+
+        for n in range(0, self.samples.size):
+            Phi_temp = np.zeros((nElc, nElc * nFeatureFunctions))
+            for k in range(0, nElc):
+                Phi_temp[k, (k*nFeatureFunctions):((k + 1)*nFeatureFunctions)] = \
+                    self.designMatrix[n][k, :].copy()
+            self.designMatrix[n] = Phi_temp.copy()
+            if sparse:
+                self.designMatrix[n] = sp.csr_matrix(self.designMatrix[n])
+
+        print('...design matrices reshaped to local.')
 
     def computeDesignMatrix(self, modelParameters, parallel_or_serial='parallel'):
         # Evaluate features for all samples and write to design matrix property
@@ -237,15 +304,15 @@ class StokesData(FlowProblem):
             if __name__ == 'stokesdata':
 
                 manager = multiprocessing.Manager()
-                self.designMatrix = manager.dict()
+                Phi_temp = manager.dict()
                 # Set up processes
                 processes = []
                 # to write feature text file
                 processes.append(multiprocessing.Process(
-                    target=self.evaluateFeatures, args=(self.designMatrix, 0, modelParameters, True)))
+                    target=self.evaluateFeatures, args=(Phi_temp, 0, modelParameters, True)))
                 for n in range(1, self.samples.size):
                     processes.append(multiprocessing.Process(
-                        target=self.evaluateFeatures, args=(self.designMatrix, n, modelParameters, False)))
+                        target=self.evaluateFeatures, args=(Phi_temp, n, modelParameters, False)))
 
                 # Start processes
                 for process in processes:
@@ -254,6 +321,11 @@ class StokesData(FlowProblem):
                 # Join processes
                 for process in processes:
                     process.join()
+
+                # convert to regular list
+                self.designMatrix = self.samples.size * [None]
+                for n in range(0, self.samples.size):
+                    self.designMatrix[n] = Phi_temp[n].copy()
 
         else:
             self.designMatrix = self.samples.size * [None]

@@ -3,8 +3,6 @@
 import numpy as np
 from flowproblem import FlowProblem
 import dolfin as df
-import fenics_adjoint as dfa
-from scipy.sparse import csr_matrix
 
 
 class DolfinPoisson(FlowProblem):
@@ -19,13 +17,13 @@ class DolfinPoisson(FlowProblem):
         # Create mesh and define function space
         self.mesh = mesh
         self.solutionFunctionSpace = solutionSpace
-        self.diffusivityFunctionSpace = dfa.FunctionSpace(mesh, 'DG', 0)
-        self.sourceTerm = dfa.project(dfa.Constant(0.0), self.solutionFunctionSpace)
-        # self.bcPressure = dfa.DirichletBC(self.solutionFunctionSpace, self.pressureField,
-        #                       self.pressureBoundary, method='pointwise')
-        if not self.pressureBoundary == 'origin':
-            self.bcPressure = dfa.DirichletBC(self.solutionFunctionSpace, self.pressureField,
-                                              self.pressureBoundary)
+        self.diffusivityFunctionSpace = df.FunctionSpace(mesh, 'DG', 0)
+        self.sourceTerm = df.project(df.Constant(0.0), self.solutionFunctionSpace)
+        self.bcPressure = df.DirichletBC(self.solutionFunctionSpace, self.pressureField,
+                              self.pressureBoundary, method='pointwise')
+        # if not self.pressureBoundary == 'origin':
+        #     self.bcPressure = dfa.DirichletBC(self.solutionFunctionSpace, self.pressureField,
+        #                                       self.pressureBoundary)
         self.bcFlux = df.inner(df.FacetNormal(self.mesh), self.flowField)
         return
 
@@ -37,15 +35,8 @@ class DolfinPoisson(FlowProblem):
         L = self.sourceTerm * v * df.dx + self.bcFlux * v * df.ds
 
         # Compute solution
-        u = dfa.Function(self.solutionFunctionSpace)
-        if not self.pressureBoundary == 'origin':
-            dfa.solve(a == L, u, self.bcPressure)
-        else:
-            dfa.solve(a == L, u)
-            origin = np.array([0.0, 0.0], dtype=np.float_)
-            u_origin = np.empty(1, dtype=np.float_)
-            u.eval(u_origin, origin)
-            u.vector()[:] = u.vector()[:] - u_origin
+        u = df.Function(self.solutionFunctionSpace)
+        df.solve(a == L, u, self.bcPressure)
 
         return u
 

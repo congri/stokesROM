@@ -1,7 +1,9 @@
 
 
 import numpy as np
+import romtoolbox as rt
 from dolfinpoisson import DolfinPoisson
+import dolfin as df
 
 
 class ReducedOrderModel:
@@ -24,14 +26,42 @@ class ReducedOrderModel:
 
         return log_p, d_log_p_d_u_c
 
-    def log_p_c(self, X, Phi, theta_c, sigma_c):
+    def log_p_c(self, X, designMatrix_n):
         # Probabilistic map from fine to coarse scale diffusivities
         # X:        transformed coarse scale diffusivity
         # Phi:      design matrices; fine scale diffusivity information is contained here
         # theta_c:  the linear model coefficients
-        # sigma_c:  linear model variances
+        # sigma_c:  linear model standard deviations
 
-        mu = Phi * theta_c      #mean
+        mu = designMatrix_n * self.modelParameters.theta_c      #mean
+
+        # ignore constant log 2pi prefactor
+        diff = (mu - X)
+        log_p = - np.sum(np.log(self.modelParameters.sigma_c)) - .5 * np.sum((diff/self.modelParameters.sigma_c)**2)
+
+        # gradient w.r.t. X
+        d_log_p = diff/(self.modelParameters.sigma_c**2)
+
+        return log_p, d_log_p
+
+    def log_q_n(self, X_n, designMatrix_n, u_f_n):
+
+        lg_p_c_n, d_lg_p_c_n = self.log_p_c(X_n, designMatrix_n)
+
+        diffusivityFunction = df.Function(self.coarseSolver.diffusivityFunctionSpace)
+        diffusivityFunction.vector()[:], d_diffusivity = \
+            rt.diffusivityTransform(X_n, 'log', 'backward', return_grad=True)
+
+        u_c_n = self.coarseSolver.solvePDE(diffusivityFunction)
+        lg_p_cf_n, d_lg_p_cf_n = self.log_p_cf(u_c_n, u_f_n)
+
+        lg_q_n = lg_p_c_n + lg_p_cf_n
+        d_lg_q_n = d_lg_p_c_n + d_lg_p_cf_n
+
+        # Finite difference gradient check
+
+
+        return lg_q_n, d_lg_q_n
 
 
 # Static functions
