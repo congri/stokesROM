@@ -1,6 +1,6 @@
 """Bunch of static functions"""
 
-import pickle
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -43,4 +43,40 @@ def diffusivityTransform(x, type='log', dir='forward', limits=np.array([1e-12, 1
                 return diffusivity, diffusivity - limits[0]
             else:
                 return diffusivity
+
+
+def finiteDifferenceGradientCheck(function, input):
+    # function must have function value and derivative as first and second outputs
+
+    # finite difference epsilon
+    epsilon = 1e-6
+    tol = 1e-3
+
+    f, d_f = function(input)
+
+    d_f_fd = np.empty_like(input) # finite difference gradient
+    for i in range(0, d_f_fd.size):
+        input_fd = input.copy()
+        input_fd[i] += epsilon
+
+        f_fd, _ = function(input_fd)
+
+        d_f_fd[i] = (f_fd - f)/epsilon
+
+
+    relgrad = d_f/d_f_fd
+    print('gradient/fd gradient = ', relgrad)
+
+    plotit = False
+    if plotit:
+        plt.plot(relgrad)
+        plt.xlabel('component i')
+        plt.ylabel('relative gradient')
+        plt.show()
+
+    if np.any(abs(relgrad - np.ones_like(relgrad)) > tol):
+        raise ValueError('Finite difference gradient check failed.')
+        return True
+    else:
+        return False
 

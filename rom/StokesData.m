@@ -1126,7 +1126,7 @@ classdef StokesData < handle
             end
         end
         
-        function [triHandles, pltHandles, figHandle, cb] =...
+        function [triHandles, meshHandles, pltHandles, figHandle, cb] =...
                 plot(self, samples)
             %Plots the fine scale data and returns handles
                         
@@ -1136,33 +1136,30 @@ classdef StokesData < handle
             self.readData('p');
             self.readData('u');
             
-            figHandle = figure;
+            %figHandle = figure;
             pltIndex = 1;
             N = numel(samples);
             for n = samples
-                figure(figHandle);
-                %pressure field
-                pltHandles(1, pltIndex) = subplot(3, N, pltIndex);
-                triHandles(1, pltIndex) =...
-                    trisurf(self.cells{n}, self.X{n}(:, 1),...
-                    self.X{n}(:, 2), self.P{n});
-                triHandles(1, pltIndex).LineStyle = 'none';
+                %figure(figHandle);
+                figHandle(n) = figure(n);
+                
+                %Mesh
+                pltHandles(1, pltIndex) = subplot(1, 3, 1);
+                meshHandles(1, pltIndex) = triplot(self.cells{n},...
+                    self.X{n}(:, 1), self.X{n}(:, 2), 'linewidth', .5);
+                meshHandles(1, pltIndex).Color = [.3 .3 .3];
                 axis square;
                 axis tight;
-                view(3);
                 grid off;
-                box on;
                 xticks({});
                 yticks({});
-                cb(1, pltIndex) = colorbar;
-                cb(1, pltIndex).Label.String = 'pressure p';
-                cb(1, pltIndex).Label.Interpreter = 'latex';
                 
-                %velocity field (norm)
-                u_norm = sqrt(sum(self.U{n}.^2));
-                pltHandles(2, pltIndex) = subplot(3, N, pltIndex + N);
-                triHandles(2, pltIndex) = trisurf(self.cells{n},...
-                   self.X{n}(:, 1), self.X{n}(:, 2), u_norm);
+                
+                %pressure field
+                pltHandles(2, pltIndex) = subplot(1, 3, 2);
+                triHandles(2, pltIndex) =...
+                    trisurf(self.cells{n}, self.X{n}(:, 1),...
+                    self.X{n}(:, 2), self.P{n});
                 triHandles(2, pltIndex).LineStyle = 'none';
                 axis square;
                 axis tight;
@@ -1171,12 +1168,29 @@ classdef StokesData < handle
                 box on;
                 xticks({});
                 yticks({});
-                cb(2, pltIndex) = colorbar;
-                cb(2, pltIndex).Label.String = 'velocity norm $|u|$';
-                cb(2, pltIndex).Label.Interpreter = 'latex';
+%                 cb(1, pltIndex) = colorbar;
+%                 cb(1, pltIndex).Label.String = 'pressure p';
+%                 cb(1, pltIndex).Label.Interpreter = 'latex';
+                
+%                 %velocity field (norm)
+                u_norm = sqrt(sum(self.U{n}.^2));
+%                 pltHandles(2, pltIndex) = subplot(3, N, pltIndex + N);
+%                 triHandles(2, pltIndex) = trisurf(self.cells{n},...
+%                    self.X{n}(:, 1), self.X{n}(:, 2), u_norm);
+%                 triHandles(2, pltIndex).LineStyle = 'none';
+%                 axis square;
+%                 axis tight;
+%                 view(3);
+%                 grid off;
+%                 box on;
+%                 xticks({});
+%                 yticks({});
+%                 cb(2, pltIndex) = colorbar;
+%                 cb(2, pltIndex).Label.String = 'velocity norm $|u|$';
+%                 cb(2, pltIndex).Label.Interpreter = 'latex';
                 
                 %velocity field (norm), 2d
-                pltHandles(3, pltIndex) = subplot(3, N, pltIndex + 2*N);
+                pltHandles(3, pltIndex) = subplot(1, 3, 3);
                 triHandles(3, pltIndex) = trisurf(self.cells{n},...
                    self.X{n}(:, 1), self.X{n}(:, 2), u_norm);
                 triHandles(3, pltIndex).LineStyle = 'none';

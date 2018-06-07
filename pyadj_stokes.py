@@ -5,11 +5,11 @@ from stokesdata import StokesData
 from reducedordermodel import ReducedOrderModel
 from modelparameters import ModelParameters
 import numpy as np
-import matplotlib.pyplot as plt
 import dolfin as df
-import romtoolbox as rt
+import multiprocessing
+import scipy.optimize as opt
 import time
-import scipy.sparse as sp
+
 
 
 df.set_log_level(30)
@@ -56,51 +56,32 @@ while not converged:
     else:
         train_iter += 1
 
-
-
-
-
-
-
-h = 1e-9
 rom = ReducedOrderModel(modelParams)
-x = np.random.normal(-8.9, 0.01, rom.coarseSolver.diffusivityFunctionSpace.dim())
-diffusivityFunction = df.Function(rom.coarseSolver.diffusivityFunctionSpace)
-diffusivityFunction.vector()[:], d_diffusivity = rt.diffusivityTransform(x, 'log', 'backward', return_grad=True)
-
-df.plot(diffusivityFunction)
-u_c = rom.coarseSolver.solvePDE(diffusivityFunction)
-
-lgp, d_lgp = rom.log_p_cf(u_c.vector().get_local(), trainingData.p_interp[0].vector().get_local())
-print('log_p_cf = ', lgp)
-print('d_lgp = ', d_lgp)
-
-adjoints = rom.coarseSolver.getAdjoints(diffusivityFunction, d_lgp)
-print('adjoints = ', adjoints)
-
-dK = rom.coarseSolver.getStiffnessMatrixGradient()
-
-start = time.time()
-dlgp_dlambda = - adjoints.dot(dK.dot(u_c.vector().get_local()))
-end = time.time()
-print('Grad computation time = ', end - start)
-dlgp_dx = d_diffusivity*dlgp_dlambda
-print('dlgp_dlambda = ', dlgp_dlambda)
-print('dlgp_dx = ', dlgp_dx)
 
 
-d_fd = np.zeros(rom.coarseSolver.diffusivityFunctionSpace.dim())
-for i in range(0, rom.coarseSolver.diffusivityFunctionSpace.dim()):
-    x_fd = x.copy()
-    x_fd[i] += h
-    diffusivityFunction_fd = df.Function(rom.coarseSolver.diffusivityFunctionSpace)
-    diffusivityFunction_fd.vector()[:], d_diffusivity = \
-        rt.diffusivityTransform(x_fd, 'log', 'backward', return_grad=True)
-    u_c_fd = rom.coarseSolver.solvePDE(diffusivityFunction_fd)
-    lgp_fd, _ = rom.log_p_cf(u_c_fd.vector().get_local(), trainingData.p_interp[0].vector().get_local())
+def log_q(X):
+    lg_q, _ = \
+        rom.log_q_n(X, trainingData.designMatrix[0], trainingData.p_interp[0].vector().get_local())
+    return -lg_q
 
-    d_fd[i] = (lgp_fd - lgp)/h
-print('finite difference gradient: ', d_fd)
-print('relative gradient = ', dlgp_dx/d_fd)
+def d_log_q(X):
+    _, d_lg_q = \
+        rom.log_q_n(X, trainingData.designMatrix[0], trainingData.p_interp[0].vector().get_local())
+    return -d_lg_q
+
+x_0 = np.zeros(8)
+initial = log_q(x_0)
+print('log_q(x_0) = ', initial)
+t_s = time.time()
+res = opt.minimize(log_q, x_0, method='BFGS', jac=d_log_q, options={'disp': True})
+t_e = time.time()
+print('time = ', t_e - t_s)
+final = log_q(res['x'])
+print('Min. log_q = ', final)
+print('final/initial = ', final/initial)
+
+
+
+
 
 

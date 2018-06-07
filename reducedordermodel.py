@@ -33,16 +33,16 @@ class ReducedOrderModel:
         # theta_c:  the linear model coefficients
         # sigma_c:  linear model standard deviations
 
-        mu = designMatrix_n * self.modelParameters.theta_c      #mean
+        mu = np.dot(designMatrix_n, self.modelParameters.theta_c)      #mean
 
         # ignore constant log 2pi prefactor
         diff = (mu - X)
         log_p = - np.sum(np.log(self.modelParameters.sigma_c)) - .5 * np.sum((diff/self.modelParameters.sigma_c)**2)
 
         # gradient w.r.t. X
-        d_log_p = diff/(self.modelParameters.sigma_c**2)
+        d_log_p_dX = diff/(self.modelParameters.sigma_c**2)
 
-        return log_p, d_log_p
+        return log_p, d_log_p_dX
 
     def log_q_n(self, X_n, designMatrix_n, u_f_n):
 
@@ -53,13 +53,15 @@ class ReducedOrderModel:
             rt.diffusivityTransform(X_n, 'log', 'backward', return_grad=True)
 
         u_c_n = self.coarseSolver.solvePDE(diffusivityFunction)
-        lg_p_cf_n, d_lg_p_cf_n = self.log_p_cf(u_c_n, u_f_n)
+        u_c_n = u_c_n.vector().get_local()
+
+        lg_p_cf_n, d_lg_p_cf_n_d_u_c = self.log_p_cf(u_c_n, u_f_n)
+        adjoints = self.coarseSolver.getAdjoints(diffusivityFunction, d_lg_p_cf_n_d_u_c)
+        dK = self.coarseSolver.getStiffnessMatrixGradient()
+        d_lg_p_cf_n = - d_diffusivity * adjoints.dot(dK.dot(u_c_n))
 
         lg_q_n = lg_p_c_n + lg_p_cf_n
         d_lg_q_n = d_lg_p_c_n + d_lg_p_cf_n
-
-        # Finite difference gradient check
-
 
         return lg_q_n, d_lg_q_n
 

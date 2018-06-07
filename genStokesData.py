@@ -26,7 +26,7 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(0, 1025)  # vector of random meshes to load
+meshes = np.arange(0, 16)  # vector of random meshes to load
 porousMedium = 'nonOverlappingCircles'    #circles or randomField
 nElements = 128
 
@@ -46,14 +46,14 @@ nExclusionsMin = 128
 nExclusionsMax = 513
 '''
 nExclusionsDist = 'logn'
-nExclusionParams = (5.0, 1.0)
+nExclusionParams = (5.5, 1.0)
 coordinateDistribution = 'gauss'
-coordinate_cov = [[0.035, 0.0], [0.0, 0.08]]
-c_params = [[.4, .6], np.array(coordinate_cov)]
+coordinate_cov = [[0.2, 0.0], [0.0, 0.3]]
+c_params = [[.7, .3], np.array(coordinate_cov)]
 radiiDistribution = 'logn'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
-margins = (-1, .01, -1, .01)
-r_params = (-4.0, .7)
+margins = (0.01, 0.01, 0.01, 0.01)
+r_params = (-4.5, .7)
 
 
 # Flow boundary condition for velocity on domain boundary
@@ -63,7 +63,7 @@ flowField = df.Expression((u_x, u_y), degree=2)
 
 
 folderbase = '/home/constantin'
-foldername = folderbase + '/python/data/stokesEquation/meshes/meshSize=' + str(nElements)
+foldername = folderbase + '/python/data/stokesEquation/meshSize=' + str(nElements)
 if porousMedium == 'randomField':
     foldername = foldername + '/randFieldDiscretization=' + str(nMeshPolygon) + '/cov=' + covarianceFunction +\
     '/params=' + str(randFieldParams) + '/l=' + str(lengthScale[0]) + '_' +\

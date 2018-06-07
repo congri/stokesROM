@@ -206,7 +206,7 @@ class StokesData(FlowProblem):
 
         p_old = np.empty(1, dtype=float)
         if quantity == 'pressure':
-            print('Shifting data s.t. pressure is ', value, ' at ', point, ' ...')
+            print('Shifting data such that pressure is ', value, ' at ', point, ' ...')
             for p in self.p_interp:
                 p.eval(p_old, point)
                 shift_value = value - p_old
@@ -241,6 +241,8 @@ class StokesData(FlowProblem):
             np.append(Phi[sample_index], ff.volumeFractionCircExclusions(self.mesh[sample_index],
                                                                  modelParameters.coarseMesh), axis=1)
         file.write('poreFraction\n') if writeTextFile else False
+
+        file.close() if writeTextFile else False
 
     def computeFeatureFunctionMinMax(self):
         # Computes min / max of feature function outputs over training data, separately for every macro cell
