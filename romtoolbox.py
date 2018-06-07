@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def diffusivityTransform(x, type='log', dir='forward', limits=np.array([1e-12, 1e12]), **return_grad):
+def diffusivityTransform(x, type='log', dir='forward', limits=np.array([1e-10, 1e4]), **return_grad):
     # Transformation to positive definite diffusivity from unbounded space, e.g. log diffusivity
     #   'forward': from diffusivity to unbounded quantity
     #   'backward': from unbounded quantity back to diffusivity

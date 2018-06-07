@@ -66,5 +66,6 @@ class ReducedOrderModel:
         return lg_q_n, d_lg_q_n
 
 
+
 # Static functions
 

@@ -35,7 +35,7 @@ class ModelParameters:
         self.featFunMax = None
 
         # Training parameters
-        self.max_iterations = 100
+        self.max_iterations = 2
 
     def initHyperparams(self):
         # Initialize hyperparameters gamma. Can only be done after theta_c has been set (because of dimensionality)
