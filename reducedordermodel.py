@@ -65,7 +65,21 @@ class ReducedOrderModel:
 
         return lg_q_n, d_lg_q_n
 
+    def elboGrad(self, log_emp_dist, varDist_mu, varDist_sigma):
+        # Samples gradient of ELBO of empirical to variational distribution over lambda_c
+        d_mu_mean = .0
+        d_sigma_mean = .0
+        d_muSq_mean = .0
+        d_sigmaSq_mean = .0
 
+        if self.modelParameters.variationalDist == 'diagonalGauss':
+            sample = np.random.normal(.0, 1.0, self.modelParameters.coarseMesh.num_cells())
+
+            variationalSample = varDist_mu + varDist_sigma * sample
+
+            _, d_log_empirical = log_emp_dist(variationalSample)
+
+        return
 
 # Static functions
 

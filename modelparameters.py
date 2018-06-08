@@ -18,6 +18,7 @@ class ModelParameters:
         # Model hyperparameters
         self.mode = 'local'  # separate theta_c's per macro-cell
         self.priorModel = 'sharedVRVM'
+        self.variationalDist = 'diagonalGauss'      #variational distribution on lambda_c
 
         # log_p_cf parameters
         self.Sinv_vec = 1e-3 * np.ones(self.pInterpSpace.dim())
