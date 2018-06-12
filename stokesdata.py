@@ -23,7 +23,7 @@ class StokesData(FlowProblem):
     viscosity = 1.0
 
     # general parameters
-    samples = np.arange(0, 4)  # vector of random meshes to load
+    samples = np.arange(0, 8)  # vector of random meshes to load
     nElements = 128
 
     # microstructure parameters
@@ -44,7 +44,6 @@ class StokesData(FlowProblem):
     v_interp = []
 
     designMatrix = [None] * samples.size
-
 
     def __init__(self):
         # Constructor
@@ -223,7 +222,8 @@ class StokesData(FlowProblem):
             if 'p' in quantities:
                 _, p_n = solution_n.split()
                 p_n.set_allow_extrapolation(True)
-                self.p_interp.append(df.interpolate(p_n, modelParameters.pInterpSpace))
+                p_int_n = df.interpolate(p_n, modelParameters.pInterpSpace)
+                self.p_interp.append(p_int_n)
 
     def evaluateFeatures(self, Phi, sample_index, modelParameters, writeTextFile=False):
         # Evaluate feature functions and set up design matrix for sample n

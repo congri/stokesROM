@@ -10,7 +10,8 @@ import multiprocessing as mp
 import scipy.optimize as opt
 import time
 import VI.variationalinference as VI
-import pylab
+import matplotlib.pyplot as plt
+
 
 
 df.set_log_level(30)
@@ -48,13 +49,6 @@ thetaArray = np.expand_dims(modelParams.theta_c, axis=1)
 sigmaArray = modelParams.sigma_c.copy()
 gammaArray = modelParams.gamma.copy()
 
-pylab.ion()
-line, = pylab.plot(0, 1, 'x')
-pylab.axis([0, 1, 0, 1])
-line.set_xdata(np.ones_like(modelParams.theta_c))
-line.set_ydata(modelParams.theta_c)
-pylab.draw()
-time.sleep(1)
 
 rom = ReducedOrderModel(modelParams, trainingData)
 
@@ -137,14 +131,15 @@ while not converged:
     t_e = time.time()
     print('M_step time = ', t_e - t_s)
     print('theta_c = ', modelParams.theta_c)
-    print('gamma = ', modelParams.gamma[:2])
+    print('gamma = ', modelParams.gamma)
+    print('thetaArray = ', thetaArray)
+    print('thetaArray shape = ', thetaArray.shape)
     theta_temp = np.expand_dims(modelParams.theta_c, axis=1)
     thetaArray = np.append(thetaArray, theta_temp, axis=1)
+    plt.plot(thetaArray.T)
+    plt.pause(.01)
+    plt.show()
 
-    line.set_xdata(train_iter*np.ones_like(modelParams.theta_c))
-    line.set_ydata(modelParams.theta_c)
-    pylab.draw()
-    time.sleep(1)
 
 
     if train_iter >= modelParams.max_iterations:

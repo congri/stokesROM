@@ -159,7 +159,7 @@ classdef StokesROM < handle
 
                     %General form of elbo allowing model comparison
                     assert(~isempty(self.modelParams.interpolationMode),...
-                        'Elbo only implemented with fixed dim(lambda_f)')
+                        'Elbo only implemented with fixed dim(U_f)')
                     %ONLY VALID IF QoI IS PRESSURE ONLY
                     %Short hand notation
                     N_dof = numel(self.modelParams.fineGridX)*...
@@ -180,6 +180,7 @@ classdef StokesROM < handle
                     end
                     
                     Sigma_lambda_c = XSqMean - XMean.^2;
+                    %sum over N and macro-cells
                     sum_logdet_lambda_c = sum(sum(log(Sigma_lambda_c)));
                     
                     

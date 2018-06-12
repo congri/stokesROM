@@ -1,8 +1,6 @@
-
-
-import pickle
 import numpy as np
 import dolfin as df
+import matplotlib.pyplot as plt
 
 
 class ModelParameters:
@@ -18,7 +16,14 @@ class ModelParameters:
         # Model hyperparameters
         self.mode = 'local'  # separate theta_c's per macro-cell
         self.priorModel = 'sharedVRVM'
-        self.variationalDist = 'diagonalGauss'      #variational distribution on lambda_c
+        self.variationalDist = 'diagonalGauss'      # variational distribution on lambda_c
+        self.VRVM_a = np.finfo(float).eps
+        self.VRVM_b = np.finfo(float).eps
+        self.VRVM_c = 1e-4
+        self.VRVM_d = np.finfo(float).eps
+        self.VRVM_e = np.finfo(float).eps
+        self.VRVM_f = np.finfo(float).eps
+        self.VRVM_iter = 30
 
         # log_p_cf parameters
         self.Sinv_vec = 1e-3 * np.ones(self.pInterpSpace.dim())
@@ -36,7 +41,7 @@ class ModelParameters:
         self.featFunMax = None
 
         # Training parameters
-        self.max_iterations = 2
+        self.max_iterations = 200
 
     def initHyperparams(self):
         # Initialize hyperparameters gamma. Can only be done after theta_c has been set (because of dimensionality)
@@ -46,6 +51,14 @@ class ModelParameters:
             self.gamma = None
         else:
             raise ValueError('What prior model for theta_c?')
+
+    def plot_theta_c(self, iteration):
+        fig = plt.figure(1)
+        ax = fig.add_subplot(1, 1, 1)
+        ax.clear()
+        ax.plot(iteration*np.ones_like(self.theta_c), self.theta_c, 'x')
+        plt.pause(.05)
+        plt.show()
 
 
 def computeInterpolationMatrix(fromFunSpace, toFunSpace):
