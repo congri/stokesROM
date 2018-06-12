@@ -39,10 +39,10 @@ class ReducedOrderModel:
 
         # ignore constant log 2pi prefactor
         diff = (mu - X)
-        log_p = - np.sum(np.log(self.modelParams.sigma_c)) - .5 * np.sum((diff/self.modelParams.sigma_c)**2)
+        log_p = - .5 * np.sum(np.log(self.modelParams.Sigma_c)) - .5 * np.sum(diff/self.modelParams.Sigma_c)
 
         # gradient w.r.t. X
-        d_log_p_dX = diff/(self.modelParams.sigma_c**2)
+        d_log_p_dX = diff/self.modelParams.Sigma_c
 
         return log_p, d_log_p_dX
 
@@ -137,6 +137,7 @@ class ReducedOrderModel:
                     b = np.reshape(b, (int(dim_theta/nElc), nElc))
                     b = np.mean(b, axis=1)
                     b = np.tile(b, (1, nElc))
+                    b = b.flatten()
                 gam = a/b
                 d = self.modelParams.VRVM_d + .5 * np.sum(XSqMean, axis=0)
                 for n in range(self.trainingData.samples.size):
@@ -162,7 +163,7 @@ class ReducedOrderModel:
 
             # assign < S >, < Sigma_c >, < theta_c >
             self.modelParams.Sinv_vec = tau_cf
-            self.modelParams.Sigma_c = np.diag(1/tau_c)
+            self.modelParams.Sigma_c = 1/tau_c
             self.modelParams.theta_c = mu_theta
             self.modelParams.Sigma_theta_c = Sigma_theta
             self.modelParams.gamma = gam

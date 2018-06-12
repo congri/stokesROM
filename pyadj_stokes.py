@@ -10,8 +10,7 @@ import multiprocessing as mp
 import scipy.optimize as opt
 import time
 import VI.variationalinference as VI
-import pylab
-
+import matplotlib.pyplot as plt
 
 df.set_log_level(30)
 
@@ -45,16 +44,9 @@ converged = False
 train_iter = 0
 epoch = 0   # one epoch == every data point has been seen once
 thetaArray = np.expand_dims(modelParams.theta_c, axis=1)
-sigmaArray = modelParams.sigma_c.copy()
-gammaArray = modelParams.gamma.copy()
+sigmaArray = np.expand_dims(modelParams.Sigma_c, axis=1)
+gammaArray = np.expand_dims(modelParams.gamma, axis=1)
 
-pylab.ion()
-line, = pylab.plot(0, 1, 'x')
-pylab.axis([0, 1, 0, 1])
-line.set_xdata(np.ones_like(modelParams.theta_c))
-line.set_ydata(modelParams.theta_c)
-pylab.draw()
-time.sleep(1)
 
 rom = ReducedOrderModel(modelParams, trainingData)
 
@@ -140,11 +132,16 @@ while not converged:
     print('gamma = ', modelParams.gamma[:2])
     theta_temp = np.expand_dims(modelParams.theta_c, axis=1)
     thetaArray = np.append(thetaArray, theta_temp, axis=1)
+    sigma_temp = np.expand_dims(modelParams.Sigma_c, axis=1)
+    sigmaArray = np.append(sigmaArray, sigma_temp, axis=1)
+    gamma_temp = np.expand_dims(modelParams.gamma, axis=1)
+    gammaArray = np.append(gammaArray, gamma_temp, axis=1)
 
-    line.set_xdata(train_iter*np.ones_like(modelParams.theta_c))
-    line.set_ydata(modelParams.theta_c)
-    pylab.draw()
-    time.sleep(1)
+    # plt.plot(thetaArray.T)
+    # plt.axis('tight')
+    # plt.pause(0.05)
+
+    modelParams.plot(thetaArray, sigmaArray, gammaArray)
 
 
     if train_iter >= modelParams.max_iterations:
