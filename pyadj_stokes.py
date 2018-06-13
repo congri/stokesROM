@@ -70,7 +70,7 @@ while not converged:
         res = opt.minimize(neg_lg_q, x_init, method='BFGS', jac=True, args=(Phi, p_interp))
         return res.x
 
-    args = [(neg_log_q, x_0[n], trainingData.designMatrix[n],
+    args = [(neg_log_q, modelParams.paramsVec[n][:modelParams.coarseMesh.num_cells()], trainingData.designMatrix[n],
              trainingData.p_interp[n].vector().get_local()) for n in trainingData.samples]
 
     max_x = []
@@ -80,8 +80,9 @@ while not converged:
             x = minimize_neg_log_q(arg_n)
             max_x.append(x)
     elif maxmode == 'parallel':
-        p = mp.Pool(trainingData.samples.size)
-        max_x = p.map(minimize_neg_log_q, args)
+        parpool = mp.Pool(trainingData.samples.size)
+        max_x = parpool.map(minimize_neg_log_q, args)
+        parpool.close()
 
     for n in trainingData.samples:
         modelParams.paramsVec[n][0:modelParams.coarseMesh.num_cells()] = max_x[n]
@@ -115,8 +116,9 @@ while not converged:
         args = [(modelParams.paramsVec[n].copy(), trainingData.designMatrix[n].copy(),
                  trainingData.p_interp[n].vector().get_local().copy()) for n in trainingData.samples]
 
-        pool = mp.Pool(trainingData.samples.size)
-        modelParams.paramsVec = pool.map(varinf, args)
+        parpool = mp.Pool(trainingData.samples.size)
+        modelParams.paramsVec = parpool.map(varinf, args)
+        parpool.close()
 
     print('...variational inference done.')
     t_e = time.time()
@@ -130,6 +132,8 @@ while not converged:
     print('M_step time = ', t_e - t_s)
     print('theta_c = ', modelParams.theta_c)
     print('gamma = ', modelParams.gamma[:2])
+    print('elbo =', elbo)
+    print('cell score = ', cell_score)
     theta_temp = np.expand_dims(modelParams.theta_c, axis=1)
     thetaArray = np.append(thetaArray, theta_temp, axis=1)
     sigma_temp = np.expand_dims(modelParams.Sigma_c, axis=1)
@@ -137,11 +141,16 @@ while not converged:
     gamma_temp = np.expand_dims(modelParams.gamma, axis=1)
     gammaArray = np.append(gammaArray, gamma_temp, axis=1)
 
-    # plt.plot(thetaArray.T)
-    # plt.axis('tight')
-    # plt.pause(0.05)
-
-    modelParams.plot(thetaArray, sigmaArray, gammaArray)
+    # plot current parameters
+    if not plt.fignum_exists(1):
+        plt.ion()
+        figParams = plt.figure(1)
+        figParams.show()
+        for i in range(6):
+            figParams.add_subplot(3, 2, i + 1)
+        mngr = plt.get_current_fig_manager()
+        mngr.window.setGeometry(0, 0, 960, 1200)  # half Dell display
+    modelParams.plot(figParams, thetaArray, sigmaArray, gammaArray)
 
 
     if train_iter >= modelParams.max_iterations:

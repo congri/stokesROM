@@ -12,8 +12,6 @@ import time
 import VI.variationalinference as VI
 import matplotlib.pyplot as plt
 
-
-
 df.set_log_level(30)
 
 modelParams = ModelParameters()
@@ -46,8 +44,8 @@ converged = False
 train_iter = 0
 epoch = 0   # one epoch == every data point has been seen once
 thetaArray = np.expand_dims(modelParams.theta_c, axis=1)
-sigmaArray = modelParams.sigma_c.copy()
-gammaArray = modelParams.gamma.copy()
+sigmaArray = np.expand_dims(modelParams.Sigma_c, axis=1)
+gammaArray = np.expand_dims(modelParams.gamma, axis=1)
 
 
 rom = ReducedOrderModel(modelParams, trainingData)
@@ -131,15 +129,26 @@ while not converged:
     t_e = time.time()
     print('M_step time = ', t_e - t_s)
     print('theta_c = ', modelParams.theta_c)
-    print('gamma = ', modelParams.gamma)
-    print('thetaArray = ', thetaArray)
-    print('thetaArray shape = ', thetaArray.shape)
+    print('gamma = ', modelParams.gamma[:2])
     theta_temp = np.expand_dims(modelParams.theta_c, axis=1)
     thetaArray = np.append(thetaArray, theta_temp, axis=1)
-    plt.plot(thetaArray.T)
-    plt.pause(.01)
-    plt.show()
+    sigma_temp = np.expand_dims(modelParams.Sigma_c, axis=1)
+    sigmaArray = np.append(sigmaArray, sigma_temp, axis=1)
+    gamma_temp = np.expand_dims(modelParams.gamma, axis=1)
+    gammaArray = np.append(gammaArray, gamma_temp, axis=1)
 
+    # plt.plot(thetaArray.T)
+    # plt.axis('tight')
+    # plt.pause(0.05)
+
+    # plot current parameters
+    if not plt.fignum_exists(1):
+        figParams = plt.figure(1)
+        for i in range(6):
+            figParams.add_subplot(3, 2, i + 1)
+        mngr = plt.get_current_fig_manager()
+        mngr.window.setGeometry(0, 0, 960, 1200)  # half Dell display
+    modelParams.plot(figParams, thetaArray, sigmaArray, gammaArray)
 
 
     if train_iter >= modelParams.max_iterations:
