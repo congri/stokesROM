@@ -152,6 +152,18 @@ while not converged:
         mngr.window.setGeometry(0, 0, 960, 1200)  # half Dell display
     modelParams.plot(figParams, thetaArray, sigmaArray, gammaArray)
 
+    # plot current state
+    if not plt.fignum_exists(2):
+        figState = plt.figure(2)
+        figState.show()
+        for i in range(12):
+            if (i + 1) % 3 == 0:
+                figState.add_subplot(4, 3, i + 1, projection='3d')
+            else:
+                figState.add_subplot(4, 3, i + 1)
+        mngr = plt.get_current_fig_manager()
+        mngr.window.setGeometry(50, 50, 1820, 1100)  # full Dell display
+    rom.plot_current_state(figState)
 
     if train_iter >= modelParams.max_iterations:
         converged = True

@@ -38,10 +38,6 @@ class DolfinPoisson(FlowProblem):
         u = df.Function(self.solutionFunctionSpace)
         df.solve(a == L, u, self.bcPressure)
 
-        # val = np.empty(1, dtype=float)
-        # u.eval(val, np.array([.0, .0]))
-        # print('u_c origin = ', val)
-
         return u
 
     def getAdjoints(self, diffusivityFunction, dJ):

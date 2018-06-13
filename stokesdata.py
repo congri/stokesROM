@@ -210,6 +210,9 @@ class StokesData(FlowProblem):
                 p.eval(p_old, point)
                 shift_value = value - p_old
                 p.vector().set_local(p.vector().get_local() + shift_value)
+                # val = np.empty(1, dtype=float)
+                # p.eval(val, np.array([.0, .0]))
+                # print('p_interp origin = ', val)
             print('...data shifted.')
         else:
             raise ValueError('shiftData only implemented for pressure field')
@@ -217,6 +220,8 @@ class StokesData(FlowProblem):
     def interpolate(self, quantities, modelParameters):
         # interpolation of fine scale solution to a regular mesh
         # So far only implemented for pressure
+
+        print('Interpolating data onto regular grid...')
         for solution_n in self.solution:
 
             if 'p' in quantities:
@@ -224,6 +229,8 @@ class StokesData(FlowProblem):
                 p_n.set_allow_extrapolation(True)
                 p_int_n = df.interpolate(p_n, modelParameters.pInterpSpace)
                 self.p_interp.append(p_int_n)
+
+        print('...data interpolated.')
 
     def evaluateFeatures(self, Phi, sample_index, modelParameters, writeTextFile=False):
         # Evaluate feature functions and set up design matrix for sample n

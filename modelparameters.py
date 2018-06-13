@@ -15,7 +15,8 @@ class ModelParameters:
 
         # Function space where pressure is interpolated on
         self.nEl_interp = [128, 128]    # numper of elements in x, y direction of interpolation mesh
-        self.pInterpSpace = df.FunctionSpace(df.UnitSquareMesh(self.nEl_interp[0], self.nEl_interp[1]), 'CG', 1)
+        self.interpMesh = df.UnitSquareMesh(self.nEl_interp[0], self.nEl_interp[1])
+        self.pInterpSpace = df.FunctionSpace(self.interpMesh, 'CG', 1)
 
         # Model hyperparameters
         self.mode = 'local'  # separate theta_c's per macro-cell
@@ -27,7 +28,7 @@ class ModelParameters:
         self.VRVM_d = np.finfo(float).eps
         self.VRVM_e = np.finfo(float).eps
         self.VRVM_f = np.finfo(float).eps
-        self.VRVM_iter = 1
+        self.VRVM_iter = 30
 
         # log_p_cf parameters
         self.Sinv_vec = 1e-3 * np.ones(self.pInterpSpace.dim())
