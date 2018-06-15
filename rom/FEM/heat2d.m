@@ -3,15 +3,18 @@ function [Out] = heat2d(mesh, D)
 %Gives back temperature on point x
 
 %get_loc_stiff as nested function for performance
-Dmat = spalloc(8, 8, 16);
+% Dmat = spalloc(8, 8, 16);
+row = [1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8]';
+col = [1 2 1 2 3 4 3 4 5 6 5 6 7 8 7 8]';
 
     function [diffusionStiffness] = get_loc_stiff2(Bvec, D)
         %Gives the local stiffness matrix
         
-        Dmat(1:2, 1:2) = D;
-        Dmat(3:4, 3:4) = D;
-        Dmat(5:6, 5:6) = D;
-        Dmat(7:8, 7:8) = D;
+%         Dmat(1:2, 1:2) = D;
+%         Dmat(3:4, 3:4) = D;
+%         Dmat(5:6, 5:6) = D;
+%         Dmat(7:8, 7:8) = D;
+        Dmat = sparse(row, col, repmat(D(:), 4, 1));
         
         diffusionStiffness = Bvec'*Dmat*Bvec;
     end
@@ -25,12 +28,12 @@ for e = 1:mesh.nEl
         D(:, :, e));
 end
 
-%Global stiffness matrix
-localStiffness = Out.diffusionStiffness;
+% %Global stiffness matrix
+% localStiffness = Out.diffusionStiffness;
 
-Out.globalStiffness = get_glob_stiff2(mesh, localStiffness);
+Out.globalStiffness = get_glob_stiff2(mesh, Out.diffusionStiffness);
 %Global force vector
-Out.globalForce = get_glob_force(mesh, localStiffness);
+Out.globalForce = get_glob_force(mesh, Out.diffusionStiffness);
 
 %Finally solving the equation system
 Out.naturalTemperatures = Out.globalStiffness\Out.globalForce;

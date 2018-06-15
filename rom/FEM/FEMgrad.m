@@ -19,6 +19,9 @@ for e = 1:mesh.nEl
         FEMout.diffusionStiffness(:, :, e)/conductivity(e);
     
     gradK = get_glob_stiff_gradient(gradLocStiffCond);
+    if e == 1
+        gradK
+    end
     gradF = get_glob_force_gradient(mesh, gradLocStiffCond(:, :, e), e);
     
     d_r(e, :) = (gradK*FEMout.naturalTemperatures - gradF)';

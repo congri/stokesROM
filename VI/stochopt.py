@@ -14,10 +14,10 @@ class StochasticOptimization:
         self.epsilon = 1e-4
 
         self.stepOffset = 10000        # learning rate decay offset parameter
-        self.stepWidth = .01
-        self.nSamples = 1           # gradient samples per iteration
+        self.stepWidth = .04
+        self.nSamples = 5           # gradient samples per iteration
         self.maxIterations = 1e6
-        self.maxCompTime = 5       # maximum optimization time in s
+        self.maxCompTime = 60       # maximum optimization time in s
 
     def adamOpt(self, x):
         # ADAM stochastic maximization
@@ -81,6 +81,7 @@ class StochasticOptimization:
             if comp_time > self.maxCompTime:
                 converged = True
                 print('Converged because max computation time exceeded')
+                # print('nSteps = ', curr_step)
             elif curr_step > self.maxIterations:
                 converged = True
                 print('Converged because max number of iterations exceeded')

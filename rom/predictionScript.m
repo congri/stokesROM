@@ -9,9 +9,10 @@ u_bc{1} = 'u_x=0.0-2.0*x[1]';
 u_bc{2} = 'u_y=1.0-2.0*x[0]';
 
 %rom = StokesROM;
-testSamples = 0:15;
+testSamples = 16:48;
 
-testData = StokesData(testSamples, u_bc, p_bc);
+% testData = StokesData(testSamples, u_bc, p_bc);
+testData = StokesData(testSamples);
 [~, ~, ~, meanSqDist, ~, mll] = rom.predict(testData, 'local');
 
 save('./prediction.mat', 'meanSqDist', 'mll');

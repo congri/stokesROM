@@ -28,10 +28,10 @@ class ModelParameters:
         self.VRVM_d = np.finfo(float).eps
         self.VRVM_e = np.finfo(float).eps
         self.VRVM_f = np.finfo(float).eps
-        self.VRVM_iter = 30
+        self.VRVM_iter = 3
 
         # log_p_cf parameters
-        self.Sinv_vec = 1e-3 * np.ones(self.pInterpSpace.dim())
+        self.Sinv_vec = 1e0 * np.ones(self.pInterpSpace.dim())
         # coarse to fine interpolation matrix in log_p_cf
         self.W = computeInterpolationMatrix(self.coarseSolutionSpace, self.pInterpSpace)
 
@@ -51,7 +51,7 @@ class ModelParameters:
     def initHyperparams(self):
         # Initialize hyperparameters gamma. Can only be done after theta_c has been set (because of dimensionality)
         if self.priorModel == 'RVM' or self.priorModel == 'VRVM' or self.priorModel == 'sharedVRVM':
-            self.gamma = 1e-6 * np.ones_like(self.theta_c)
+            self.gamma = 1e-4 * np.ones_like(self.theta_c)
         elif self.priorModel == 'none':
             self.gamma = None
         else:
@@ -65,6 +65,7 @@ class ModelParameters:
             nFeatures = int(nFeatures)
 
         axes = fig.get_axes()
+        t_s = time.time()
         # theta_c
         if not axes[0].lines:
             # first iteration - no lines in axes exist
@@ -77,24 +78,21 @@ class ModelParameters:
             for lin in axes[0].lines:
                 lin.set_data((np.arange(np.size(thetaArray, axis=1)), thetaArray[iter_index, :]))
                 iter_index += 1
-            axes[0].relim()  # recompute the data limits
-            axes[0].autoscale_view()  # automatic axis scaling
+            axes[0].set_xlim((0, np.size(thetaArray, axis=1) - 1))
             axes[0].set_ylim(np.amin(thetaArray[:, -1]), np.amax(thetaArray[:, -1]))
-            fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
 
         # theta_c,i
         if not axes[1].lines:
             # first iteration - no lines in axes exist
             axes[1].plot(np.arange(np.size(thetaArray, axis=0)), thetaArray[:, -1])
             axes[1].grid(True)
-            axes[1].autoscale(enable=True, axis='both', tight=True)
+            # axes[1].autoscale(enable=True, axis='both', tight=True)
             axes[1].set_ylabel(r'$\theta_{c,i}$')
         else:
             lin = axes[1].lines[0]
             lin.set_data((np.arange(np.size(thetaArray, axis=0)), thetaArray[:, -1]))
-            axes[1].relim()  # recompute the data limits
-            axes[1].autoscale_view()  # automatic axis scaling
-            fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
+            axes[1].set_xlim((0, np.size(thetaArray, axis=0) - 1))
+            axes[1].set_ylim(np.amin(thetaArray[:, -1]), np.amax(thetaArray[:, -1]))
 
         # sigma_c
         if not axes[2].lines:
@@ -109,9 +107,8 @@ class ModelParameters:
             for lin in axes[2].lines:
                 lin.set_data((np.arange(np.size(sigmaArray, axis=1)), np.sqrt(sigmaArray[iter_index, :])))
                 iter_index += 1
-            axes[2].relim()  # recompute the data limits
-            axes[2].autoscale_view()  # automatic axis scaling
-            fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
+            axes[2].set_xlim((0, np.size(sigmaArray, axis=1) - 1))
+            axes[2].set_ylim(.9*np.amin(sigmaArray), 1.1*np.amax(sigmaArray))
 
         # sigma_c map
         coords = self.coarseMesh.coordinates()
@@ -123,7 +120,7 @@ class ModelParameters:
         pos3 = axes[3].get_position()
         if len(axes) > 6:
             axes[6].remove()
-        cbaxes_sigma = fig.add_axes([pos3.x0 + pos3.width + .015, pos3.y0, 0.015, pos3.height])
+        cbaxes_sigma = fig.add_axes([pos3.x0 + pos3.width + .01, pos3.y0, 0.015, pos3.height])
         plt.colorbar(tp, ax=axes[3], cax=cbaxes_sigma)
 
         # gamma
@@ -140,20 +137,23 @@ class ModelParameters:
                 iter_index += 1
             axes[4].relim()  # recompute the data limits
             axes[4].autoscale_view()  # automatic axis scaling
-            fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
 
         s = df.Function(self.pInterpSpace)
         s.vector().set_local(np.sqrt(1/self.Sinv_vec))
         plt.sca(axes[5])
         simg = df.plot(s)
+        if not axes[5].get_title():
+            axes[5].set_title(r'$\sigma_{cf}$')
         pos6 = axes[5].get_position()
         if len(axes) > 7:
             axes[7].remove()
-        cbaxes_s = fig.add_axes([pos6.x0 + pos6.width + .015, pos6.y0, 0.015, pos6.height])
-        plt.colorbar(simg, ax=axes[5], cax=cbaxes_s)
-        axes[5].set_title(r'$\sigma_{cf}$')
+        cbarax = fig.add_axes([pos6.x0 + pos6.width + .01, pos6.y0, 0.015, pos6.height])
+        plt.colorbar(simg, ax=axes[5], cax=cbarax)
 
-        time.sleep(.01)
+        # fig.canvas.draw()
+        # fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
+        # time.sleep(.01)
+        fig.savefig('curr_params.png')
 
 
 def computeInterpolationMatrix(fromFunSpace, toFunSpace):

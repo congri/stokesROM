@@ -27,7 +27,6 @@ log_p = -.5*(S_cf_n.sumLogS + (Tf_n_minus_mu_minus_WTc)'*...
 
 if nargout > 1
     %Gradient of FEM equation system w.r.t. conductivities
-    
     d_r = FEMgrad(FEMout, coarseMesh, conductivity);
     d_rx = d_r;
     if strcmp(condTransOpts.type, 'log')
