@@ -72,7 +72,7 @@ rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
 rom.trainingData.vtx2Cell(rom.modelParams);
 
 %Step width for stochastic optimization in VI
-sw =[1e-1*ones(1, gridRF.nCells), 1e-1*ones(1, gridRF.nCells)];
+sw =[1e-2*ones(1, gridRF.nCells), 1e-2*ones(1, gridRF.nCells)];
 sw_decay = .95; %decay factor per iteration
 sw_min = 8e-3*ones(size(sw));
 

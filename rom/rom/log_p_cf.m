@@ -67,11 +67,11 @@ if nargout > 1
 
     
     %Finite difference gradient check
-    FDcheck = false;
+    FDcheck = true;
     if FDcheck
         disp('Gradient check log p_cf')
         d = 1e-8;
-        FDgrad = zeros(coarseMesh.nEl, 1);
+        FDgrad = zeros(size(d_log_p));
         for e = 1:coarseMesh.nEl
             conductivityFD = conductivity;
             conductivityFD(e) = conductivityFD(e) + d;
