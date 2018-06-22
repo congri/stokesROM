@@ -38,8 +38,8 @@ if nargout > 1
     if strcmp(condTransOpts.type, 'log')
         %We need gradient of r w.r.t. log conductivities X,
         %multiply each row with resp. conductivity
-        %d_rx(1:coarseMesh.nEl, :) = diag(conductivity)*d_r(1:coarseMesh.nEl, :);
-        d_rx = conductivity.*d_r;
+        d_rx(1:coarseMesh.nEl, :) = diag(conductivity)*d_r(1:coarseMesh.nEl, :);
+%         d_rx = conductivity.*d_r;
     elseif strcmp(condTransOpts.type, 'logit')
         %We need gradient w.r.t. x, 
         %where x is - log((lambda_up - lambda_lo)/(lambda - lambda_lo) - 1)
@@ -70,24 +70,29 @@ if nargout > 1
     FDcheck = true;
     if FDcheck
         disp('Gradient check log p_cf')
-        d = 1e-8;
+        d = 1e-3;
         FDgrad = zeros(size(d_log_p));
-        for e = 1:coarseMesh.nEl
-            conductivityFD = conductivity;
-            conductivityFD(e) = conductivityFD(e) + d;
-            
-            DFD = zeros(2, 2, coarseMesh.nEl);
-            for j = 1:coarseMesh.nEl
-                DFD(:, :, j) =  conductivityFD(j)*eye(2);
+        for e = 1:numel(Xn)
+            temp = zeros(size(Xn));
+            temp(e) = 1;
+            d_conductivity = d*(rf2fem*temp);
+            conductivityFD = conductivity + d_conductivity;
+            if ~isotropicDiffusivity
+                DFD = zeros(2, 2, coarseMesh.nEl);
+                for j = 1:coarseMesh.nEl
+                    DFD(:, :, j) =  conductivityFD(j)*eye(2);
+                end
+                FEMoutFD = heat2d(coarseMesh, DFD);
+            else
+                FEMoutFD = heat2d(coarseMesh, conductivityFD);
             end
-            FEMoutFD = heat2d(coarseMesh, DFD);
             checkLocalStiffness = false;
             if checkLocalStiffness
-                k = FEMout.diffusionStiffness(:, :, e);
-                kFD = FEMoutFD.diffusionStiffness(:, :, e);
-                d_k = FEMout.diffusionStiffness(:, :, e)/conductivity(e);
+                k = FEMout.diffusionStiffness(:, :, e)
+                kFD = FEMoutFD.diffusionStiffness(:, :, e)
+                d_k = FEMout.diffusionStiffness(:, :, e)/conductivity(e)
                 d_kFD = (FEMoutFD.diffusionStiffness(:, :, e) - ...
-                    FEMout.diffusionStiffness(:, :, e))/d;
+                    FEMout.diffusionStiffness(:, :, e))/d
                 relgrad_k = d_k./d_kFD
                 pause
             end
@@ -108,17 +113,21 @@ if nargout > 1
             end
         end
 
+        FDgrad
+        d_log_p
         relgrad = FDgrad./d_log_p
-        plot(1:numel(FDgrad), FDgrad, 1:numel(FDgrad), d_log_p)
-        axis square
-        drawnow
-        pause(1)
+%         plot(1:numel(FDgrad), FDgrad, 1:numel(FDgrad), d_log_p)
+%         axis square
+%         drawnow
+%         pause(1)
         if(norm(relgrad - 1) > 1e-1)
+            conductivity
             log_p
             log_pFD
             d_log_p
             FDgrad
             diff = log_pFD - log_p
+            pause
         end
     end %FD gradient check
     

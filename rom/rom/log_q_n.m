@@ -14,12 +14,12 @@ log_q = lg_p_cf + lg_p_c;
 d_log_q = d_lg_p_c + d_lg_p_cf;
 
 %Finite difference gradient check
-FDcheck = true;
+FDcheck = false;
 if FDcheck
     disp('Gradient check log q_i')
     conductivity =...
         conductivityBackTransform(Xn, condTransOpts);
-    d = 1e-5;
+    d = 1e-3;
 
     latentDim = numel(Xn);
     gradFD = zeros(latentDim, 1);
@@ -44,6 +44,7 @@ if FDcheck
         conductivity
         conductivityFD
         Xn
+        gradFD
         XiFD = Xn + dXi
         d_log_q
         d_lg_p_c
