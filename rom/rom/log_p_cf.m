@@ -8,13 +8,18 @@ function [log_p, d_log_p, Tc] = log_p_cf(...
 conductivity = conductivityBackTransform(Xn, condTransOpts);
 conductivity = rf2fem*conductivity;
 
-D = zeros(2, 2, coarseMesh.nEl);
-%Conductivity matrix D, only consider isotropic materials here
-for j = 1:coarseMesh.nEl
-    D(:, :, j) =  conductivity(j)*eye(2);
+isotropicDiffusivity = true;
+if ~isotropicDiffusivity
+    D = zeros(2, 2, coarseMesh.nEl);
+    %Conductivity matrix D, only consider isotropic materials here
+    for j = 1:coarseMesh.nEl
+        D(:, :, j) =  conductivity(j)*eye(2);
+    end
+    FEMout = heat2d(coarseMesh, D);
+else
+    %for better performance
+    FEMout = heat2d(coarseMesh, conductivity);
 end
-
-FEMout = heat2d(coarseMesh, D);
 
 Tc = FEMout.Tff';
 Tc = Tc(:);

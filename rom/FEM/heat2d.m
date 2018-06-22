@@ -23,10 +23,10 @@ col = [1 2 1 2 3 4 3 4 5 6 5 6 7 8 7 8]';
 %Compute local stiffness matrices, once and for all
 Out.diffusionStiffness = zeros(4, 4, mesh.nEl);
 
-diagDiffusivity = true;
-if diagDiffusivity
+isotropicDiffusivity = true;
+if isotropicDiffusivity
     for e = 1:mesh.nEl
-        Out.diffusionStiffness(:, :, e) = D(1, 1, e)*mesh.d_loc_stiff(:, :, e);
+        Out.diffusionStiffness(:, :, e) = D(e)*mesh.d_loc_stiff(:, :, e);
     end
 else
     for e = 1:mesh.nEl
