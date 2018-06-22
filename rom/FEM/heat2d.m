@@ -20,9 +20,16 @@ Dmat = spalloc(8, 8, 16);
 %Compute local stiffness matrices, once and for all
 Out.diffusionStiffness = zeros(4, 4, mesh.nEl);
 
-for e = 1:mesh.nEl
-    Out.diffusionStiffness(:, :, e) = get_loc_stiff2(mesh.Bvec(:, :, e),...
-        D(:, :, e));
+isotropicDiffusivity = true;
+if isotropicDiffusivity
+    for e = 1:mesh.nEl
+        Out.diffusionStiffness(:, :, e) = D(e)*mesh.d_loc_stiff(:, :, e);
+    end
+else
+    for e = 1:mesh.nEl
+        Out.diffusionStiffness(:, :, e) = get_loc_stiff2(mesh.Bvec(:, :, e),...
+            D(:, :, e));
+    end
 end
 
 %Global stiffness matrix

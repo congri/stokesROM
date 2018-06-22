@@ -8,13 +8,16 @@ function [log_p, d_log_p, Tc] = log_p_cf(...
 conductivity = conductivityBackTransform(Xn, condTransOpts);
 conductivity = rf2fem*conductivity;
 
-D = zeros(2, 2, coarseMesh.nEl);
-%Conductivity matrix D, only consider isotropic materials here
-for j = 1:coarseMesh.nEl
-    D(:, :, j) =  conductivity(j)*eye(2);
+isotropicDiffusivity = true;
+if isotropicDiffusivity
+    FEMout = heat2d(coarseMesh, conductivity);
+else
+    D = zeros(2, 2, coarseMesh.nEl);
+    for j = 1:coarseMesh.nEl
+        D(:, :, j) =  conductivity(j)*eye(2);
+    end
+    FEMout = heat2d(coarseMesh, D);
 end
-
-FEMout = heat2d(coarseMesh, D);
 
 Tc = FEMout.Tff';
 Tc = Tc(:);
@@ -70,11 +73,15 @@ if nargout > 1
             conductivityFD = conductivity;
             conductivityFD(e) = conductivityFD(e) + d;
             
-            DFD = zeros(2, 2, coarseMesh.nEl);
-            for j = 1:coarseMesh.nEl
-                DFD(:, :, j) =  conductivityFD(j)*eye(2);
+            if isotropicDiffusivity
+                FEMoutFD = heat2d(coarseMesh, conductivityFD);
+            else
+                DFD = zeros(2, 2, coarseMesh.nEl);
+                for j = 1:coarseMesh.nEl
+                    DFD(:, :, j) =  conductivityFD(j)*eye(2);
+                end
+                FEMoutFD = heat2d(coarseMesh, DFD);
             end
-            FEMoutFD = heat2d(coarseMesh, DFD);
             checkLocalStiffness = false;
             if checkLocalStiffness
                 k = FEMout.diffusionStiffness(:, :, e);
