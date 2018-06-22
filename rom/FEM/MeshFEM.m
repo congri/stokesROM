@@ -557,10 +557,20 @@ classdef MeshFEM
         end
         
         function self = shrink(self)
-            %To save memory. We use that on finescale domain to save memory
+            %To save memory. We use that to save memory in parfor
             self.lc = [];
-            self.Equations = [];
-            self.kIndex = [];
+            self.gridX = [];
+            self.gridY = [];
+            self.nElX = [];
+            self.nElY = [];
+            self.nEl = [];
+            self.nNodes = [];
+            self.lElX = [];
+            self.lElY = [];
+            self.cum_lElX = [];
+            self.cum_lElY = [];
+            self.f_tot =[];
+            self.compute_grad = [];
             self.boundaryNodes = [];
             self.essentialNodes = [];
             self.essentialTemperatures = [];
@@ -572,17 +582,15 @@ classdef MeshFEM
             self.ly = [];
             self.AEl = [];
             self.nEq = [];
-            self.nodalCoordinates = [];
             self.globalNodeNumber =[];
             self.Bvec = [];
             self.essentialBoundary = [];
             self.lm = [];
-            self.id = [];
             self.LocalNode = [];
             self.fs = [];
             self.fh = [];
             
-            %             self.d_loc_stiff = [];
+%             self.d_loc_stiff = [];
         end
         
         function self = get_loc_stiff_grad(self)

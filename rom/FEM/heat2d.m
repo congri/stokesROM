@@ -2,11 +2,11 @@ function [Out] = heat2d(mesh, D)
 %2D heat conduction main function
 %Gives back temperature on point x
 
-%get_loc_stiff as nested function for performance
-Dmat = spalloc(8, 8, 16);
-
     function [diffusionStiffness] = get_loc_stiff2(Bvec, D)
         %Gives the local stiffness matrix
+        %get_loc_stiff as nested function for performance
+        Dmat = spalloc(8, 8, 16);
+        
         
         Dmat(1:2, 1:2) = D;
         Dmat(3:4, 3:4) = D;
@@ -18,14 +18,15 @@ Dmat = spalloc(8, 8, 16);
 
 
 %Compute local stiffness matrices, once and for all
-Out.diffusionStiffness = zeros(4, 4, mesh.nEl);
-
 isotropicDiffusivity = true;
 if isotropicDiffusivity
-    for e = 1:mesh.nEl
-        Out.diffusionStiffness(:, :, e) = D(e)*mesh.d_loc_stiff(:, :, e);
-    end
+%     for e = 1:mesh.nEl
+%         Out.diffusionStiffness(:, :, e) = D(e)*mesh.d_loc_stiff(:, :, e);
+%     end
+    Out.diffusionStiffness =...
+        permute(D.*permute(mesh.d_loc_stiff, [3, 1, 2]), [2, 3, 1]);
 else
+    Out.diffusionStiffness = zeros(4, 4, mesh.nEl);
     for e = 1:mesh.nEl
         Out.diffusionStiffness(:, :, e) = get_loc_stiff2(mesh.Bvec(:, :, e),...
             D(:, :, e));
@@ -33,11 +34,11 @@ else
 end
 
 %Global stiffness matrix
-localStiffness = Out.diffusionStiffness;
+% localStiffness = Out.diffusionStiffness;
 
-Out.globalStiffness = get_glob_stiff2(mesh, localStiffness);
+Out.globalStiffness = get_glob_stiff2(mesh, Out.diffusionStiffness);
 %Global force vector
-Out.globalForce = get_glob_force(mesh, localStiffness);
+Out.globalForce = get_glob_force(mesh, Out.diffusionStiffness);
 
 %Finally solving the equation system
 Out.naturalTemperatures = Out.globalStiffness\Out.globalForce;

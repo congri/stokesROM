@@ -24,19 +24,19 @@ Tc = Tc(:);
 
 Tf_n_minus_mu_minus_WTc = Tf_n_minus_mu - W_cf_n*Tc;
 %only for diagonal S!
-log_p = -.5*(S_cf_n.sumLogS + (Tf_n_minus_mu_minus_WTc)'*...
-    (S_cf_n.Sinv_vec.*(Tf_n_minus_mu_minus_WTc)));
+log_p = -.5*(S_cf_n.sumLogS + (S_cf_n.Sinv_vec'*(Tf_n_minus_mu_minus_WTc.^2)));
 
 
 if nargout > 1
     %Gradient of FEM equation system w.r.t. conductivities
     
-    d_r = FEMgrad(FEMout, coarseMesh, conductivity);
+    d_r = FEMgrad(FEMout, coarseMesh);
     d_rx = d_r;
     if strcmp(condTransOpts.type, 'log')
         %We need gradient of r w.r.t. log conductivities X,
         %multiply each row with resp. conductivity
-        d_rx(1:coarseMesh.nEl, :) = diag(conductivity)*d_r(1:coarseMesh.nEl, :);
+%         d_rx(1:coarseMesh.nEl, :) = diag(conductivity)*d_r(1:coarseMesh.nEl, :);
+        d_rx = conductivity.*d_r;
     elseif strcmp(condTransOpts.type, 'logit')
         %We need gradient w.r.t. x, 
         %where x is - log((lambda_up - lambda_lo)/(lambda - lambda_lo) - 1)

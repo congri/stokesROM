@@ -116,6 +116,7 @@ while ~converged
         
         Phi_n = rom.trainingData.designMatrix{n};
         coarseMesh = rom.modelParams.coarseMesh;
+        coarseMesh = coarseMesh.shrink;
         
         rf2fem = rom.modelParams.rf2fem;
         lg_q{n} = @(Xi) log_q_n(Xi, P_n_minus_mu, W_cf_n, S_cf_n, tc, Phi_n,...
