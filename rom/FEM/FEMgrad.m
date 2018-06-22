@@ -3,30 +3,25 @@ function [d_r] = FEMgrad(FEMout, mesh, conductivity)
 %ONLY VALID FOR ISOTROPIC HEAT CONDUCTIVITY MATRIX D!!!
 
 
-%     function gradKK = get_glob_stiff_gradient(grad_loc_k)
-%         gradKK = sparse(mesh.Equations(:, 1),...
-%             mesh.Equations(:, 2), grad_loc_k(mesh.kIndex));
-%     end
+    function gradKK = get_glob_stiff_gradient(grad_loc_k)
+        gradKK = sparse(mesh.Equations(:, 1),...
+            mesh.Equations(:, 2), grad_loc_k(mesh.kIndex));
+    end
 
 % (d/d Lambda_e) k^(e) = (1/Lambda_e) k^(e)     as k^(e) linear in Lambda_e
 d_r = zeros(mesh.nEl, mesh.nEq);
 
 for e = 1:mesh.nEl
-%     gradLocStiffCond = zeros(4, 4, mesh.nEl);
+    gradLocStiffCond = zeros(4, 4, mesh.nEl);
 
     %gradient of local stiffnesses
-%     gradLocStiffCond(:, :, e) =...
-%         FEMout.diffusionStiffness(:, :, e)/conductivity(e);
+    gradLocStiffCond(:, :, e) =...
+        FEMout.diffusionStiffness(:, :, e)/conductivity(e);
     
-    % gradK = get_glob_stiff_gradient(gradLocStiffCond);
-
-%     gradF = get_glob_force_gradient(mesh, gradLocStiffCond(:, :, e), e);
+    gradK = get_glob_stiff_gradient(gradLocStiffCond);
+    gradF = get_glob_force_gradient(mesh, gradLocStiffCond(:, :, e), e);
     
-    % d_r(e, :) = (gradK*FEMout.naturalTemperatures - gradF)';
-    % d_r(e, :) = (mesh.d_glob_stiff{e}*FEMout.naturalTemperatures - gradF)';
-    d_r(e, :) = (mesh.d_glob_stiff{e}*FEMout.naturalTemperatures -...
-        mesh.d_glob_force{e})';
-   
+    d_r(e, :) = (gradK*FEMout.naturalTemperatures - gradF)';
 
     %Finite difference gradient check
     FDcheck = false;
@@ -47,17 +42,20 @@ for e = 1:mesh.nEl
         e
         K = full(FEMout.globalStiffness)
         KFD = full(FEMoutFD.globalStiffness)
-        gK = full(mesh.d_glob_stiff{e})
+        gK = full(gradK)
         gKFD = full(gradKFD)
-        diffGradK = full(mesh.d_glob_stiff{e} - gradKFD)
+        diffGradK = full(gradK - gradKFD)
 %         relgradK = full(gradKFD./gradK)
         
         gradFFD = (FEMoutFD.globalForce - FEMout.globalForce)/d
-        diffGradF = mesh.d_glob_force{e} - gradFFD
+        gradF
+        diffGradF = gradF - gradFFD
 %         relgradF = gradFFD./gradF
         pause
     end
     
+    gradK = [];
+    gradF = [];
 end
 
 

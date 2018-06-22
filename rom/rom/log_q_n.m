@@ -18,19 +18,19 @@ FDcheck = false;
 if FDcheck
     disp('Gradient check log q_i')
     conductivity =...
-        conductivityBackTransform(Xn, condTransOpts);
-    d = 1e-3;
+        conductivityBackTransform(Xn(1:coarseMesh.nEl), condTransOpts);
+    d = 1e-5;
 
-    latentDim = numel(Xn);
+    latentDim = coarseMesh.nEl;
     gradFD = zeros(latentDim, 1);
     for i = 1:latentDim
         dXi = zeros(latentDim, 1);
         dXi(i) = d;
-        conductivityFD = conductivity + conductivity.*dXi;
+        conductivityFD = conductivity + conductivity.*dXi(1:coarseMesh.nEl);
         
         [lg_p_c, ~] = log_p_c(Xn + dXi, designMatrix, theta_c);
-        [lg_p_cf, ~] = log_p_cf(Tf_n_minus_mu, coarseMesh, Xn + dXi,...
-            W_cf_n, S_cf_n, condTransOpts, rf2fem);
+        [lg_p_cf, ~] = log_p_cf(...
+            Tf_n_minus_mu, coarseMesh, Xn + dXi, W_cf_n, S_cf_n, condTransOpts);
         
         log_qFD = lg_p_cf + lg_p_c;
         gradFD(i) = (log_qFD - log_q)/d;
@@ -44,7 +44,6 @@ if FDcheck
         conductivity
         conductivityFD
         Xn
-        gradFD
         XiFD = Xn + dXi
         d_log_q
         d_lg_p_c

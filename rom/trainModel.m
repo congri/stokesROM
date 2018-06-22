@@ -26,10 +26,10 @@ muField = 0;        %mean function in p_cf
 
 %Conductivity transformation options
 condTransOpts.type = 'log';
-condTransOpts.limits = [1e-14, 1e3];
+condTransOpts.limits = [1e-10, 1e3];
 
 gridRF = RectangularMesh((1/2)*ones(1, 2));
-% gridRF.split_cell(gridRF.cells{2});
+%gridRF.split_cell(gridRF.cells{2});
 
 %random number seed based on time
 rng('shuffle');
@@ -72,7 +72,7 @@ rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
 rom.trainingData.vtx2Cell(rom.modelParams);
 
 %Step width for stochastic optimization in VI
-sw =[1e-3*ones(1, gridRF.nCells), 1e-3*ones(1, gridRF.nCells)];
+sw =[1e-1*ones(1, gridRF.nCells), 1e-1*ones(1, gridRF.nCells)];
 sw_decay = .95; %decay factor per iteration
 sw_min = 8e-3*ones(size(sw));
 

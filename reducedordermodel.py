@@ -221,15 +221,10 @@ class ReducedOrderModel:
 
         axes = fig.get_axes()
 
-        # remove colorbars if existing
-        if len(axes) > 6:
-            axes[7].remove()
-            axes[6].remove()
-
         coords = self.modelParams.interpMesh.coordinates()
         diffusivityFunction = df.Function(self.coarseSolver.diffusivityFunctionSpace)
 
-        for n in range(2):
+        for n in range(4):
 
             # data and predictive mode
             p = self.trainingData.p_interp[n].compute_vertex_values()
@@ -241,54 +236,31 @@ class ReducedOrderModel:
             u_reconst_fun = df.Function(self.modelParams.pInterpSpace)
             u_reconst_fun.vector().set_local(u_reconst)
             u_reconst_vtx = u_reconst_fun.compute_vertex_values()
-
             axes[3*n + 2].cla()
-            axes[3*n + 2].plot_trisurf(coords[:, 0], coords[:, 1], u_reconst_vtx, alpha=1.0)
+            axes[3*n + 2].plot_trisurf(coords[:, 0], coords[:, 1], u_reconst_vtx)
             axes[3*n + 2].set_zlabel(r'$p$')
             axes[3*n + 2].margins(x=.0, y=.0, z=.0)
             axes[3*n + 2].view_init(elev=15, azim=255)
-            axes[3*n + 2].plot_trisurf(coords[:, 0], coords[:, 1], p, cmap='inferno', alpha=1.0)
-            axes[3*n + 2].set_xticklabels(())
-            axes[3*n + 2].set_yticklabels(())
-            # axes[3*n + 2].set_zticklabels(())
+            axes[3*n + 2].plot_trisurf(coords[:, 0], coords[:, 1], p, cmap='inferno')
 
             # meshes
             if not axes[3*n + 1].get_title():
                 plt.sca(axes[3*n + 1])
                 axes[3*n + 1].set_title('mesh')
-                df.plot(self.trainingData.mesh[n], linewidth=.5)
+                df.plot(self.trainingData.mesh[n], linewidth=1)
                 axes[3*n + 1].margins(x=.0, y=.0)
-                axes[3 * n + 1].set_xticklabels(())
-                axes[3 * n + 1].set_yticklabels(())
 
-            # # mode diffusivities
-            # plt.sca(axes[3*n])
-            # pdiff = df.plot(diffusivityFunction)
-            # # if not axes[3*n].get_title():
-            # axes[3*n].margins(x=.0, y=.0)
-            # axes[3*n].set_title('eff. diff. mode')
-            # pos = axes[3 * n].get_position()
-            # cbaxes = fig.add_axes([pos.x0 + pos.width + .01, pos.y0, 0.01, pos.height])
-            # plt.colorbar(pdiff, ax=axes[3 * n], cax=cbaxes)
+            # mode diffusivities
+            plt.sca(axes[3*n])
+            pdiff = df.plot(diffusivityFunction)
+            if not axes[3*n].get_title():
+                pos = axes[3*n].get_position()
+                cbaxes = fig.add_axes([pos.x0 + pos.width - .02, pos.y0, 0.015, pos.height])
+                plt.colorbar(pdiff, ax=axes[3*n], cax=cbaxes)
+                axes[3 * n].margins(x=.0, y=.0)
+                axes[3*n].set_title('eff. diff. mode')
 
-        for n in range(2):
-            # eff diffusivity mode
-            x_c_mode = self.trainingData.designMatrix[n].dot(self.modelParams.theta_c)
-            coords = self.modelParams.coarseMesh.coordinates()
-            diffp = axes[3 * n].tripcolor(coords[:, 0], coords[:, 1], self.modelParams.coarseMesh.cells(), x_c_mode)
-            axes[3 * n].margins(.0, .0)
-            axes[3 * n].set_aspect('equal', 'box')
-            axes[3 * n].set_title(r'$eff. diff. mode$')
-            axes[3 * n].set_xticklabels(())
-            axes[3 * n].set_yticklabels(())
-            pos = axes[3 * n].get_position()
-            cbaxes = fig.add_axes([pos.x0 + pos.width + .01, pos.y0, 0.01, pos.height])
-            plt.colorbar(diffp, ax=axes[3 * n], cax=cbaxes)
-
-        # fig.canvas.draw()
-        # fig.canvas.flush_events()
-        # time.sleep(.01)
-        fig.savefig('curr_state.png')
+        time.sleep(.01)
 
         return
 

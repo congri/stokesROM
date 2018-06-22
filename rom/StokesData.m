@@ -239,7 +239,6 @@ classdef StokesData < handle
                         p_interp = p_interp(:);
                     end
                     self.P{n} = p_interp;
-%                     p_interp_size = size(self.P{n})
                 end
                 
                 if ~isempty(self.U)
@@ -256,7 +255,8 @@ classdef StokesData < handle
         end
         
         function dataVar = computeDataVariance(self, samples, quantity,...
-                modelParams)
+                fineGridX, fineGridY, interpolationMode, smoothingParameter,...
+                boundarySmoothingPixels)
             %Computes variance of Stokes data over whole data set
             %keep in mind python indexing for samples
             
@@ -274,7 +274,11 @@ classdef StokesData < handle
                 if nargin < 6
                     interpolationMode = 'cubic';
                 end
-                self.interpolate(modelParams);
+                if nargin < 5
+                    fineGridY = fineGridX;
+                end
+                self.interpolate(fineGridX, fineGridY, interpolationMode,...
+                    smoothingParameter, boundarySmoothingPixels);
             end
             
             %Compute first and second moments
@@ -282,8 +286,6 @@ classdef StokesData < handle
             meanSquaredQuantity = 0;
             for n = 1:numel(samples)
                 if strcmp(quantity, 'p')
-%                     size(self.P{n})
-%                     size(meanQuantity)
                     meanQuantity = (1/n)*((n - 1)*meanQuantity + self.P{n});
                     meanSquaredQuantity =...
                         (1/n)*((n - 1)*meanSquaredQuantity + self.P{n}.^2);

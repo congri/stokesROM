@@ -8,38 +8,32 @@ function [log_p, d_log_p, Tc] = log_p_cf(...
 conductivity = conductivityBackTransform(Xn, condTransOpts);
 conductivity = rf2fem*conductivity;
 
-isotropicDiffusivity = true;
-if ~isotropicDiffusivity
-    D = zeros(2, 2, coarseMesh.nEl);
-    %Conductivity matrix D, only consider isotropic materials here
-    for j = 1:coarseMesh.nEl
-        D(:, :, j) =  conductivity(j)*eye(2);
-    end
-    FEMout = heat2d(coarseMesh, D);
-else
-    %for better performance
-    FEMout = heat2d(coarseMesh, conductivity);
+D = zeros(2, 2, coarseMesh.nEl);
+%Conductivity matrix D, only consider isotropic materials here
+for j = 1:coarseMesh.nEl
+    D(:, :, j) =  conductivity(j)*eye(2);
 end
+
+FEMout = heat2d(coarseMesh, D);
 
 Tc = FEMout.Tff';
 Tc = Tc(:);
 
 Tf_n_minus_mu_minus_WTc = Tf_n_minus_mu - W_cf_n*Tc;
 %only for diagonal S!
-% log_p = -.5*(S_cf_n.sumLogS + (Tf_n_minus_mu_minus_WTc)'*...
-%     (S_cf_n.Sinv_vec.*(Tf_n_minus_mu_minus_WTc)));
-log_p = -.5*(S_cf_n.sumLogS + S_cf_n.Sinv_vec'*Tf_n_minus_mu_minus_WTc.^2);
+log_p = -.5*(S_cf_n.sumLogS + (Tf_n_minus_mu_minus_WTc)'*...
+    (S_cf_n.Sinv_vec.*(Tf_n_minus_mu_minus_WTc)));
 
 
 if nargout > 1
     %Gradient of FEM equation system w.r.t. conductivities
+    
     d_r = FEMgrad(FEMout, coarseMesh, conductivity);
     d_rx = d_r;
     if strcmp(condTransOpts.type, 'log')
         %We need gradient of r w.r.t. log conductivities X,
         %multiply each row with resp. conductivity
         d_rx(1:coarseMesh.nEl, :) = diag(conductivity)*d_r(1:coarseMesh.nEl, :);
-%         d_rx = conductivity.*d_r;
     elseif strcmp(condTransOpts.type, 'logit')
         %We need gradient w.r.t. x, 
         %where x is - log((lambda_up - lambda_lo)/(lambda - lambda_lo) - 1)
@@ -67,32 +61,27 @@ if nargout > 1
 
     
     %Finite difference gradient check
-    FDcheck = true;
+    FDcheck = false;
     if FDcheck
         disp('Gradient check log p_cf')
-        d = 1e-3;
-        FDgrad = zeros(size(d_log_p));
-        for e = 1:numel(Xn)
-            temp = zeros(size(Xn));
-            temp(e) = 1;
-            d_conductivity = d*(rf2fem*temp);
-            conductivityFD = conductivity + d_conductivity;
-            if ~isotropicDiffusivity
-                DFD = zeros(2, 2, coarseMesh.nEl);
-                for j = 1:coarseMesh.nEl
-                    DFD(:, :, j) =  conductivityFD(j)*eye(2);
-                end
-                FEMoutFD = heat2d(coarseMesh, DFD);
-            else
-                FEMoutFD = heat2d(coarseMesh, conductivityFD);
+        d = 1e-8;
+        FDgrad = zeros(coarseMesh.nEl, 1);
+        for e = 1:coarseMesh.nEl
+            conductivityFD = conductivity;
+            conductivityFD(e) = conductivityFD(e) + d;
+            
+            DFD = zeros(2, 2, coarseMesh.nEl);
+            for j = 1:coarseMesh.nEl
+                DFD(:, :, j) =  conductivityFD(j)*eye(2);
             end
+            FEMoutFD = heat2d(coarseMesh, DFD);
             checkLocalStiffness = false;
             if checkLocalStiffness
-                k = FEMout.diffusionStiffness(:, :, e)
-                kFD = FEMoutFD.diffusionStiffness(:, :, e)
-                d_k = FEMout.diffusionStiffness(:, :, e)/conductivity(e)
+                k = FEMout.diffusionStiffness(:, :, e);
+                kFD = FEMoutFD.diffusionStiffness(:, :, e);
+                d_k = FEMout.diffusionStiffness(:, :, e)/conductivity(e);
                 d_kFD = (FEMoutFD.diffusionStiffness(:, :, e) - ...
-                    FEMout.diffusionStiffness(:, :, e))/d
+                    FEMout.diffusionStiffness(:, :, e))/d;
                 relgrad_k = d_k./d_kFD
                 pause
             end
@@ -112,22 +101,19 @@ if nargout > 1
                 error('Unknown conductivity transformation')
             end
         end
-
-        FDgrad
-        d_log_p
+        
+        FDgrad = rf2fem'*FDgrad;
         relgrad = FDgrad./d_log_p
 %         plot(1:numel(FDgrad), FDgrad, 1:numel(FDgrad), d_log_p)
 %         axis square
 %         drawnow
-%         pause(1)
+        pause(.1)
         if(norm(relgrad - 1) > 1e-1)
-            conductivity
             log_p
             log_pFD
             d_log_p
             FDgrad
             diff = log_pFD - log_p
-            pause
         end
     end %FD gradient check
     

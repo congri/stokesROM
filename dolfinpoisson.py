@@ -3,7 +3,6 @@
 import numpy as np
 from flowproblem import FlowProblem
 import dolfin as df
-import time
 
 
 class DolfinPoisson(FlowProblem):
@@ -37,9 +36,7 @@ class DolfinPoisson(FlowProblem):
 
         # Compute solution
         u = df.Function(self.solutionFunctionSpace)
-        ts = time.time()
         df.solve(a == L, u, self.bcPressure)
-        print('solve time = ', time.time() - ts)
 
         # val = np.empty(1, dtype=float)
         # u.eval(val, np.array([.0, .0]))
