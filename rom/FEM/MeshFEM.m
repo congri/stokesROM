@@ -56,6 +56,13 @@ classdef MeshFEM
         
         fs                          %local forces due to heat source
         fh                          %local forces due to natural boundary
+        f_tot                       %sum of fs and fh
+        
+        compute_grad = false
+        d_loc_stiff                 %local stiffness gradient
+        d_glob_stiff                %global stiffness gradient
+        
+        d_glob_force                %global force gradient
     end
     
     
@@ -110,6 +117,7 @@ classdef MeshFEM
             mesh = mesh.setGlobalNodeNumber;
             
             mesh = setHeatSource(mesh, zeros(mesh.nEl, 1));  %zero as default
+            
         end
 
         function self = setLocCoord(self)
@@ -271,6 +279,13 @@ classdef MeshFEM
                 %Note:in Gauss quadrature, the differential transforms as dx = (l_x/2) d xi. Hence
                 %we take the additional factor of sqrt(A)/2 onto B
                 self.Bvec(:, :, e) = (1/(2*sqrt(self.AEl(e))))*[B1; B2; B3; B4];
+            end
+            
+            %gradient precomputation
+            self = self.get_loc_stiff_grad();
+            if self.compute_grad
+                self = self.get_glob_stiff_grad();
+                self = self.get_glob_force_grad();
             end
         end
 
@@ -453,7 +468,7 @@ classdef MeshFEM
             end
         end
 
-        function self = setBoundaries(self, natNodes, Tb, qb)    
+        function self = setBoundaries(self, natNodes, Tb, qb)
             %natNodes holds natural nodes counted counterclockwise around domain, starting in lower
             %left corner. Tb and qb are function handles to temperature and heat flux boundary
             %functions
@@ -532,10 +547,11 @@ classdef MeshFEM
             
             %Finally set local forces due to natural boundaries
             self = setFluxForce(self, qb);
+            self.f_tot = self.fh + self.fs;
             self = setNodalCoordinates(self);
             self = setBvec(self);
         end
-
+        
         function self = shrink(self)
             %To save memory. We use that on finescale domain to save memory
             self.lc = [];
@@ -561,7 +577,38 @@ classdef MeshFEM
             self.LocalNode = [];
             self.fs = [];
             self.fh = [];
+            
+            %             self.d_loc_stiff = [];
         end
+        
+        function self = get_loc_stiff_grad(self)
+            %Gives the local stiffness matrix gradient
+            
+            self.d_loc_stiff = zeros(4, 4, self.nEl);
+            for e = 1:self.nEl
+                self.d_loc_stiff(:, :, e) =...
+                    self.Bvec(:, :, e)'*self.Bvec(:, :, e);
+            end
+        end
+        
+        function self = get_glob_stiff_grad(self)
+            %gives global stiffness matrix gradient
+            for e = 1:self.nEl
+                grad_loc_k = zeros(4, 4, self.nEl);
+                grad_loc_k(:, :, e) = self.d_loc_stiff(:, :, e);
+                self.d_glob_stiff{e} = sparse(self.Equations(:, 1),...
+                    self.Equations(:, 2), grad_loc_k(self.kIndex));
+            end
+        end
+        
+        function self = get_glob_force_grad(self)
+            %compute global force gradient
+            for e = 1:self.nEl
+                self.d_glob_force{e} = get_glob_force_gradient(self, ...
+                    self.d_loc_stiff(:, :, e), e);
+            end
+        end
+        
     end
 end
 

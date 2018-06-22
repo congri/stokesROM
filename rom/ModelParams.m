@@ -9,8 +9,8 @@ classdef ModelParams < handle
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
         gridRF
-        coarseGridX = (1/2)*ones(1, 2)
-        coarseGridY = (1/2)*ones(1, 2)
+        coarseGridX = (1/8)*ones(1, 8)
+        coarseGridY = (1/8)*ones(1, 8)
         
         %p_cf
         W_cf

@@ -23,9 +23,16 @@ col = [1 2 1 2 3 4 3 4 5 6 5 6 7 8 7 8]';
 %Compute local stiffness matrices, once and for all
 Out.diffusionStiffness = zeros(4, 4, mesh.nEl);
 
-for e = 1:mesh.nEl
-    Out.diffusionStiffness(:, :, e) = get_loc_stiff2(mesh.Bvec(:, :, e),...
-        D(:, :, e));
+diagDiffusivity = true;
+if diagDiffusivity
+    for e = 1:mesh.nEl
+        Out.diffusionStiffness(:, :, e) = D(1, 1, e)*mesh.d_loc_stiff(:, :, e);
+    end
+else
+    for e = 1:mesh.nEl
+        Out.diffusionStiffness(:, :, e) = get_loc_stiff2(mesh.Bvec(:, :, e),...
+            D(:, :, e));
+    end
 end
 
 % %Global stiffness matrix

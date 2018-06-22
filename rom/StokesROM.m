@@ -28,6 +28,7 @@ classdef StokesROM < handle
             self.modelParams.coarseMesh = ...
                 MeshFEM(self.modelParams.coarseGridX,...
                 self.modelParams.coarseGridY);
+            self.modelParams.coarseMesh.compute_grad = true;
             nX = length(self.modelParams.coarseGridX); 
             nY = length(self.modelParams.coarseGridY);
             
