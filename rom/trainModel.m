@@ -18,17 +18,12 @@ mkdir('./data/');
 
 %% Try to define parameters in classes. Rest here:
 
-nTrain = 16;
+nTrain = 8;
 %nStart = randi(1023 - nTrain) - 1
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
-muField = 0;        %mean function in p_cf
 
-%Conductivity transformation options
-condTransOpts.type = 'log';
-condTransOpts.limits = [1e-10, 1e3];
-
-gridRF = RectangularMesh((1/4)*ones(1, 4));
+gridRF = RectangularMesh((1/2)*ones(1, 2));
 % gridRF.split_cell(gridRF.cells{1});
 % gridRF.split_cell(gridRF.cells{7});
 
@@ -45,9 +40,8 @@ rom.trainingData.readData('px');
 rom.trainingData.countVertices();
 
 rom.modelParams = ModelParams;
-rom.initializeModelParams('', gridRF);
+rom.initializeModelParams('');
 
-rom.modelParams.condTransOpts = condTransOpts;
 if any(rom.modelParams.interpolationMode)
     rom.trainingData.interpolate(rom.modelParams);
     rom.modelParams.fineScaleInterp(rom.trainingData.X_interp);
@@ -60,7 +54,7 @@ rom.trainingData.shiftData(interp, 'p'); %shifts p to 0 at origin
 modelParams = rom.modelParams;
 save('./data/modelParams.mat', 'modelParams');
 clear modelParams;
-rom.trainingData.evaluateFeatures(gridRF);
+rom.trainingData.evaluateFeatures(rom.modelParams.gridRF);
 
 if strcmp(rom.modelParams.normalization, 'rescale')
     rom.trainingData.rescaleDesignMatrix;
@@ -74,7 +68,8 @@ rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
 rom.trainingData.vtx2Cell(rom.modelParams);
 
 %Step width for stochastic optimization in VI
-sw =[1e-1*ones(1, gridRF.nCells), 1e-1*ones(1, gridRF.nCells)];
+nRFc = gridRF.nCells;
+sw =[1e-1*ones(1, nRFc), 1e-1*ones(1, nRFc)];
 sw_decay = .95; %decay factor per iteration
 sw_min = 8e-3*ones(size(sw));
 
@@ -98,7 +93,7 @@ while ~converged
     for n = 1:nTrain
         %Setting up a handle to the distribution q_n
         %this transfers less data in parfor loops
-        P_n_minus_mu = rom.trainingData.P{n} - muField;
+        P_n_minus_mu = rom.trainingData.P{n};
         if any(rom.modelParams.interpolationMode)
             W_cf_n = rom.modelParams.W_cf{1};
             S_n = rom.modelParams.sigma_cf.s0;
@@ -108,7 +103,7 @@ while ~converged
         end
         %S_n is a vector of variances at vertices
         S_cf_n.sumLogS = sum(log(S_n));
-        S_cf_n.Sinv_vec = 1./S_n;
+        S_cf_n.Sinv_vec = (1./S_n)';%row vector
         Sinv = sparse(1:length(S_n), 1:length(S_n), S_cf_n.Sinv_vec);
         S_cf_n.WTSinv = (Sinv*W_cf_n)';
         
@@ -121,14 +116,15 @@ while ~converged
         coarseMesh = coarseMesh.shrink;
         
         rf2fem = rom.modelParams.rf2fem;
+        transType = rom.modelParams.diffTransform;
+        transLimits = rom.modelParams.diffLimits;
         lg_q{n} = @(Xi) log_q_n(Xi, P_n_minus_mu, W_cf_n, S_cf_n, tc, Phi_n,...
-            coarseMesh, condTransOpts, rf2fem);
+            coarseMesh, transType, transLimits, rf2fem);
     end
     
-    nRFc = gridRF.nCells;
     ticBytes(gcp);
     tic
-    parfor n = 1:nTrain
+    for n = 1:nTrain
         mx{n} = max_fun(lg_q{n}, varDistParamsVec{n}(1:nRFc));
         varDistParamsVec{n}(1:nRFc) = mx{n};
         %Finding variational approximation to q_n
@@ -148,13 +144,13 @@ while ~converged
         XMean(:, n) = varDistParams{n}.mu';
         XSqMean(:, n) = varDistParams{n}.XSqMean;
         
-        P_n_minus_mu = rom.trainingData.P{n} - muField;
+        P_n_minus_mu = rom.trainingData.P{n};
         if any(rom.modelParams.interpolationMode)
             W_cf_n = rom.modelParams.W_cf{1};
         else
             W_cf_n = rom.modelParams.W_cf{n};
         end
-        p_cf_expHandle_n = @(X) sqMisfit(X, condTransOpts,...
+        p_cf_expHandle_n = @(X) sqMisfit(X, transType, transLimits,...
             coarseMesh, P_n_minus_mu, W_cf_n, rf2fem);
         %Expectations under variational distributions
         p_cf_exp =...
@@ -171,7 +167,8 @@ while ~converged
     
     
     Lambda_eff1_mode = conductivityBackTransform(...
-        rom.trainingData.designMatrix{1}*rom.modelParams.theta_c, condTransOpts)
+        rom.trainingData.designMatrix{1}*rom.modelParams.theta_c, transType,...
+        transLimits)
     rom.modelParams.printCurrentParams;
     plt = feature('ShowFigureWindows');
     if plt
@@ -191,7 +188,7 @@ while ~converged
                 figure('units','normalized','outerposition',[0 0 1 1]);
         end
         %plot modal lambda_c and corresponding -training- data reconstruction
-        rom.plotCurrentState(figResponse, 0, condTransOpts);
+        rom.plotCurrentState(figResponse, 0, transType, transLimits);
         
         if exist('elbo')
             if ~exist('figElbo')

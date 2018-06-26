@@ -1,10 +1,10 @@
 function [p_cf_exp, Tc, TcTcT] =...
-    sqMisfit(X, condTransOpts, mesh, Tf_n_minus_mu, W_cf_n, rf2fem)
+    sqMisfit(X, transType, transLimits, mesh, Tf_n_minus_mu, W_cf_n, rf2fem)
 %function computing the squared difference between prediction and truth
 %   X:  transformed conductivity (row vector)
 
 %transformed conductivity to conductivity
-conductivity = conductivityBackTransform(rf2fem*X', condTransOpts);
+conductivity = conductivityBackTransform(rf2fem*X', transType, transLimits);
 
 isotropicDiffusivity = true;
 if isotropicDiffusivity

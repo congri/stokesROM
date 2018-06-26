@@ -1,15 +1,11 @@
-function [conductivity] = conductivityBackTransform(x, opts)
+function [conductivity] = conductivityBackTransform(x, transType, transLimits)
 %Backtransformation from X to conductivity lambda
 
-%For log_cholesky: x must be 3 x N, where the rows give log(l1), l2 and log(l3), the params of the
-%cholesky matrix L = [l1, l2; 0, l3]
-%The output is then a 3-dimensional array, holding the 2x2 conductivity tensors in the first 2
-%indices and the 3rd index runs from 1 to N, i.e. input size of x
-
-if strcmp(opts.type, 'logit')
+if strcmp(transType, 'logit')
     %Logistic sigmoid transformation
-    conductivity = (opts.limits(2) - opts.limits(1))./(1 + exp(-x)) + opts.limits(1);
-elseif strcmp(opts.type, 'log_cholesky')
+    conductivity =...
+        (transLimits(2) - transLimits(1))./(1 + exp(-x)) + transLimits(1);
+elseif strcmp(transType, 'log_cholesky')
     %conductivity is a 2x2 tensor now, store in 3-dim array
     N = size(x, 2);
     if(~(size(x, 1) == 3))
@@ -21,36 +17,36 @@ elseif strcmp(opts.type, 'log_cholesky')
         L = [exp(x(1, i)), x(2, i); 0, exp(x(3, i))];
         conductivity(:, :, i) = L'*L;
     end
-elseif strcmp(opts.type, 'log')
+elseif strcmp(transType, 'log')
     conductivity = exp(x);
-    if any(any(conductivity < opts.limits(1)))
+    if any(any(conductivity < transLimits(1)))
         %lower bound on conductivity for stability
-        conductivity(conductivity < opts.limits(1)) = opts.limits(1);
+        conductivity(conductivity < transLimits(1)) = transLimits(1);
 %         warning('Effective conductivity is below lower bound')
     end
-    if any(any(conductivity > opts.limits(2)))
+    if any(any(conductivity > transLimits(2)))
         %upper bound on conductivity for stability
-        conductivity(conductivity > opts.limits(2)) = opts.limits(2);
+        conductivity(conductivity > transLimits(2)) = transLimits(2);
 %         warning('Effective conductivity is above upper bound')
     end
-elseif strcmp(opts.type, 'log_lower_bound')
+elseif strcmp(transType, 'log_lower_bound')
     %log transformation, where the eff. cond. lower bound is non-zero 
-    conductivity = exp(x) + opts.limits(1);
-    if any(any(conductivity > opts.limits(2)))
+    conductivity = exp(x) + transLimits(1);
+    if any(any(conductivity > transLimits(2)))
         %upper bound on conductivity for stability
-        conductivity(conductivity > opts.limits(2)) = opts.limits(2);
+        conductivity(conductivity > transLimits(2)) = transLimits(2);
         warning('Effective conductivity is above upper bound')
     end
-elseif strcmp(opts.type, 'square')
+elseif strcmp(transType, 'square')
     conductivity = x.^2;
-    if any(any(conductivity < opts.limits(1)))
+    if any(any(conductivity < transLimits(1)))
         %lower bound on conductivity for stability
-        conductivity(conductivity < opts.limits(1)) = opts.limits(1);
+        conductivity(conductivity < transLimits(1)) = transLimits(1);
 %         warning('Effective conductivity is below lower bound')
     end
-    if any(any(conductivity > opts.limits(2)))
+    if any(any(conductivity > transLimits(2)))
         %upper bound on conductivity for stability
-        conductivity(conductivity > opts.limits(2)) = opts.limits(2);
+        conductivity(conductivity > transLimits(2)) = transLimits(2);
 %         warning('Effective conductivity is above upper bound')
     end
 else
@@ -58,10 +54,10 @@ else
 end
 
 if(any(any(~isfinite(conductivity))))
-    warning('Non-finite conductivity')
+    warning('Non-finite conductivity, setting it to 1.')
     conductivity
     x
-    conductivity(~isfinite(conductivity)) = .5*(opts.limits(1) + opts.limits(2));
+    conductivity(~isfinite(conductivity)) = 1;
 end
 end
 

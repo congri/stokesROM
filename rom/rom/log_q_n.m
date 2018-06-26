@@ -1,5 +1,5 @@
 function [log_q, d_log_q, Tc] = log_q_n(Xn, Tf_n_minus_mu, W_cf_n, S_cf_n,...
-    theta_c, designMatrix,  coarseMesh, condTransOpts, rf2fem)
+    theta_c, designMatrix,  coarseMesh, transType, transLimits, rf2fem)
 
 %Xi must be a column vector
 if size(Xn, 2) > 1
@@ -7,8 +7,8 @@ if size(Xn, 2) > 1
 end
 
 [lg_p_c, d_lg_p_c] = log_p_c(Xn, designMatrix, theta_c);
-[lg_p_cf, d_lg_p_cf, Tc] = log_p_cf(...
-    Tf_n_minus_mu, coarseMesh, Xn, W_cf_n, S_cf_n, condTransOpts, rf2fem);
+[lg_p_cf, d_lg_p_cf, Tc] = log_p_cf(Tf_n_minus_mu, coarseMesh, Xn,...
+    W_cf_n, S_cf_n, transType, transLimits, rf2fem);
 
 log_q = lg_p_cf + lg_p_c;
 d_log_q = d_lg_p_c + d_lg_p_cf;
@@ -18,7 +18,7 @@ FDcheck = false;
 if FDcheck
     disp('Gradient check log q_i')
     conductivity =...
-        conductivityBackTransform(Xn(1:coarseMesh.nEl), condTransOpts);
+        conductivityBackTransform(Xn(1:coarseMesh.nEl), transType, transLimits);
     d = 1e-5;
 
     latentDim = coarseMesh.nEl;
@@ -29,8 +29,8 @@ if FDcheck
         conductivityFD = conductivity + conductivity.*dXi(1:coarseMesh.nEl);
         
         [lg_p_c, ~] = log_p_c(Xn + dXi, designMatrix, theta_c);
-        [lg_p_cf, ~] = log_p_cf(...
-            Tf_n_minus_mu, coarseMesh, Xn + dXi, W_cf_n, S_cf_n, condTransOpts);
+        [lg_p_cf, ~] = log_p_cf(Tf_n_minus_mu, coarseMesh, Xn + dXi,...
+            W_cf_n, S_cf_n, transType, transLimits);
         
         log_qFD = lg_p_cf + lg_p_c;
         gradFD(i) = (log_qFD - log_q)/d;

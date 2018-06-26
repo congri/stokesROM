@@ -16,13 +16,12 @@ classdef StokesROM < handle
             %Constructor
         end
         
-        function initializeModelParams(self, mode, gridRF)
+        function initializeModelParams(self, mode)
             %Initialize params theta_c, theta_cf
 
-            self.modelParams.gridRF = gridRF;
             self.modelParams.rf2fem =...
-                gridRF.map2fine(self.modelParams.coarseGridX,...
-                self.modelParams.coarseGridY);
+                self.modelParams.gridRF.map2fine(...
+                self.modelParams.coarseGridX, self.modelParams.coarseGridY);
             
             %Coarse mesh object
             self.modelParams.coarseMesh = ...
@@ -54,7 +53,8 @@ classdef StokesROM < handle
             
             nData = numel(self.trainingData.samples);
             
-            self.modelParams.initialize(gridRF.nCells, nData, mode);
+            self.modelParams.initialize(self.modelParams.gridRF.nCells,...
+                nData, mode);
         end
         
         function [elbo, cell_score] = M_step(self, XMean, XSqMean, sqDist_p_cf)
@@ -452,13 +452,13 @@ classdef StokesROM < handle
             drawnow;
         end
         
-        function plotCurrentState(self, fig, dataOffset, condTransOpts)
+        function plotCurrentState(self, fig, dataOffset, transType, transLimits)
             %Plots the current modal effective property and the modal
             %reconstruction for 2 -training- samples
             for i = 1:4
                 Lambda_eff_mode = conductivityBackTransform(...
                     self.trainingData.designMatrix{i + dataOffset}*...
-                    self.modelParams.theta_c, condTransOpts);
+                    self.modelParams.theta_c, transType, transLimits);
                 Lambda_eff_mode = self.modelParams.rf2fem*...
                     Lambda_eff_mode;
                 sb1 = subplot(4, 3, 1 + (i - 1)*3, 'Parent', fig);
@@ -573,10 +573,8 @@ classdef StokesROM < handle
                 mode = '';
             end
             
-            
             %Some hard-coded prediction params
             nSamples_p_c = 1000;    %Samples
-            
             
             %Load test data
             if isempty(testData.X)
@@ -586,16 +584,9 @@ classdef StokesROM < handle
                 testData.readData('p');
             end
             
-            %if isempty(self.modelParams)
-            if true
-                %Read in trained params form ./data folder
-                load('./data/modelParams.mat');
-                self.modelParams = modelParams;
-                %self.modelParams.load;
-                self.modelParams.rf2fem = self.modelParams.gridRF.map2fine(...
-                    self.modelParams.coarseMesh.gridX,...
-                    self.modelParams.coarseMesh.gridY);
-            end
+            %Read in trained params form ./data folder
+            load('./data/modelParams.mat');
+            self.modelParams = modelParams;
             
             testData.evaluateFeatures(self.modelParams.gridRF);
             if exist('./data/featureFunctionMin', 'file')
@@ -680,7 +671,8 @@ classdef StokesROM < handle
                     Sigma_lambda_c, nSamples_p_c)';
                 %Diffusivities
                 LambdaSamples{i} = conductivityBackTransform(...
-                    Xsamples(:, :, i), self.modelParams.condTransOpts);
+                    Xsamples(:, :, i), self.modelParams.diffTransform,...
+                    self.modelParams.diffLimits);
                 meanEffCond(:, i) = self.modelParams.rf2fem*...
                     mean(LambdaSamples{i}, 2);
                 LambdaSamples{i} = self.modelParams.rf2fem*LambdaSamples{i};
@@ -726,11 +718,17 @@ classdef StokesROM < handle
             
             for n = 1:nTest
                 for i = 1:nSamples_p_c
-                    D = zeros(2, 2, cm.nEl);
-                    for e = 1:cm.nEl
-                        D(:, :, e) = LambdaSamples{n}(e, i)*eye(2);
+                    
+                    isotropicDiffusivity = true;
+                    if isotropicDiffusivity
+                        FEMout = heat2d(cm, LambdaSamples{n}(:, i));
+                    else
+                        D = zeros(2, 2, cm.nEl);
+                        for e = 1:cm.nEl
+                            D(:, :, e) = LambdaSamples{n}(e, i)*eye(2);
+                        end
+                        FEMout = heat2d(cm, D);
                     end
-                    FEMout = heat2d(cm, D);
                     Tctemp = FEMout.Tff';
                     
                     %sample from p_cf
@@ -927,7 +925,8 @@ classdef StokesROM < handle
                     lambda_c_sample = mvnrnd(mu_lambda_c, Sigma_lambda_c)';
                     [~, d_log_p_cf] = log_p_cf(self.trainingData.P{n},...
                         self.modelParams.coarseMesh, lambda_c_sample, W_cf_n,...
-                        S_cf_n, self.modelParams.condTransOpts);
+                        S_cf_n, self.modelParams.diffTransform, ...
+                        self.modelParams.diffLimits);
 
                     d_log_p_cf_sqMean = ((k - 1)/k)*d_log_p_cf_sqMean +...
                         (1/k)*d_log_p_cf.^2;

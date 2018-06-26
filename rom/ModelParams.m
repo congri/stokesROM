@@ -8,9 +8,9 @@ classdef ModelParams < handle
         Sigma_c
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
-        gridRF
-        coarseGridX = (1/4)*ones(1, 4)
-        coarseGridY = (1/4)*ones(1, 4)
+        gridRF = RectangularMesh((1/2)*ones(1, 2));
+        coarseGridX = (1/2)*ones(1, 2)
+        coarseGridY = (1/2)*ones(1, 2)
         
         %p_cf
         W_cf
@@ -18,8 +18,8 @@ classdef ModelParams < handle
         fineGridX = (1/128)*ones(1, 128)
         fineGridY = (1/128)*ones(1, 128)
         interpolationMode = 'cubic'
-        smoothingParameter = 2;
-        boundarySmoothingPixels = -1;   %only smooths boundary if positive
+        smoothingParameter = 2
+        boundarySmoothingPixels = -1   %only smooths boundary if positive
         
         %Surrogate FEM mesh
         coarseMesh
@@ -28,19 +28,20 @@ classdef ModelParams < handle
         rf2fem
         
         %Transformation options of diffusivity parameter
-        condTransOpts
+        diffTransform = 'log'
+        diffLimits = [1e-10, 1e3];
         
         %% Model hyperparameters
         mode = 'local'  %separate theta_c's per macro-cell
         prior_theta_c = 'sharedVRVM'
         gamma   %Gaussian precision of prior on theta_c
-        VRVM_a = eps;
-        VRVM_b = eps;
-        VRVM_c = 1e-4;
-        VRVM_d = eps;
-        VRVM_e = eps;
-        VRVM_f = eps;
-        VRVM_iter = 30; %iterations with fixed q(lambda_c)
+        VRVM_a = eps
+        VRVM_b = eps
+        VRVM_c = 1e-4
+        VRVM_d = eps
+        VRVM_e = eps
+        VRVM_f = eps
+        VRVM_iter = 30 %iterations with fixed q(lambda_c)
         
         %% Parameters of variational distributions
         variational_mu
@@ -54,7 +55,7 @@ classdef ModelParams < handle
         featureFunctionMax
         
         %% Training parameters
-        max_EM_iter = 400
+        max_EM_iter = 2
         
         %% Settings
         computeElbo = true
@@ -136,8 +137,6 @@ classdef ModelParams < handle
             self.theta_c = self.theta_c(end, :)';
             self.Sigma_c = dlmread('./data/sigma_c');
             self.Sigma_c = diag(self.Sigma_c(end, :));
-            load('./data/condTransOpts.mat');
-            self.condTransOpts = condTransOpts;
 
             addpath('./mesh');
             load('./data/gridRF.mat');
@@ -301,20 +300,7 @@ classdef ModelParams < handle
             if ~exist('./data/', 'dir')
                 mkdir('./data/');
             end
-            
-            %coarseMesh
-            if contains(params, 'coarseMesh')
-                %save coarseMesh to file
-                coarseMesh = self.coarseMesh;
-                save('./data/coarseMesh.mat', 'coarseMesh');
-            end
-            
-            %Coarse random field discretization
-            if contains(params, 'gridRF')
-                gridRF = self.gridRF;
-                save('./data/gridRF.mat', 'gridRF');
-            end
-            
+
             %Optimal params
             %W matrices
             if any(params == 'W')
@@ -325,19 +311,7 @@ classdef ModelParams < handle
                     save(filename, 'WArray', '-ascii')
                 end
             end
-            
-            %prior type
-            if contains(params, 'priorType')
-                priortype = self.prior_theta_c;
-                save('./data/prior_theta_c.mat', 'priortype');
-            end
-            
-            %transformation options of effective diffusion field
-            if contains(params, 'condTransOpts')
-                condTransOpts = self.condTransOpts;
-                save('./data/condTransOpts.mat', 'condTransOpts');
-            end
-            
+
             %gamma
             if contains(params, 'thetaPriorHyperparam')
                 filename = './data/thetaPriorHyperparam';
@@ -378,30 +352,7 @@ classdef ModelParams < handle
                 end
             end
             
-            %grid of S
-            if contains(params, 'gridS')
-                filename = './data/gridS.mat';
-                fineGridX = self.fineGridX;
-                fineGridY = self.fineGridY;
-                save(filename, 'fineGridX', 'fineGridY');
-            end
-            
-            %Interpolation mode
-            if contains(params, 'interp')
-                interpolationMode = self.interpolationMode;
-                save('./data/interpolationMode.mat', 'interpolationMode');
-            end
-            
-            %Smoothing parameter for interpolated data
-            if contains(params, 'smooth')
-                smoothingParameter = self.smoothingParameter;
-                save('./data/smoothingParameter.mat', 'smoothingParameter');
-                boundarySmoothingPixels = self.boundarySmoothingPixels;
-                save('./data/boundarySmoothingPixels.mat',...
-                    'boundarySmoothingPixels');
-            end
-            
-            %Parameters of variational distributions on log lambda_c
+            %Parameters of variational distributions on transformed lambda_c
             if contains(params, 'vardist')
                 varmu = self.variational_mu;
                 varsigma = self.variational_sigma;

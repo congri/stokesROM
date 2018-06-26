@@ -1,11 +1,11 @@
-function [log_p, d_log_p, Tc] = log_p_cf(...
-    Tf_n_minus_mu, coarseMesh, Xn, W_cf_n, S_cf_n, condTransOpts, rf2fem)
+function [log_p, d_log_p, Tc] = log_p_cf(Tf_n_minus_mu, coarseMesh, Xn,...
+    W_cf_n, S_cf_n, transType, transLimits, rf2fem)
 %Coarse-to-fine map
 %ignore constant prefactor
 %log_p = -.5*logdet(S, 'chol') - .5*(Tf - mu)'*(S\(Tf - mu));
 %diagonal S
 
-conductivity = conductivityBackTransform(Xn, condTransOpts);
+conductivity = conductivityBackTransform(Xn, transType, transLimits);
 conductivity = rf2fem*conductivity;
 
 isotropicDiffusivity = true;
@@ -24,7 +24,7 @@ Tc = Tc(:);
 
 Tf_n_minus_mu_minus_WTc = Tf_n_minus_mu - W_cf_n*Tc;
 %only for diagonal S!
-log_p = -.5*(S_cf_n.sumLogS + (S_cf_n.Sinv_vec'*(Tf_n_minus_mu_minus_WTc.^2)));
+log_p = -.5*(S_cf_n.sumLogS + (S_cf_n.Sinv_vec*(Tf_n_minus_mu_minus_WTc.^2)));
 
 
 if nargout > 1
@@ -32,23 +32,22 @@ if nargout > 1
     
     d_r = FEMgrad(FEMout, coarseMesh);
     d_rx = d_r;
-    if strcmp(condTransOpts.type, 'log')
+    if strcmp(transType, 'log')
         %We need gradient of r w.r.t. log conductivities X,
         %multiply each row with resp. conductivity
-%         d_rx(1:coarseMesh.nEl, :) = diag(conductivity)*d_r(1:coarseMesh.nEl, :);
+        %d_rx(1:coarseMesh.nEl, :)= diag(conductivity)*d_r(1:coarseMesh.nEl, :);
         d_rx = conductivity.*d_r;
-    elseif strcmp(condTransOpts.type, 'logit')
-        %We need gradient w.r.t. x, 
+    elseif strcmp(transType, 'logit')
+        %We need gradient w.r.t. x,
         %where x is - log((lambda_up - lambda_lo)/(lambda - lambda_lo) - 1)
-        X = conductivityTransform(conductivity, condTransOpts);
-        dLambda_dX = (condTransOpts.limits(2) - condTransOpts.limits(1))...
-            ./(exp(X) + 2 + exp(-X));
+        X = conductivityTransform(conductivity, transType, transLimits);
+        dLambda_dX = (transLimits(2) - transLimits(1))./(exp(X) + 2 + exp(-X));
         d_rx(1:coarseMesh.nEl, :) = diag(dLambda_dX)*d_r(1:coarseMesh.nEl, :);
-    elseif strcmp(condTransOpts.type, 'log_lower_bound')
+    elseif strcmp(transType, 'log_lower_bound')
         %transformation is X = log(Lambda - lambda_lo)
-        dLambda_dX = conductivity - condTransOpts.limits(1);
+        dLambda_dX = conductivity - transLimits(1);
         d_rx(1:coarseMesh.nEl, :) = diag(dLambda_dX)*d_r(1:coarseMesh.nEl, :);
-    elseif strcmp(condTransOpts.type, 'square')
+    elseif strcmp(transType, 'square')
         %We need gradient of r w.r.t. sqrt conductivities X. d/dX = 2X d/dlambda
         d_rx(1:coarseMesh.nEl, :) = diag(2*Xn(1:coarseMesh.nEl))*...
             d_r(1:coarseMesh.nEl, :);
@@ -98,11 +97,11 @@ if nargout > 1
             WTcFD = W_cf_n*TcFD;
             log_pFD = -.5*(S_cf_n.sumLogS + (Tf_n_minus_mu - WTcFD)'*...
                 (S_cf_n.Sinv_vec.*(Tf_n_minus_mu - WTcFD)));
-            if strcmp(condTransOpts.type, 'log')
+            if strcmp(transType, 'log')
                 FDgrad(e) = conductivity(e)*(log_pFD - log_p)/d;
-            elseif strcmp(condTransOpts.type, 'logit')
+            elseif strcmp(transType, 'logit')
                 FDgrad(e) = dLambda_dX(e)*(log_pFD - log_p)/d;
-            elseif strcmp(condTransOpts.type, 'log_lower_bound')
+            elseif strcmp(transType, 'log_lower_bound')
                 FDgrad(e) = dLambda_dX(e)*(log_pFD - log_p)/d;
             else
                 error('Unknown conductivity transformation')
