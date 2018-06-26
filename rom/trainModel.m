@@ -119,13 +119,15 @@ while ~converged
         transType = rom.modelParams.diffTransform;
         transLimits = rom.modelParams.diffLimits;
         lg_q{n} = @(Xi) log_q_n(Xi, P_n_minus_mu, W_cf_n, S_cf_n, tc, Phi_n,...
-            coarseMesh, transType, transLimits, rf2fem);
+            coarseMesh, transType, transLimits, rf2fem, true);
+        lg_q_max{n} = @(Xi) log_q_n(Xi, P_n_minus_mu, W_cf_n, S_cf_n, tc,...
+            Phi_n, coarseMesh, transType, transLimits, rf2fem, false);
     end
     
     ticBytes(gcp);
     tic
     for n = 1:nTrain
-        mx{n} = max_fun(lg_q{n}, varDistParamsVec{n}(1:nRFc));
+        mx{n} = max_fun(lg_q_max{n}, varDistParamsVec{n}(1:nRFc));
         varDistParamsVec{n}(1:nRFc) = mx{n};
         %Finding variational approximation to q_n
         [varDistParams{n}, varDistParamsVec{n}] =...

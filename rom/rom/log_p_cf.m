@@ -1,5 +1,5 @@
 function [log_p, d_log_p, Tc] = log_p_cf(Tf_n_minus_mu, coarseMesh, Xn,...
-    W_cf_n, S_cf_n, transType, transLimits, rf2fem)
+    W_cf_n, S_cf_n, transType, transLimits, rf2fem, onlyGrad)
 %Coarse-to-fine map
 %ignore constant prefactor
 %log_p = -.5*logdet(S, 'chol') - .5*(Tf - mu)'*(S\(Tf - mu));
@@ -24,7 +24,13 @@ Tc = Tc(:);
 
 Tf_n_minus_mu_minus_WTc = Tf_n_minus_mu - W_cf_n*Tc;
 %only for diagonal S!
-log_p = -.5*(S_cf_n.sumLogS + (S_cf_n.Sinv_vec*(Tf_n_minus_mu_minus_WTc.^2)));
+if onlyGrad
+    %to avoid unnecessary computation overhead
+    log_p = [];
+else
+    log_p = -.5*(S_cf_n.sumLogS +...
+        (S_cf_n.Sinv_vec*(Tf_n_minus_mu_minus_WTc.^2)));
+end
 
 
 if nargout > 1
@@ -66,6 +72,10 @@ if nargout > 1
     FDcheck = false;
     if FDcheck
         disp('Gradient check log p_cf')
+        if isempty(log_p)
+            log_p = -.5*(S_cf_n.sumLogS +...
+                (S_cf_n.Sinv_vec*(Tf_n_minus_mu_minus_WTc.^2)));
+        end
         d = 1e-8;
         FDgrad = zeros(coarseMesh.nEl, 1);
         for e = 1:coarseMesh.nEl
