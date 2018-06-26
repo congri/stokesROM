@@ -191,16 +191,21 @@ classdef MeshFEM
                 eq = eq + numel(equations)^2;
                 
                 [Equations1, Equations2] = meshgrid(equations);
-                self.Equations((prevnEq + 1):eq, :) = [Equations1(:) Equations2(:)];
+                self.Equations((prevnEq + 1):eq, :) =...
+                    [Equations1(:) Equations2(:)];
                 
                 [LocalNode1, LocalNode2] = meshgrid(localNode);
                 self.LocalNode((prevnEq + 1):eq, :) =...
-                   [LocalNode1(:) LocalNode2(:) repmat(e, length(equations)^2, 1)];
+                   [LocalNode1(:) LocalNode2(:)...
+                   repmat(e, length(equations)^2, 1)];
             end
             
             %Shrink to fit
             self.Equations((eq + 1):end, :) = [];
             self.LocalNode((eq + 1):end, :) = [];
+            
+            self.Equations = uint32(self.Equations);
+            self.LocalNode = uint32(self.LocalNode);
         end
 
         function self = getCoord(self)
@@ -557,23 +562,16 @@ classdef MeshFEM
         end
         
         function self = shrink(self)
-            %To save memory. We use that to save memory in parfor
+            %We use that to save memory in parfor
             self.lc = [];
             self.gridX = [];
             self.gridY = [];
-            self.nElX = [];
-            self.nElY = [];
-            self.nEl = [];
-            self.nNodes = [];
             self.lElX = [];
             self.lElY = [];
             self.cum_lElX = [];
             self.cum_lElY = [];
-            self.f_tot =[];
             self.compute_grad = [];
             self.boundaryNodes = [];
-            self.essentialNodes = [];
-            self.essentialTemperatures = [];
             self.naturalNodes = [];
             self.boundaryElements = [];
             self.naturalBoundaries = [];
@@ -581,11 +579,7 @@ classdef MeshFEM
             self.lx = [];
             self.ly = [];
             self.AEl = [];
-            self.nEq = [];
-            self.globalNodeNumber =[];
-            self.Bvec = [];
             self.essentialBoundary = [];
-            self.lm = [];
             self.LocalNode = [];
             self.fs = [];
             self.fh = [];

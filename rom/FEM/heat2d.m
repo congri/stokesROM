@@ -57,8 +57,9 @@ for i = 1:mesh.nNodes
     end
 end
 
-Tff = Tff';
-Out.Tff = Tff;
+% Tff = Tff';
+Out.Tff = Tff';
+
 
 
 end

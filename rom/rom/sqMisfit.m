@@ -6,14 +6,18 @@ function [p_cf_exp, Tc, TcTcT] =...
 %transformed conductivity to conductivity
 conductivity = conductivityBackTransform(rf2fem*X', condTransOpts);
 
-%Set up conductivity tensors for each element
-D = zeros(2, 2, mesh.nEl);
-for j = 1:mesh.nEl
-    D(:, :, j) =  conductivity(j)*eye(2);
+isotropicDiffusivity = true;
+if isotropicDiffusivity
+    FEMout = heat2d(mesh, conductivity);
+else
+    %Set up conductivity tensors for each element
+    D = zeros(2, 2, mesh.nEl);
+    for j = 1:mesh.nEl
+        D(:, :, j) =  conductivity(j)*eye(2);
+    end
+    %Solve coarse FEM model
+    FEMout = heat2d(mesh, D);
 end
-
-%Solve coarse FEM model
-FEMout = heat2d(mesh, D);
 
 Tc = FEMout.Tff';
 Tc = Tc(:);

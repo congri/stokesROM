@@ -12,7 +12,7 @@ classdef StokesROM < handle
     end
     
     methods
-        function [self] = StokesROM()
+        function self = StokesROM()
             %Constructor
         end
         
@@ -507,12 +507,18 @@ classdef StokesROM < handle
                 cbp_true = colorbar('Parent', fig);
                 
                 sb3 = subplot(4, 3, 3 + (i - 1)*3, 'Parent', fig);
-                D = zeros(2, 2, self.modelParams.coarseMesh.nEl);
-                for j = 1:self.modelParams.coarseMesh.nEl
-                    D(:, :, j) =  Lambda_eff_mode(j)*eye(2);
-                end
                 
-                coarseFEMout = heat2d(self.modelParams.coarseMesh, D);
+                isotropicDiffusivity = true;
+                if isotropicDiffusivity
+                    coarseFEMout =...
+                        heat2d(self.modelParams.coarseMesh, Lambda_eff_mode);
+                else
+                    D = zeros(2, 2, self.modelParams.coarseMesh.nEl);
+                    for j = 1:self.modelParams.coarseMesh.nEl
+                        D(:, :, j) =  Lambda_eff_mode(j)*eye(2);
+                    end
+                    coarseFEMout = heat2d(self.modelParams.coarseMesh, D);
+                end
                 
                 Tc = coarseFEMout.Tff';
                 Tc = Tc(:);

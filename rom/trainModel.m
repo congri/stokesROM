@@ -28,8 +28,10 @@ muField = 0;        %mean function in p_cf
 condTransOpts.type = 'log';
 condTransOpts.limits = [1e-10, 1e3];
 
-gridRF = RectangularMesh((1/2)*ones(1, 2));
-%gridRF.split_cell(gridRF.cells{2});
+gridRF = RectangularMesh((1/4)*ones(1, 4));
+% gridRF.split_cell(gridRF.cells{1});
+% gridRF.split_cell(gridRF.cells{7});
+
 
 %random number seed based on time
 rng('shuffle');
@@ -124,8 +126,9 @@ while ~converged
     end
     
     nRFc = gridRF.nCells;
+    ticBytes(gcp);
     tic
-    for n = 1:nTrain
+    parfor n = 1:nTrain
         mx{n} = max_fun(lg_q{n}, varDistParamsVec{n}(1:nRFc));
         varDistParamsVec{n}(1:nRFc) = mx{n};
         %Finding variational approximation to q_n
@@ -133,6 +136,7 @@ while ~converged
             efficientStochOpt(varDistParamsVec{n}, lg_q{n}, 'diagonalGauss',...
             sw, nRFc);
     end
+    tocBytes(gcp)
     VI_time = toc
     
     %Gradually reduce VI step width
