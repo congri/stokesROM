@@ -16,25 +16,16 @@ if exist('./data/', 'dir')
 end
 mkdir('./data/');
 
-%% Try to define parameters in classes. Rest here:
-
-nTrain = 8;
-%nStart = randi(1023 - nTrain) - 1
-nStart = 0;
-samples = nStart:(nTrain - 1 + nStart);
-
-gridRF = RectangularMesh((1/2)*ones(1, 2));
-% gridRF.split_cell(gridRF.cells{1});
-% gridRF.split_cell(gridRF.cells{7});
-
-
 %random number seed based on time
 rng('shuffle');
 
-%% Initialize reduced order model object:
+
+%% Initialization
+%Which data samples for training?
+nTrain = 8;     nStart = 0;     samples = nStart:(nTrain - 1 + nStart);
+
 rom = StokesROM;
 
-%% Read training data, initialize parameters and evaluate features:
 rom.trainingData = StokesData(samples);
 rom.trainingData.readData('px');
 rom.trainingData.countVertices();
@@ -68,7 +59,7 @@ rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
 rom.trainingData.vtx2Cell(rom.modelParams);
 
 %Step width for stochastic optimization in VI
-nRFc = gridRF.nCells;
+nRFc = rom.modelParams.gridRF.nCells;
 sw =[1e-1*ones(1, nRFc), 1e-1*ones(1, nRFc)];
 sw_decay = .95; %decay factor per iteration
 sw_min = 8e-3*ones(size(sw));

@@ -8,9 +8,9 @@ classdef ModelParams < handle
         Sigma_c
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
-        gridRF = RectangularMesh((1/2)*ones(1, 2));
         coarseGridX = (1/2)*ones(1, 2)
         coarseGridY = (1/2)*ones(1, 2)
+        gridRF = RectangularMesh((1/2)*ones(1, 2))
         
         %p_cf
         W_cf
@@ -55,7 +55,7 @@ classdef ModelParams < handle
         featureFunctionMax
         
         %% Training parameters
-        max_EM_iter = 2
+        max_EM_iter = 4
         
         %% Settings
         computeElbo = true
