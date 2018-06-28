@@ -16,47 +16,6 @@ classdef StokesROM < handle
             %Constructor
         end
         
-        function initializeModelParams(self, mode)
-            %Initialize params theta_c, theta_cf
-
-            self.modelParams.rf2fem =...
-                self.modelParams.gridRF.map2fine(...
-                self.modelParams.coarseGridX, self.modelParams.coarseGridY);
-            
-            %Coarse mesh object
-            self.modelParams.coarseMesh = ...
-                MeshFEM(self.modelParams.coarseGridX,...
-                self.modelParams.coarseGridY);
-            self.modelParams.coarseMesh.compute_grad = true;
-            nX = length(self.modelParams.coarseGridX); 
-            nY = length(self.modelParams.coarseGridY);
-            
-            %Convert flow bc string to handle functions
-            u_x_temp = strrep(self.trainingData.u_bc{1}(5:end), 'x[1]', 'y');
-            %This is only valid for unit square domain!!
-            u_x_temp_le = strrep(u_x_temp, 'x[0]', '0');
-            u_x_temp_r = strrep(u_x_temp, 'x[0]', '1');
-            
-            u_y_temp = strrep(self.trainingData.u_bc{2}(5:end), 'x[0]', 'x');
-            u_y_temp_lo = strrep(u_y_temp, 'x[1]', '0');
-            u_y_temp_u = strrep(u_y_temp, 'x[1]', '1');
-            u_bc_handle{1} = str2func(strcat('@(x)', '-(', u_y_temp_lo, ')'));
-            u_bc_handle{2} = str2func(strcat('@(y)', u_x_temp_r));
-            u_bc_handle{3} = str2func(strcat('@(x)', u_y_temp_u));
-            u_bc_handle{4} = str2func(strcat('@(y)', '-(', u_x_temp_le, ')'));
-            
-            p_bc_handle = str2func(strcat('@(x)', self.trainingData.p_bc));
-            
-            self.modelParams.coarseMesh =...
-                self.modelParams.coarseMesh.setBoundaries(2:(2*nX + 2*nY),...
-                p_bc_handle, u_bc_handle);
-            
-            nData = numel(self.trainingData.samples);
-            
-            self.modelParams.initialize(self.modelParams.gridRF.nCells,...
-                nData, mode);
-        end
-        
         function [elbo, cell_score] = M_step(self, XMean, XSqMean, sqDist_p_cf)
             
             if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
@@ -880,8 +839,10 @@ classdef StokesROM < handle
             
             if isempty(self.modelParams)
                 %Read in trained params form ./data folder
-                self.modelParams = ModelParams;
-                self.modelParams = self.modelParams.load;
+                %self.modelParams = ModelParams;
+                %self.modelParams = self.modelParams.load;
+                load('./data/modelParams.mat');
+                self.modelParams = modelParams;     clear modelParams;
             end
             
             nSamples = 100;

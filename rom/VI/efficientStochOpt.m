@@ -9,11 +9,11 @@ updateRule = 'adam';
 % beta1 = .7;                     %the higher, the more important is momentum
 % beta2 = .8;                    %curvature parameter
 beta1 = .9;
-beta2 = .999;
-epsilon = 1e-4;                  %curvature stabilization parameter
+beta2 = .99999;
+epsilon = 1e-8;                  %curvature stabilization parameter
 
-stepOffset = 15;                %Robbins-Monro step offset
-nSamples = 3;                  %gradient samples per iteration
+stepOffset = 100;                %Robbins-Monro step offset
+nSamples = 1000;                  %gradient samples per iteration
 maxIterations = 1e4;
 maxCompTime = 20;
 
@@ -35,28 +35,40 @@ else
     error('Unknown variational distribution')
 end
 
+iter = 0;
 if debug
     disp('starting stochastic optimization')
     x_0 = x
-    f = figure(8);
+    f = figure;
     f.Units = 'normalized';
     f.OuterPosition = [0 0 1 1];
     clf(f)
-    sb1 = subplot(1, 3, 1, 'Parent', f);
+    sb1 = subplot(2, 2, 1, 'Parent', f);
     hold on;
     title('$\mu$');
-    sb2 = subplot(1, 3, 2, 'Parent', f);
+    sb2 = subplot(2, 2, 2, 'Parent', f);
     sb2.YScale = 'log';
     hold on;
-    title('$\sigma$')
-    sb3 = subplot(1, 3, 3, 'Parent', f);
+    title('$-2\log \sigma$')
+    sb3 = subplot(2, 2, 3, 'Parent', f);
     sb3.YScale = 'log';
     hold on;
     title('norm momentum');
+    sb4 = subplot(2, 2, 4, 'Parent', f);
+    sb4.YScale = 'log';
+    hold on;
+    title('norm gradient');
+    
+    for d = 1:dim
+        p_mu(d) = animatedline('color', 'b', 'Parent', sb1);
+        %semilogy(iter, varDistParams.sigma, 'rx', 'Parent', sb2);
+        p_sigma(d) = animatedline('color', 'r', 'Parent', sb2);
+    end
+    p_momentum = animatedline('Parent', sb3);
+    p_grad = animatedline('Parent', sb4);
 end
 
 tic;
-iter = 0;
 while ~converged
     
     gradient =...
@@ -110,9 +122,17 @@ while ~converged
         if(mod(iter, plotStep) == 0 && iter > plotStep)
             %mu = varDistParams.mu
             %sigma = varDistParams.sigma
-            plot(iter, varDistParams.mu, 'bx', 'Parent', sb1);
-            semilogy(iter, varDistParams.sigma, 'rx', 'Parent', sb2);
-            semilogy(iter, norm(momentum), 'kx', 'Parent', sb3);
+%             plot(iter, varDistParams.mu, 'bx', 'Parent', sb1);
+% %             semilogy(iter, varDistParams.sigma, 'rx', 'Parent', sb2);
+%             semilogy(iter, x((dim + 1):end), 'rx', 'Parent', sb2);
+%             semilogy(iter, norm(momentum), 'kx', 'Parent', sb3);
+%             semilogy(iter, norm(gradient), 'kx', 'Parent', sb4);
+            addpoints(p_grad, iter, norm(gradient));
+            addpoints(p_momentum, iter, norm(momentum));
+            for d = 1:dim
+                addpoints(p_mu(d), iter, varDistParams.mu(d));
+                addpoints(p_sigma(d), iter, varDistParams.sigma(d));
+            end
             drawnow
         end
     end
@@ -126,7 +146,7 @@ while ~converged
         disp('Converged because max computation time exceeded')
     end
     iter = iter + 1;
-    if mod(iter, 5) == 0
+    if mod(iter, 100000) == 0
         nSamples = nSamples + 1;%this is purely heuristic! remove if unwanted
     end
 end

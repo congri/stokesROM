@@ -10,19 +10,14 @@ addpath('./FEM')
 addpath('rom')
 addpath('./VI')
 
-%Parameters from previous runs are deleted here
-if exist('./data/', 'dir')
-    rmdir('./data', 's'); %delete old params
-end
-mkdir('./data/');
-
 %random number seed based on time
 rng('shuffle');
 
 
 %% Initialization
 %Which data samples for training?
-nTrain = 8;     nStart = 0;     samples = nStart:(nTrain - 1 + nStart);
+nTrain = 16;     nStart = 0;     samples = nStart:(nTrain - 1 + nStart);
+loadParams = false;     %load parameters from previous run?
 
 rom = StokesROM;
 
@@ -30,21 +25,39 @@ rom.trainingData = StokesData(samples);
 rom.trainingData.readData('px');
 rom.trainingData.countVertices();
 
-rom.modelParams = ModelParams;
-rom.initializeModelParams('');
-
-if any(rom.modelParams.interpolationMode)
-    rom.trainingData.interpolate(rom.modelParams);
-    rom.modelParams.fineScaleInterp(rom.trainingData.X_interp);
-    interp = true;
+if loadParams
+    disp('Loading modelParams...')
+    load('./data/modelParams.mat');
+    rom.modelParams = modelParams;      clear modelParams;
+    if any(rom.modelParams.interpolationMode)
+        rom.trainingData.interpolate(rom.modelParams);
+        rom.modelParams.fineScaleInterp(rom.trainingData.X_interp);
+        interp = true;
+    else
+        rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
+        interp = false;
+    end
+    disp('... modelParams loaded.')
 else
-    rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
-    interp = false;
+    rom.modelParams = ModelParams(rom.trainingData.u_bc, rom.trainingData.p_bc);
+    rom.modelParams.initialize(nTrain);
+    if any(rom.modelParams.interpolationMode)
+        rom.trainingData.interpolate(rom.modelParams);
+        rom.modelParams.fineScaleInterp(rom.trainingData.X_interp);
+        interp = true;
+    else
+        rom.modelParams.fineScaleInterp(rom.trainingData.X);%for W_cf
+        interp = false;
+    end
 end
+
+%Parameters from previous runs are deleted here
+if exist('./data/', 'dir')
+    rmdir('./data', 's'); %delete old params
+end
+mkdir('./data/');
+
 rom.trainingData.shiftData(interp, 'p'); %shifts p to 0 at origin
-modelParams = rom.modelParams;
-save('./data/modelParams.mat', 'modelParams');
-clear modelParams;
 rom.trainingData.evaluateFeatures(rom.modelParams.gridRF);
 
 if strcmp(rom.modelParams.normalization, 'rescale')
@@ -56,21 +69,20 @@ if strcmp(rom.modelParams.mode, 'local')
 end
 %theta_c must be initialized after design matrices exist
 rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
+modelParams = rom.modelParams;
+save('./data/modelParams.mat', 'modelParams');      clear modelParams;
+
+
 rom.trainingData.vtx2Cell(rom.modelParams);
+
 
 %Step width for stochastic optimization in VI
 nRFc = rom.modelParams.gridRF.nCells;
-sw =[1e-1*ones(1, nRFc), 1e-1*ones(1, nRFc)];
-sw_decay = .95; %decay factor per iteration
-sw_min = 8e-3*ones(size(sw));
+sw =[1e-3*ones(1, nRFc), 1e-3*ones(1, nRFc)];
+sw_decay = .98; %decay factor per iteration
+sw_min = 1e-3*sw;
 
-%% Bring variational distribution params in form for unconstrained optimization
-varDistParamsVec{1} = [rom.modelParams.variational_mu{1},...
-    -2*log(rom.modelParams.variational_sigma{1})];
-varDistParamsVec = repmat(varDistParamsVec, nTrain, 1);
-%% 
 %% Actual training phase:
-% 
 
 converged = false;
 EMiter = 0;
@@ -114,12 +126,13 @@ while ~converged
         lg_q_max{n} = @(Xi) log_q_n(Xi, P_n_minus_mu, W_cf_n, S_cf_n, tc,...
             Phi_n, coarseMesh, transType, transLimits, rf2fem, false);
     end
+    varDistParamsVec = rom.modelParams.varDistParamsVec;
     
     ticBytes(gcp);
     tic
-    for n = 1:nTrain
-        mx{n} = max_fun(lg_q_max{n}, varDistParamsVec{n}(1:nRFc));
-        varDistParamsVec{n}(1:nRFc) = mx{n};
+    parfor n = 1:nTrain
+%         mx{n} = max_fun(lg_q_max{n}, varDistParamsVec{n}(1:nRFc));
+%         varDistParamsVec{n}(1:nRFc) = mx{n};
         %Finding variational approximation to q_n
         [varDistParams{n}, varDistParamsVec{n}] =...
             efficientStochOpt(varDistParamsVec{n}, lg_q{n}, 'diagonalGauss',...
@@ -127,6 +140,7 @@ while ~converged
     end
     tocBytes(gcp)
     VI_time = toc
+    rom.modelParams.varDistParamsVec = varDistParamsVec;
     
     %Gradually reduce VI step width
     sw = sw_decay*sw;
@@ -134,6 +148,8 @@ while ~converged
     
     for n = 1:nTrain
         %Compute expected values under variational approximation
+        rom.modelParams.variational_mu{n} = varDistParams{n}.mu;
+        rom.modelParams.variational_sigma{n} = varDistParams{n}.sigma;
         XMean(:, n) = varDistParams{n}.mu';
         XSqMean(:, n) = varDistParams{n}.XSqMean;
         
@@ -197,8 +213,8 @@ while ~converged
     rom.modelParams.write2file('theta_c');
     rom.modelParams.write2file('sigma_c');
     modelParams = rom.modelParams;
-    save('./data/modelParams.mat', 'modelParams')
-    clear modelParams;
+    %Save modelParams after every iteration
+    save('./data/modelParams.mat', 'modelParams');       clear modelParams;
     save('./data/XMean', 'XMean');
     save('./data/XSqMean', 'XSqMean');
     

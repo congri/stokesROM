@@ -8,6 +8,7 @@ classdef ModelParams < handle
         Sigma_c
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
+        %FEM grid of coarse Darcy emulator
         coarseGridX = (1/2)*ones(1, 2)
         coarseGridY = (1/2)*ones(1, 2)
         gridRF = RectangularMesh((1/2)*ones(1, 2))
@@ -41,9 +42,10 @@ classdef ModelParams < handle
         VRVM_d = eps
         VRVM_e = eps
         VRVM_f = eps
-        VRVM_iter = 30 %iterations with fixed q(lambda_c)
+        VRVM_iter = 10 %iterations with fixed q(lambda_c)
         
         %% Parameters of variational distributions
+        varDistParamsVec
         variational_mu
         variational_sigma
         
@@ -55,67 +57,96 @@ classdef ModelParams < handle
         featureFunctionMax
         
         %% Training parameters
-        max_EM_iter = 4
+        max_EM_iter = 200
         
         %% Settings
         computeElbo = true
+        
+        %% plots, initialized as animated lines
+        p_theta
+        p_sigma
+        p_gamma
     end
     
     methods
-        function self = ModelParams()
-            %Constructor
+        function self = ModelParams(u_bc, p_bc)
+            %Constructor; Set up all params that are unchanged during training
+            %   u_bc:       boundary velocity field
+            %   p_bc:       boundary pressure field
+            self.rf2fem =self.gridRF.map2fine(self.coarseGridX,...
+                self.coarseGridY);
+            
+            %% Initialize coarse mesh object
+            %Coarse mesh object
+            self.coarseMesh = MeshFEM(self.coarseGridX, self.coarseGridY);
+            self.coarseMesh.compute_grad = true;
+            
+            %% Set up coarse model bc's
+            %Convert flow bc string to handle functions
+            u_x_temp = strrep(u_bc{1}(5:end), 'x[1]', 'y');
+            %This is only valid for unit square domain!!
+            u_x_temp_le = strrep(u_x_temp, 'x[0]', '0');
+            u_x_temp_r = strrep(u_x_temp, 'x[0]', '1');
+            
+            u_y_temp = strrep(u_bc{2}(5:end), 'x[0]', 'x');
+            u_y_temp_lo = strrep(u_y_temp, 'x[1]', '0');
+            u_y_temp_u = strrep(u_y_temp, 'x[1]', '1');
+            u_bc_handle{1} = str2func(strcat('@(x)', '-(', u_y_temp_lo, ')'));
+            u_bc_handle{2} = str2func(strcat('@(y)', u_x_temp_r));
+            u_bc_handle{3} = str2func(strcat('@(x)', u_y_temp_u));
+            u_bc_handle{4} = str2func(strcat('@(y)', '-(', u_x_temp_le, ')'));
+            
+            p_bc_handle = str2func(strcat('@(x)', p_bc));
+            
+            nX = length(self.coarseGridX); 
+            nY = length(self.coarseGridY);
+            self.coarseMesh = self.coarseMesh.setBoundaries(2:(2*nX + 2*nY),...
+                p_bc_handle, u_bc_handle);
         end
         
-        function initialize(self, nElements, nData, mode)
+        function initialize(self, nData)
             %Initialize model parameters
             %   nFeatures:      number of feature functions
             %   nElements:      number of macro elements
             %   nSCells:        number of cells in S-grid
             
-            if strcmp(mode, 'load')
-                self.load;
-                
-                %Initialize parameters of variational approximate distributions
-                load('./data/vardistparams.mat');
-                self.variational_mu{1} = varmu;
-                self.variational_mu = varsigma;
-                
-                self.variational_sigma{1} = 1e0*ones(1, nElements);
-                self.variational_sigma =...
-                    repmat(self.variational_sigma, nData, 1);
-            else
-                %Initialize sigma_c to I
-                self.Sigma_c = 1e-6*eye(nElements);
-                
-                nSX = numel(self.fineGridX); nSY = numel(self.fineGridY);
-                if any(self.interpolationMode)
-                    nSX = nSX + 1; nSY = nSY + 1;
-                end
-                self.sigma_cf.s0 = ones(nSX*nSY, 1);  %variance field of p_cf
-                
-                %Initialize hyperparameters
-                if strcmp(self.prior_theta_c, 'RVM')
-                    self.gamma = 1e-4*ones(size(self.theta_c));
-                elseif strcmp(self.prior_theta_c, 'VRVM')
-                    self.gamma = 1e-6*ones(size(self.theta_c));
-                elseif strcmp(self.prior_theta_c, 'sharedVRVM')
-                    self.gamma = 1e-2*ones(size(self.theta_c));
-                elseif strcmp(self.prior_theta_c, 'none')
-                    self.gamma = NaN;
-                else
-                    error('What prior model for theta_c?')
-                end
-                
-                %Initialize parameters of variational approximate distributions
-                self.variational_mu{1} = 0*ones(1, nElements);
-                self.variational_mu = repmat(self.variational_mu, nData, 1);
-                
-                self.variational_sigma{1} = 1e0*ones(1, nElements);
-                self.variational_sigma =...
-                    repmat(self.variational_sigma, nData, 1);
+            %Initialize sigma_c
+            self.Sigma_c = 1e0*eye(self.gridRF.nCells);
+            
+            nSX = numel(self.fineGridX); nSY = numel(self.fineGridY);
+            if any(self.interpolationMode)
+                nSX = nSX + 1; nSY = nSY + 1;
             end
+            self.sigma_cf.s0 = ones(nSX*nSY, 1);  %variance field of p_cf
+            
+            %Initialize hyperparameters
+            if strcmp(self.prior_theta_c, 'RVM')
+                self.gamma = 1e-4*ones(size(self.theta_c));
+            elseif strcmp(self.prior_theta_c, 'VRVM')
+                self.gamma = 1e-6*ones(size(self.theta_c));
+            elseif strcmp(self.prior_theta_c, 'sharedVRVM')
+                self.gamma = 1e-2*ones(size(self.theta_c));
+            elseif strcmp(self.prior_theta_c, 'none')
+                self.gamma = NaN;
+            else
+                error('What prior model for theta_c?')
+            end
+            
+            %Initialize parameters of variational approximate distributions
+            self.variational_mu{1} = -8.5*ones(1, self.gridRF.nCells);
+            self.variational_mu = repmat(self.variational_mu, nData, 1);
+            
+            self.variational_sigma{1} = 1e-5*ones(1, self.gridRF.nCells);
+            self.variational_sigma = repmat(self.variational_sigma, nData, 1);
+            
+            %Bring variational distribution params in form for 
+            %unconstrained optimization
+            varDistParamsVecInit{1} = [self.variational_mu{1},...
+                -2*log(self.variational_sigma{1})];
+            self.varDistParamsVec = repmat(varDistParamsVecInit, nData, 1);
         end
         
+        %depreceated
         function load(self)
             %Initialize params theta_c, theta_cf
                         
@@ -244,7 +275,7 @@ classdef ModelParams < handle
                     end
                 end
             end
-            
+                        
             sb1 = subplot(3, 2, 1, 'Parent', figHandle);
             plot(thetaArray, 'linewidth', 1, 'Parent', sb1)
             axis(sb1, 'tight');
