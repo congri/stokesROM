@@ -28,7 +28,7 @@ rom.trainingData.countVertices();
 if loadParams
     disp('Loading modelParams...')
     load('./data/modelParams.mat');
-    rom.modelParams = modelParams;      clear modelParams;
+    rom.modelParams = copy(modelParams);
     if any(rom.modelParams.interpolationMode)
         rom.trainingData.interpolate(rom.modelParams);
         rom.modelParams.fineScaleInterp(rom.trainingData.X_interp);
@@ -69,16 +69,13 @@ if strcmp(rom.modelParams.mode, 'local')
 end
 %theta_c must be initialized after design matrices exist
 rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
-modelParams = rom.modelParams;
-save('./data/modelParams.mat', 'modelParams');      clear modelParams;
-
 
 rom.trainingData.vtx2Cell(rom.modelParams);
 
 
 %Step width for stochastic optimization in VI
 nRFc = rom.modelParams.gridRF.nCells;
-sw =[1e-3*ones(1, nRFc), 1e-3*ones(1, nRFc)];
+sw =[3e-2*ones(1, nRFc), 1e-2*ones(1, nRFc)];
 sw_decay = .98; %decay factor per iteration
 sw_min = 1e-3*sw;
 
@@ -87,9 +84,6 @@ sw_min = 1e-3*sw;
 converged = false;
 EMiter = 0;
 epoch = 0;  %one epoch == one time seen every data point
-thetaArray = [];
-SigmaArray = [];
-gammaArray = [];
 ppool = parPoolInit(nTrain);
 while ~converged
     
@@ -128,6 +122,7 @@ while ~converged
     end
     varDistParamsVec = rom.modelParams.varDistParamsVec;
     
+    disp('Variational Inference...')
     ticBytes(gcp);
     tic
     parfor n = 1:nTrain
@@ -141,6 +136,7 @@ while ~converged
     tocBytes(gcp)
     VI_time = toc
     rom.modelParams.varDistParamsVec = varDistParamsVec;
+    disp('... VI done.')
     
     %Gradually reduce VI step width
     sw = sw_decay*sw;
@@ -185,11 +181,7 @@ while ~converged
         if ~exist('figParams')
             figParams = figure('units','normalized','outerposition',[0 0 .5 1]);
         end
-        thetaArray = [thetaArray, rom.modelParams.theta_c];
-        gammaArray = [gammaArray, rom.modelParams.gamma];
-        SigmaArray = [SigmaArray, full(diag(rom.modelParams.Sigma_c))];
-        rom.modelParams.plot_params(figParams, thetaArray', SigmaArray', ...
-            gammaArray');
+        rom.modelParams.plot_params(figParams, EMiter);
                 
         % Plot data and reconstruction (modal value)
         if ~exist('figResponse')
@@ -212,9 +204,11 @@ while ~converged
     rom.modelParams.write2file('thetaPriorHyperparam');
     rom.modelParams.write2file('theta_c');
     rom.modelParams.write2file('sigma_c');
-    modelParams = rom.modelParams;
+    modelParams = copy(rom.modelParams);
     %Save modelParams after every iteration
-    save('./data/modelParams.mat', 'modelParams');       clear modelParams;
+    disp('Saving modelParams...')
+    save('./data/modelParams.mat', 'modelParams', '-v7.3');
+    disp('...modelParams saved.')
     save('./data/XMean', 'XMean');
     save('./data/XSqMean', 'XSqMean');
     

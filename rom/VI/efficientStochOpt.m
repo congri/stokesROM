@@ -15,7 +15,7 @@ epsilon = 1e-8;                  %curvature stabilization parameter
 stepOffset = 100;                %Robbins-Monro step offset
 nSamples = 1000;                  %gradient samples per iteration
 maxIterations = 1e4;
-maxCompTime = 20;
+maxCompTime = 15;
 
 converged = false;
 steps = 0;
@@ -35,7 +35,6 @@ else
     error('Unknown variational distribution')
 end
 
-iter = 0;
 if debug
     disp('starting stochastic optimization')
     x_0 = x
@@ -119,7 +118,7 @@ while ~converged
     
     if debug
         plotStep = 10;
-        if(mod(iter, plotStep) == 0 && iter > plotStep)
+        if(mod(steps, plotStep) == 0 && steps > plotStep)
             %mu = varDistParams.mu
             %sigma = varDistParams.sigma
 %             plot(iter, varDistParams.mu, 'bx', 'Parent', sb1);
@@ -127,11 +126,11 @@ while ~converged
 %             semilogy(iter, x((dim + 1):end), 'rx', 'Parent', sb2);
 %             semilogy(iter, norm(momentum), 'kx', 'Parent', sb3);
 %             semilogy(iter, norm(gradient), 'kx', 'Parent', sb4);
-            addpoints(p_grad, iter, norm(gradient));
-            addpoints(p_momentum, iter, norm(momentum));
+            addpoints(p_grad, steps, norm(gradient));
+            addpoints(p_momentum, steps, norm(momentum));
             for d = 1:dim
-                addpoints(p_mu(d), iter, varDistParams.mu(d));
-                addpoints(p_sigma(d), iter, varDistParams.sigma(d));
+                addpoints(p_mu(d), steps, varDistParams.mu(d));
+                addpoints(p_sigma(d), steps, varDistParams.sigma(d));
             end
             drawnow
         end
@@ -145,8 +144,7 @@ while ~converged
         converged = true;
         disp('Converged because max computation time exceeded')
     end
-    iter = iter + 1;
-    if mod(iter, 100000) == 0
+    if mod(steps, 100000) == 0
         nSamples = nSamples + 1;%this is purely heuristic! remove if unwanted
     end
 end

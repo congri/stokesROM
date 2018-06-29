@@ -1,4 +1,4 @@
-classdef ModelParams < handle
+classdef ModelParams < matlab.mixin.Copyable
     %Initialize, update, ... the ROM model params
     
     properties
@@ -9,9 +9,9 @@ classdef ModelParams < handle
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
         %FEM grid of coarse Darcy emulator
-        coarseGridX = (1/2)*ones(1, 2)
-        coarseGridY = (1/2)*ones(1, 2)
-        gridRF = RectangularMesh((1/2)*ones(1, 2))
+        coarseGridX = (1/4)*ones(1, 4)
+        coarseGridY = (1/4)*ones(1, 4)
+        gridRF = RectangularMesh((1/4)*ones(1, 4))
         
         %p_cf
         W_cf
@@ -19,7 +19,7 @@ classdef ModelParams < handle
         fineGridX = (1/128)*ones(1, 128)
         fineGridY = (1/128)*ones(1, 128)
         interpolationMode = 'cubic'
-        smoothingParameter = 2
+        smoothingParameter = []
         boundarySmoothingPixels = -1   %only smooths boundary if positive
         
         %Surrogate FEM mesh
@@ -38,11 +38,11 @@ classdef ModelParams < handle
         gamma   %Gaussian precision of prior on theta_c
         VRVM_a = eps
         VRVM_b = eps
-        VRVM_c = 1e-4
+        VRVM_c = 1e-6
         VRVM_d = eps
         VRVM_e = eps
         VRVM_f = eps
-        VRVM_iter = 10 %iterations with fixed q(lambda_c)
+        VRVM_iter = 50 %iterations with fixed q(lambda_c)
         
         %% Parameters of variational distributions
         varDistParamsVec
@@ -256,8 +256,7 @@ classdef ModelParams < handle
             end
         end
         
-        function plot_params(self, figHandle, thetaArray, SigmaArray, ...
-                gammaArray)
+        function plot_params(self, figHandle, iter)
             %Plots the current theta_c
             
             %short notation
@@ -275,14 +274,22 @@ classdef ModelParams < handle
                     end
                 end
             end
-                        
+            
             sb1 = subplot(3, 2, 1, 'Parent', figHandle);
-            plot(thetaArray, 'linewidth', 1, 'Parent', sb1)
+            if isempty(self.p_theta)
+                %random colors
+                colors = [1 0 0; 0 1 0; 0 0 1; 1 0 1; 0 1 1; 0 0 0];
+                for d = 1:numel(self.theta_c)
+                    self.p_theta{d} = animatedline('color',...
+                        colors(mod(d, 6) + 1, :), 'Parent', sb1);
+                end
+                sb1.XLabel.String = 'iter';
+                sb1.YLabel.String = '$\theta_c$';
+            end
+            for d = 1:numel(self.theta_c)
+                addpoints(self.p_theta{d}, iter, self.theta_c(d));
+            end
             axis(sb1, 'tight');
-            sb1.YLim = [(min(thetaArray(end, :)) - 1),...
-                (max(thetaArray(end, :)) + 1)];
-            sb1.XLabel.String = 'iter';
-            sb1.YLabel.String = '$\theta_c$';
             
             sb2 = subplot(3, 2, 2, 'Parent', figHandle);
             bar(self.theta_c, 'linewidth', 1, 'Parent', sb2)
@@ -290,11 +297,21 @@ classdef ModelParams < handle
             sb2.XLabel.String = 'component $i$';
             sb2.YLabel.String = '$\theta_{c,i}$';
             
-            sb3 = subplot(3,2,3, 'Parent', figHandle);
-            semilogy(sqrt(SigmaArray), 'linewidth', 1, 'Parent', sb3)
+            sb3 = subplot(3, 2, 3, 'Parent', figHandle);
+            if isempty(self.p_sigma)
+                %random colors
+                for d = 1:self.gridRF.nCells
+                    self.p_sigma{d} = animatedline('color',...
+                        colors(mod(d, 6) + 1, :), 'Parent', sb3);
+                end
+                sb3.XLabel.String = 'iter';
+                sb3.YLabel.String = '$\sigma_k$';
+                sb3.YScale = 'log';
+            end
+            for d = 1:self.gridRF.nCells
+                addpoints(self.p_sigma{d}, iter, self.Sigma_c(d, d));
+            end
             axis(sb3, 'tight');
-            sb3.XLabel.String = 'iter';
-            sb3.YLabel.String = '$\sigma_k$';
             
             sb4 = subplot(3, 2, 4, 'Parent', figHandle);
             
@@ -309,14 +326,24 @@ classdef ModelParams < handle
             
             sb5 = subplot(3, 2, 5, 'Parent', figHandle);
             if strcmp(self.prior_theta_c, 'sharedVRVM')
-                plot(gammaArray(:, 1:(numel(self.theta_c)/...
-                    self.gridRF.nCells)), 'linewidth', 1, 'Parent', sb5)
+                gam = self.gamma(1:(numel(self.theta_c)/self.gridRF.nCells));
             else
-                bar(gammaArray, 'linewidth', 1, 'Parent', sb5)
+                gam = self.gamma;
+            end
+            if isempty(self.p_gamma)
+                %random colors
+                for d = 1:numel(gam)
+                    self.p_gamma{d} = animatedline('color',...
+                        colors(mod(d, 6) + 1, :), 'Parent', sb5);
+                end
+                sb3.XLabel.String = 'iter';
+                sb5.YLabel.String = '$\gamma$';
+                sb5.YScale = 'log';
+            end
+            for d = 1:numel(gam)
+                addpoints(self.p_gamma{d}, iter, self.gamma(d));
             end
             axis(sb5, 'tight');
-            sb5.YLabel.String = '$\gamma$';
-            sb5.YScale = 'log';
             
             sb6 = subplot(3, 2, 6, 'Parent', figHandle);
             imagesc(reshape(sqrt(self.sigma_cf.s0), nSX, nSY)', 'Parent', sb6)
@@ -325,6 +352,7 @@ classdef ModelParams < handle
             sb6.GridLineStyle = 'none';
             axis(sb6, 'square');
             sb6.YDir = 'normal';
+            drawnow;
         end
                 
         function write2file(self, params)

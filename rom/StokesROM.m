@@ -86,6 +86,8 @@ classdef StokesROM < handle
                     for n = 1:self.trainingData.nSamples
                         %to ensure pos. def.
                         A = diag(sqrt_tau_c)*self.trainingData.designMatrix{n};
+                        A_temp = sqrt_tau_c.*self.trainingData.designMatrix{n};
+                        diff = norm(A - A_temp)
                         tau_theta = tau_theta + A'*A;
 %                         tau_theta = tau_theta +...
 %                             self.trainingData.designMatrix{n}'*diag(tau_c)*...
