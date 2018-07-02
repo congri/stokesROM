@@ -16,7 +16,7 @@ classdef StokesROM < handle
             %Constructor
         end
         
-        function [elbo, cell_score] = M_step(self, XMean, XSqMean, sqDist_p_cf)
+        function M_step(self, XMean, XSqMean, sqDist_p_cf)
             
             if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
                     strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
@@ -85,9 +85,8 @@ classdef StokesROM < handle
                     sumPhiTau_cXMean = 0;
                     for n = 1:self.trainingData.nSamples
                         %to ensure pos. def.
-                        A = diag(sqrt_tau_c)*self.trainingData.designMatrix{n};
-                        A_temp = sqrt_tau_c.*self.trainingData.designMatrix{n};
-                        diff = norm(A - A_temp)
+                        %A = diag(sqrt_tau_c)*self.trainingData.designMatrix{n};
+                        A = sqrt_tau_c.*self.trainingData.designMatrix{n};
                         tau_theta = tau_theta + A'*A;
 %                         tau_theta = tau_theta +...
 %                             self.trainingData.designMatrix{n}'*diag(tau_c)*...
@@ -108,61 +107,10 @@ classdef StokesROM < handle
                 self.modelParams.Sigma_theta_c = Sigma_theta;
                 
                 self.modelParams.gamma = gam;
+                self.modelParams.a = a;    self.modelParams.b = b;
+                self.modelParams.c = c;    self.modelParams.d = d;
+                self.modelParams.e = e;    self.modelParams.f = f;
                 mean_s0 = mean(self.modelParams.sigma_cf.s0)
-                
-                if nargout > 0
-%                     %THIS IS ONLY VALID FOR FIXED MODEL SETUP
-%                     %Evidence lower bound without constant terms
-%                     Sigma_lambda_c = XSqMean - XMean.^2;
-%                     sum_logdet_lambda_c = sum(sum(log(Sigma_lambda_c)));
-%                     elbo = .5*logdet(Sigma_theta, 'chol') + ...
-%                         .5*sum_logdet_lambda_c - e*sum(log(f)) -...
-%                         c*sum(log(d)) - a*sum(log(b));
-
-                    %General form of elbo allowing model comparison
-                    assert(~isempty(self.modelParams.interpolationMode),...
-                        'Elbo only implemented with fixed dim(U_f)')
-                    %ONLY VALID IF QoI IS PRESSURE ONLY
-                    %Short hand notation
-                    N_dof = numel(self.modelParams.fineGridX)*...
-                        numel(self.modelParams.fineGridY);
-                    N = self.trainingData.nSamples;
-                    D_c = self.modelParams.gridRF.nCells;
-                    aa = self.modelParams.VRVM_a;
-                    bb = self.modelParams.VRVM_b;
-                    cc = self.modelParams.VRVM_c;
-                    dd = self.modelParams.VRVM_d;
-                    ee = self.modelParams.VRVM_e;
-                    ff = self.modelParams.VRVM_f;
-                    D_theta_c = numel(self.modelParams.theta_c);
-                    if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
-                        D_gamma = D_theta_c/D_c; %for shared RVM only!
-                    else
-                        D_gamma = D_theta_c;
-                    end
-                    
-                    Sigma_lambda_c = XSqMean - XMean.^2;
-                    %sum over N and macro-cells
-                    sum_logdet_lambda_c = sum(sum(log(Sigma_lambda_c)));
-                    
-                    
-                    elbo = -.5*N*N_dof*log(2*pi) +.5*sum_logdet_lambda_c + ...
-                        .5*N*D_c + N_dof*(ee*log(ff) + log(gamma(e)) -...
-                        log(gamma(ee))) - e*sum(log(f)) + D_c*(cc*log(dd) +...
-                        log(gamma(c)) - log(gamma(cc))) - c*sum(log(d)) +...
-                        D_gamma*(aa*log(bb) + log(gamma(a)) - log(gamma(aa)))...
-                        - a*sum(log(b(1:D_gamma))) +...
-                        .5*logdet(Sigma_theta, 'chol') + .5*D_theta_c;
-                    if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
-                        gamma_expected = psi(a) - log(b);
-                        elbo= elbo + (D_c - 1)*sum(.5*gamma_expected - (a./b)...
-                            .*(b - bb));
-                    end
-                    if nargout > 1
-                        cell_score = .5*sum(log(Sigma_lambda_c), 2) - ...
-                            c*log(d);
-                    end
-                end
             else
                 %Update model parameters
                 self.update_p_c(XMean, XSqMean);
@@ -397,22 +345,7 @@ classdef StokesROM < handle
             end
             mean_s0 = mean(self.modelParams.sigma_cf.s0)
         end
-        
-        function plotElbo(self, fig, elbo, EMiter)
-            sp = subplot(1, 1, 1, 'Parent', fig);
-            hold(sp, 'on');
-            EMiter
-            elbo
-            p = plot(EMiter, elbo, 'kx', 'Parent', sp);
-            hold(sp, 'off');
-            axis(sp, 'tight');
-            p.LineWidth = 2;
-            p.MarkerSize = 10;
-            sp.XLabel.String = 'Iteration';
-            sp.YLabel.String = 'Elbo';
-            drawnow;
-        end
-        
+                
         function plotCurrentState(self, fig, dataOffset, transType, transLimits)
             %Plots the current modal effective property and the modal
             %reconstruction for 2 -training- samples
@@ -437,35 +370,25 @@ classdef StokesROM < handle
                 if isempty(self.trainingData.cells)
                     self.trainingData.readData('c');
                 end
-                if any(self.modelParams.interpolationMode)
-                    nx = numel(self.modelParams.fineGridX) + 1;
-                    ny = numel(self.modelParams.fineGridY) + 1;
-                    XX = reshape(self.trainingData.X_interp{1}(:, 1), nx, ny);
-                    YY = reshape(self.trainingData.X_interp{1}(:, 2), nx, ny);
-                    P = reshape(self.trainingData.P{i + dataOffset}, nx, ny);
-                    trihandle = surf(XX, YY, P, 'Parent', sb2);
-                else
-                trihandle = trisurf(self.trainingData.cells{i + dataOffset},...
-                    self.trainingData.X{i + dataOffset}(:, 1),...
-                    self.trainingData.X{i + dataOffset}(:, 2),...
-                    self.trainingData.P{i + dataOffset}, 'Parent', sb2);
+                if isempty(sb2.Children)
+                    th = trisurf(self.trainingData.cells{i + dataOffset},...
+                        self.trainingData.X{i + dataOffset}(:, 1),...
+                        self.trainingData.X{i + dataOffset}(:, 2),...
+                        zeros(size(self.trainingData.X{i + dataOffset}, 1),1),...
+                        'Parent', sb2);
+                    th.LineStyle = 'none';
+                    axis(sb2, 'tight');
+                    axis(sb2, 'square');
+                    sb2.View = [0, 90];
+                    sb2.GridLineStyle = 'none';
+                    sb2.XTick = [];
+                    sb2.YTick = [];
+                    sb2.Box = 'on';
+                    sb2.BoxStyle = 'full';
+                    th.FaceColor = 'k';
                 end
-                trihandle.LineStyle = 'none';
-                axis(sb2, 'tight');
-                sb2.ZLim = [mean(self.trainingData.P{i + dataOffset}) - ...
-                    3*std(self.trainingData.P{i + dataOffset}), ...
-                    mean(self.trainingData.P{i + dataOffset}) + ...
-                    3*std(self.trainingData.P{i + dataOffset})];
-                caxis(sb2, sb2.ZLim);
-                axis(sb2, 'square');
-                sb2.View = [0, 90];
-                sb2.GridLineStyle = 'none';
-                sb2.XTick = [];
-                sb2.YTick = [];
-                sb2.Box = 'on';
-                sb2.BoxStyle = 'full';
                 
-                cbp_true = colorbar('Parent', fig);
+%                 cbp_true = colorbar('Parent', fig);
                 
                 sb3 = subplot(4, 3, 3 + (i - 1)*3, 'Parent', fig);
                 
@@ -483,6 +406,10 @@ classdef StokesROM < handle
                 
                 Tc = coarseFEMout.Tff';
                 Tc = Tc(:);
+                nx = numel(self.modelParams.fineGridX) + 1;
+                ny = numel(self.modelParams.fineGridY) + 1;
+                XX = reshape(self.trainingData.X_interp{1}(:, 1), nx, ny);
+                YY = reshape(self.trainingData.X_interp{1}(:, 2), nx, ny);
                 if any(self.modelParams.interpolationMode)
                     reconstruction = reshape(self.modelParams.W_cf{1}*Tc,nx,ny);
                     trihandle2 = surf(XX, YY, reconstruction, 'Parent', sb3);
@@ -498,6 +425,7 @@ classdef StokesROM < handle
                 trihandle2.FaceColor = 'b';
                 hold(sb3, 'on');
                 if any(self.modelParams.interpolationMode)
+                    P = reshape(self.trainingData.P{i + dataOffset}, nx, ny);
                     trihandle3 = surf(XX, YY, P, 'Parent', sb3);
                 else
                     trihandle3 =...
@@ -525,7 +453,7 @@ classdef StokesROM < handle
         end
         
         function [predMeanArray, predVarArray, meanEffCond, meanSqDist,...
-                sqDist, meanLogLikelihood] = predict(self, testData, mode)
+                sqDist, meanLogLikelihood, R, R_i] = predict(self, testData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
             %   mode:       'local' for separate theta_c's per macro-cell
@@ -735,13 +663,31 @@ classdef StokesROM < handle
             end
             
             meanMahalanobisError = mean(cell2mat(meanMahaErrTemp));
-            meanSqDist = cell2mat(meanSqDistTemp);
+            meanSqDist = mean(cell2mat(sqDist), 2);
             meanSqDistSq = mean(cell2mat(meanSqDistTemp).^2);
 %             meanSquaredDistanceError =...
 %                 sqrt((meanSqDistSq - meanSqDist^2)/nTest);
             meanLogPerplexity = mean(cell2mat(logPerplexity));
             meanPerplexity = exp(meanLogPerplexity);
             
+            %Coefficient of determination, see wikipedia
+            SS_res = mean(meanSqDist)
+            msd = mean(cell2mat(sqDist))
+            P = cell2mat(P);
+            p_bar = mean(P, 2);
+            p_var = mean((P - p_bar).^2, 2);
+            size(p_var)
+            SS_tot = mean(var(P, 1, 2));
+            R = 1 - SS_res/SS_tot
+            size(meanSqDist)
+            
+            R_i = 1 - meanSqDist./p_var(2:end);
+            mean_R_i = mean(R_i)
+            p_var_n = mean((P - p_bar).^2);
+            R_n = 1 - msd./p_var_n
+            mean_R_n = mean(R_n)
+            
+            %% plotting the predictions
             plotPrediction = true;
             if plotPrediction
                 fig = figure('units','normalized','outerposition',[0 0 1 1]);
@@ -774,7 +720,7 @@ classdef StokesROM < handle
 %                     splt(i).YTick = [];
                     splt(i).Box = 'on';
                     splt(i).BoxStyle = 'full';
-                    splt(i).ZLim = [-2e4, 4e3];
+%                     splt(i).ZLim = [-2e4, 4e3];
                     cbp_true = colorbar('Parent', fig);
                     caxis = [min(testData.P{i + pltstart}), ...
                         max(testData.P{i + pltstart})];

@@ -15,7 +15,7 @@ epsilon = 1e-8;                  %curvature stabilization parameter
 stepOffset = 100;                %Robbins-Monro step offset
 nSamples = 1000;                  %gradient samples per iteration
 maxIterations = 1e4;
-maxCompTime = 15;
+maxCompTime = 30;
 
 converged = false;
 steps = 0;
@@ -60,7 +60,6 @@ if debug
     
     for d = 1:dim
         p_mu(d) = animatedline('color', 'b', 'Parent', sb1);
-        %semilogy(iter, varDistParams.sigma, 'rx', 'Parent', sb2);
         p_sigma(d) = animatedline('color', 'r', 'Parent', sb2);
     end
     p_momentum = animatedline('Parent', sb3);
@@ -119,13 +118,6 @@ while ~converged
     if debug
         plotStep = 10;
         if(mod(steps, plotStep) == 0 && steps > plotStep)
-            %mu = varDistParams.mu
-            %sigma = varDistParams.sigma
-%             plot(iter, varDistParams.mu, 'bx', 'Parent', sb1);
-% %             semilogy(iter, varDistParams.sigma, 'rx', 'Parent', sb2);
-%             semilogy(iter, x((dim + 1):end), 'rx', 'Parent', sb2);
-%             semilogy(iter, norm(momentum), 'kx', 'Parent', sb3);
-%             semilogy(iter, norm(gradient), 'kx', 'Parent', sb4);
             addpoints(p_grad, steps, norm(gradient));
             addpoints(p_momentum, steps, norm(momentum));
             for d = 1:dim
@@ -141,6 +133,7 @@ while ~converged
         converged = true;
         disp('Converged because max number of iterations exceeded')
     elseif compTime > maxCompTime
+%         steps
         converged = true;
         disp('Converged because max computation time exceeded')
     end

@@ -206,6 +206,7 @@ classdef StokesData < handle
                 if ~isempty(self.P)
                     F = scatteredInterpolant(self.X{n}(:, 1),...
                         self.X{n}(:, 2), self.P{n});
+                    F.Method = modelParams.interpolationMode;
                     p_interp = F(xq(:), yq(:));
                     
                     %replace original data by interpolated data

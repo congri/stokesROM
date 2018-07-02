@@ -166,8 +166,10 @@ while ~converged
         
     %M-step: determine optimal parameters given the sample set
     tic
-    [elbo, cell_score] = rom.M_step(XMean, XSqMean, sqDist)
+    rom.M_step(XMean, XSqMean, sqDist)
     M_step_time = toc
+    
+    rom.modelParams.compute_elbo(nTrain, XMean, XSqMean);
     
     
     
@@ -191,12 +193,12 @@ while ~converged
         %plot modal lambda_c and corresponding -training- data reconstruction
         rom.plotCurrentState(figResponse, 0, transType, transLimits);
         
-        if exist('elbo')
+        if ~isempty(rom.modelParams.elbo)
             if ~exist('figElbo')
                 figElbo =...
                 figure('units','normalized','outerposition',[0 0 1 1]);
             end
-            rom.plotElbo(figElbo, elbo, EMiter);
+            rom.modelParams.plotElbo(figElbo, EMiter);
         end
     end
     
@@ -204,6 +206,7 @@ while ~converged
     rom.modelParams.write2file('thetaPriorHyperparam');
     rom.modelParams.write2file('theta_c');
     rom.modelParams.write2file('sigma_c');
+    rom.modelParams.write2file('elbo');
     modelParams = copy(rom.modelParams);
     %Save modelParams after every iteration
     disp('Saving modelParams...')

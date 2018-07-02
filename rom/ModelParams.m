@@ -9,16 +9,20 @@ classdef ModelParams < matlab.mixin.Copyable
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
         %FEM grid of coarse Darcy emulator
-        coarseGridX = (1/4)*ones(1, 4)
-        coarseGridY = (1/4)*ones(1, 4)
-        gridRF = RectangularMesh((1/4)*ones(1, 4))
+        coarseGridX = (1/2)*ones(1, 2)
+        coarseGridY = (1/2)*ones(1, 2)
+        gridRF = RectangularMesh((1/2)*ones(1, 2))
+        
+        %Recorded elbo
+        elbo
+        cell_score
         
         %p_cf
         W_cf
         sigma_cf
         fineGridX = (1/128)*ones(1, 128)
         fineGridY = (1/128)*ones(1, 128)
-        interpolationMode = 'cubic'
+        interpolationMode = 'nearest'   %'nearest', 'linear' or 'natural'
         smoothingParameter = []
         boundarySmoothingPixels = -1   %only smooths boundary if positive
         
@@ -30,7 +34,7 @@ classdef ModelParams < matlab.mixin.Copyable
         
         %Transformation options of diffusivity parameter
         diffTransform = 'log'
-        diffLimits = [1e-10, 1e3];
+        diffLimits = [1e-10, 1e8];
         
         %% Model hyperparameters
         mode = 'local'  %separate theta_c's per macro-cell
@@ -42,7 +46,15 @@ classdef ModelParams < matlab.mixin.Copyable
         VRVM_d = eps
         VRVM_e = eps
         VRVM_f = eps
-        VRVM_iter = 50 %iterations with fixed q(lambda_c)
+        VRVM_iter = 10 %iterations with fixed q(lambda_c)
+        
+        %current parameters of variational distributions
+        a
+        b
+        c
+        d
+        e
+        f
         
         %% Parameters of variational distributions
         varDistParamsVec
@@ -57,7 +69,7 @@ classdef ModelParams < matlab.mixin.Copyable
         featureFunctionMax
         
         %% Training parameters
-        max_EM_iter = 200
+        max_EM_iter = 400
         
         %% Settings
         computeElbo = true
@@ -66,6 +78,7 @@ classdef ModelParams < matlab.mixin.Copyable
         p_theta
         p_sigma
         p_gamma
+        p_elbo
     end
     
     methods
@@ -267,12 +280,6 @@ classdef ModelParams < matlab.mixin.Copyable
             
             if nargin < 2
                 figHandle = figure;
-                if nargin < 3
-                    thetaArray = dlmread('./data/theta_c');
-                    if nargin < 4
-                        SigmaArray = dlmread('./data/sigma_c');
-                    end
-                end
             end
             
             sb1 = subplot(3, 2, 1, 'Parent', figHandle);
@@ -359,7 +366,12 @@ classdef ModelParams < matlab.mixin.Copyable
             if ~exist('./data/', 'dir')
                 mkdir('./data/');
             end
-
+            
+            if contains(params, 'elbo')
+                filename = './data/elbo';
+                elbo = self.elbo;
+                save(filename, 'elbo', '-ascii', '-append');
+            end
             %Optimal params
             %W matrices
             if any(params == 'W')
@@ -391,7 +403,7 @@ classdef ModelParams < matlab.mixin.Copyable
                 Sigma_theta_c = self.Sigma_theta_c;
                 save(filename, 'Sigma_theta_c');
             end
-            
+                        
             %sigma
             if contains(params, 'sigma_c')
                 filename = './data/sigma_c';
@@ -418,6 +430,69 @@ classdef ModelParams < matlab.mixin.Copyable
                 save('./data/vardistparams.mat', 'varmu', 'varsigma');
             end
             
+        end
+        
+        function compute_elbo(self, N, XMean, XSqMean)
+            %General form of elbo allowing model comparison
+            %   N:                   number of training samples
+            %   XMean, XSqMean:      first and second moments of transformed
+            %                        lambda_c
+            
+            assert(~isempty(self.interpolationMode),...
+                'Elbo only implemented with fixed dim(U_f)')
+            %ONLY VALID IF QoI IS PRESSURE ONLY
+            %Short hand notation
+            N_dof = numel(self.fineGridX)*numel(self.fineGridY);
+            D_c = self.gridRF.nCells;
+            aa = self.VRVM_a;
+            bb = self.VRVM_b;
+            cc = self.VRVM_c;
+            dd = self.VRVM_d;
+            ee = self.VRVM_e;
+            ff = self.VRVM_f;
+            D_theta_c = numel(self.theta_c);
+            if strcmp(self.prior_theta_c, 'sharedVRVM')
+                D_gamma = D_theta_c/D_c; %for shared RVM only!
+            else
+                D_gamma = D_theta_c;
+            end
+            
+            Sigma_lambda_c = XSqMean - XMean.^2;
+            %sum over N and macro-cells
+            sum_logdet_lambda_c = sum(sum(log(Sigma_lambda_c)));
+            
+            
+            self.elbo = -.5*N*N_dof*log(2*pi) +.5*sum_logdet_lambda_c + ...
+                .5*N*D_c + N_dof*(ee*log(ff) + log(gamma(self.e)) -...
+                log(gamma(ee))) - self.e*sum(log(self.f)) + D_c*(cc*log(dd) +...
+                log(gamma(self.c)) - log(gamma(cc))) -...
+                self.c*sum(log(self.d)) + D_gamma*(aa*log(bb) +...
+                log(gamma(self.a)) - log(gamma(aa))) - ...
+                self.a*sum(log(self.b(1:D_gamma))) + ...
+                .5*logdet(self.Sigma_theta_c, 'chol') + .5*D_theta_c;
+            if strcmp(self.prior_theta_c, 'sharedVRVM')
+                gamma_expected = psi(self.a) - log(self.b);
+                self.elbo= self.elbo + (D_c - 1)*sum(.5*gamma_expected -...
+                    (self.a./self.b).*(self.b - bb));
+            end
+            self.cell_score = .5*sum(log(Sigma_lambda_c), 2) - ...
+                self.c*log(self.d);
+        end
+        
+        function plotElbo(self, fig, EMiter)
+            sp = subplot(1, 1, 1, 'Parent', fig);
+            hold(sp, 'on');
+            if isempty(self.p_elbo)
+                self.p_elbo = animatedline('Parent', sp);
+                self.p_elbo.LineWidth = 2;
+                self.p_elbo.Marker = 'x';
+                self.p_elbo.MarkerSize = 10;
+                sp.XLabel.String = 'iteration';
+                sp.YLabel.String = 'elbo';
+            end
+            addpoints(self.p_elbo, EMiter, self.elbo);
+            axis(sp, 'tight');
+            drawnow;
         end
     end
 end
