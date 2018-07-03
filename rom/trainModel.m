@@ -209,11 +209,13 @@ while ~converged
     rom.modelParams.write2file('sigma_c');
     rom.modelParams.write2file('elbo');
     rom.modelParams.write2file('cell_score');
-    modelParams = copy(rom.modelParams);
-    %Save modelParams after every iteration
-    disp('Saving modelParams...')
-    save('./data/modelParams.mat', 'modelParams', '-v7.3');
-    disp('...modelParams saved.')
+    if ~mod(EMiter, 10)
+        modelParams = copy(rom.modelParams);
+        %Save modelParams after every iteration
+        disp('Saving modelParams...')
+        save('./data/modelParams.mat', 'modelParams', '-v7.3');
+        disp('...modelParams saved.')
+    end
     save('./data/XMean', 'XMean');
     save('./data/XSqMean', 'XSqMean');
     

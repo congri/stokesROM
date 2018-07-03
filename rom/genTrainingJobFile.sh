@@ -16,6 +16,10 @@ GRADIENTSAMPLES=4000
 STOCHOPTTIME=120    
 
 NTRAIN=32
+NTESTSTART=0
+NTESTEND=1023
+
+MAXEMITER=400
 
 NCORES=8
 if [ $NTRAIN -lt $NCORES ]; then
@@ -65,6 +69,8 @@ sed -i \"12s/.*/        coordDist_mu = '${XMU}'/\" ./StokesData.m
 sed -i \"13s/.*/        coordDist_cov = '${XCOV}'/\" ./StokesData.m
 sed -i \"16s/.*/nSamples = ${GRADIENTSAMPLES};/\" ./VI/efficientStochOpt.m
 sed -i \"18s/.*/maxCompTime = ${STOCHOPTTIME};/\" ./VI/efficientStochOpt.m
+sed -i \"73s/.*/        max_EM_iter = ${MAXEMITER}/\" ./ModelParams.m
+
 
 
 
