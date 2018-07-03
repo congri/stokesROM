@@ -1,6 +1,9 @@
 %prediction script
 addpath('./mesh')
 addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
+addpath('./FEM')
+addpath('./rom')
+
 
 if ~exist('rom', 'var')
     rom = StokesROM;

@@ -81,7 +81,13 @@ classdef StokesROM < handle
                     end
                     tau_c = c./d;   %precision of p_c
                     sqrt_tau_c = sqrt(tau_c);
-                    tau_theta = diag(gam);
+                    if strcmp(self.modelParams.mode, 'local')
+                        nFeatures = dim_theta/nElc;
+                        tau_theta = sparse(1:dim_theta, 1:dim_theta, gam,...
+                            dim_theta, dim_theta, nElc*nFeatures^2);
+                    else
+                        tau_theta = diag(gam);
+                    end
                     sumPhiTau_cXMean = 0;
                     for n = 1:self.trainingData.nSamples
                         %to ensure pos. def.
@@ -95,9 +101,23 @@ classdef StokesROM < handle
                             self.trainingData.designMatrix{n}'*...
                             diag(tau_c)*XMean(:, n);
                     end
-                    tt = full(logical(tau_theta))
-                    pause
-                    Sigma_theta = inv(tau_theta);
+                    
+                    if(strcmp(self.modelParams.mode, 'local') && nElc > 4)
+                        %solve block-diagonal tau_theta
+                        %break-even at nElc == 4?
+                        nFeatures = dim_theta/nElc;
+                        Sigma_theta = spalloc(dim_theta, dim_theta, ...
+                            nElc*nFeatures^2);
+                        %can even be done in parallel
+                        for k = 1:nElc
+                            Sigma_theta(((k-1)*nFeatures + 1):(k*nFeatures),...
+                                ((k - 1)*nFeatures + 1):(k*nFeatures)) = inv(...
+                                tau_theta(((k-1)*nFeatures+ 1):(k*nFeatures),...
+                                ((k - 1)*nFeatures + 1):(k*nFeatures)));
+                        end
+                    else
+                        Sigma_theta = inv(tau_theta);
+                    end
                     mu_theta = Sigma_theta*sumPhiTau_cXMean;
                 end
                 
