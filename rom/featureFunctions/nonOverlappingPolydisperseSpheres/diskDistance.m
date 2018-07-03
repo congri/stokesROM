@@ -3,8 +3,10 @@ function [distQuantity] = diskDistance(diskCenters, diskRadii,...
 %Computes average/min/max/std distance of disks in a macro-cell
 
 distQuantity = zeros(gridRF.nCells, 1);
+edg_max = distQuantity;
 n = 1;
 for cll = gridRF.cells
+    exception_flag = false;
     if isvalid(cll{1})
         centers = diskCenters(cll{1}.inside(diskCenters), :);
         radii = diskRadii(cll{1}.inside(diskCenters));
@@ -28,6 +30,12 @@ for cll = gridRF.cells
         else
             %warning('Cell with one or less exclusions. Setting distances = 0')
             distances = 0;
+            for edg = 1:numel(cll{1}.edges)
+                if cll{1}.edges{edg}.length > edg_max(n)
+                    edg_max(n) = cll{1}.edges{edg}.length;
+                end
+            end
+            exception_flag = true;
         end
         
         if strcmp(property, 'mean')
@@ -42,6 +50,13 @@ for cll = gridRF.cells
             distQuantity(n) = var(distances);
         else
             error('Unknown distance property')
+        end
+        if exception_flag
+            %If there are no/one exclusions in macro-cell
+            distQuantity(n) = .5*edg_max(n);
+            if strcmp(property, 'var')
+                distQuantity(n) = distQuantity(n)^2;
+            end
         end
         n = n + 1;
     end

@@ -46,7 +46,7 @@ classdef ModelParams < matlab.mixin.Copyable
         VRVM_d = eps
         VRVM_e = eps
         VRVM_f = eps
-        VRVM_iter = 10 %iterations with fixed q(lambda_c)
+        VRVM_iter = 100 %iterations with fixed q(lambda_c)
         
         %current parameters of variational distributions
         a
@@ -69,7 +69,7 @@ classdef ModelParams < matlab.mixin.Copyable
         featureFunctionMax
         
         %% Training parameters
-        max_EM_iter = 400
+        max_EM_iter = 200
         
         %% Settings
         computeElbo = true

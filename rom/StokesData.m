@@ -405,6 +405,7 @@ classdef StokesData < handle
             
             mData = self.microstructData;
             dMat = self.designMatrix;
+            delta_log = 1;
             %feature name file is written for every data sample. This is 
             %unnecessary overhead
             parfor n = 1:numel(self.samples)
@@ -422,7 +423,7 @@ classdef StokesData < handle
                     dlmwrite('./data/features', '0.5_moment',...
                         'delimiter', '', '-append');
                 end
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_0.5_moment',...
                         'delimiter', '', '-append');
@@ -435,7 +436,7 @@ classdef StokesData < handle
                     dlmwrite('./data/features', '1.5_moment',...
                         'delimiter', '', '-append');
                 end
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log1.5_moment',...
                         'delimiter', '', '-append');
@@ -451,7 +452,7 @@ classdef StokesData < handle
                 end
                 
                 %log pore fraction
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logPoreFraction',...
                         'delimiter', '', '-append');
@@ -487,50 +488,53 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
+%                 %for safety reasons: this effectively takes out macro-cells
+%                 %without exclusion
+%                 phi(phi == 0) = 1;
                 %log interface area
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logInterfaceArea',...
                         'delimiter', '', '-append');
                 end
                 
                 %square log interface area
-                dMat{n} = [dMat{n}, log(phi(:) + eps).^2];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
                 if n == 1
                     dlmwrite('./data/features', 'squareLogInterfaceArea',...
                         'delimiter', '', '-append');
                 end
                 
                 %cube log interface area
-                dMat{n} = [dMat{n}, log(phi(:) + eps).^3];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^3];
                 if n == 1
                     dlmwrite('./data/features', 'cubeLogInterfaceArea',...
                         'delimiter', '', '-append');
                 end
                 
                 %log^4 interface area
-                dMat{n} = [dMat{n}, log(phi(:) + eps).^4];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^4];
                 if n == 1
                     dlmwrite('./data/features', 'log^4InterfaceArea',...
                         'delimiter', '', '-append');
                 end
                 
                 %log^1/2 interface area
-                dMat{n} = [dMat{n}, abs(log(phi(:) + eps)).^.5];
+                dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^.5];
                 if n == 1
                     dlmwrite('./data/features', 'log^1/2InterfaceArea',...
                         'delimiter', '', '-append');
                 end
                 
                 %log^1/3 interface area
-                dMat{n} = [dMat{n}, abs(log(phi(:) + eps)).^(1/3)];
+                dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^(1/3)];
                 if n == 1
                     dlmwrite('./data/features', 'log^1/3InterfaceArea',...
                         'delimiter', '', '-append');
                 end
                 
                 %log^1/4 interface area
-                dMat{n} = [dMat{n}, abs(log(phi(:) + eps)).^.25];
+                dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^.25];
                 if n == 1
                     dlmwrite('./data/features', 'log^1/4InterfaceArea',...
                         'delimiter', '', '-append');
@@ -539,44 +543,45 @@ classdef StokesData < handle
 %                 %next
 %                 phi_temp = phi(:);
 %                 phi_temp = [phi_temp(2:end); phi_temp(1)];
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + eps)];
+%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
 %
 %                 %preceding
 %                 phi_temp = phi(:);
 %                 phi_temp = [phi_temp(end); phi_temp(1:(end - 1))];
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + eps)];
+%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
 %
 %                 %above (N_c = 4)
 %                 phi_temp = phi(:);
 %                 phi_temp = [phi_temp(5:end); phi_temp(1:4)];
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + eps)];
+%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
 %
 %                 %below (N_c = 4)
 %                 phi_temp = phi(:);
 %                 phi_temp = [phi_temp((end - 3):end); phi_temp(1:(end - 4))];
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + eps)];
+%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
 %
 %                 %transpose
 %                 phi_temp = reshape(phi(:), 4, 4)';
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + eps)];
+%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
 %
 %                 %flip
 %                 phi_temp = flipud(phi(:));
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + eps)];
+%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
 %
 %                 %flip transpose
 %                 phi_temp = flipud(phi(:));
 %                 phi_temp = reshape(phi_temp, 4, 4)';
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + eps)];
+%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
                 
                 
                 
                 %exp interface area
-                dMat{n} = [dMat{n}, exp(phi(:))];
-                if n == 1
-                    dlmwrite('./data/features', 'expInterfaceArea',...
-                        'delimiter', '', '-append');
-                end
+                %THIS FEATURE IS UNSTABLE!
+%                 dMat{n} = [dMat{n}, exp(phi(:))];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'expInterfaceArea',...
+%                         'delimiter', '', '-append');
+%                 end
                 
                 %sqrt interface area
                 dMat{n} = [dMat{n}, sqrt(phi(:))];
@@ -603,14 +608,14 @@ classdef StokesData < handle
                 end
                 
                 %log mean distance
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logMeanDist',...
                         'delimiter', '', '-append');
                 end
                 
                 %square log mean distance
-                dMat{n} = [dMat{n}, log(phi(:) + eps).^2];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
                 if n == 1
                     dlmwrite('./data/features', 'squareLogMeanDist',...
                         'delimiter', '', '-append');
@@ -618,7 +623,7 @@ classdef StokesData < handle
                 
                 %flow through thin plates
                 %log^3 mean distance
-                dMat{n} = [dMat{n}, log(phi(:) + eps).^3];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^3];
                 if n == 1
                     dlmwrite('./data/features', 'log^3MeanDist',...
                         'delimiter', '', '-append');
@@ -626,7 +631,7 @@ classdef StokesData < handle
                 
                 %Hagen-Poiseuille?
                 %log^4 mean distance
-                dMat{n} = [dMat{n}, log(phi(:) + eps).^4];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^4];
                 if n == 1
                     dlmwrite('./data/features', 'log^4MeanDist',...
                         'delimiter', '', '-append');
@@ -652,7 +657,7 @@ classdef StokesData < handle
                 end
                 
                 %log min distance
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logMinDistCenter',...
                         'delimiter', '', '-append');
@@ -667,7 +672,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logLinPath08',...
                         'delimiter', '', '-append');
@@ -681,7 +686,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logLinPath04',...
                         'delimiter', '', '-append');
@@ -695,7 +700,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logLinPath02',...
                         'delimiter', '', '-append');
@@ -709,7 +714,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logLinPath01',...
                         'delimiter', '', '-append');
@@ -723,7 +728,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logLinPath005',...
                         'delimiter', '', '-append');
@@ -738,7 +743,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logChordLengthDens04',...
                         'delimiter', '', '-append');
@@ -752,7 +757,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logChordLengthDens02',...
                         'delimiter', '', '-append');
@@ -766,7 +771,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logChordLengthDens01',...
                         'delimiter', '', '-append');
@@ -780,7 +785,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logChordLengthDens005',...
                         'delimiter', '', '-append');
@@ -800,7 +805,8 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(e_v(:) + eps), log(h_v(:) + eps)];
+                dMat{n} =...
+                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_e_v08',...
                         'delimiter', '', '-append');
@@ -822,7 +828,8 @@ classdef StokesData < handle
                 end
                 
                 %log
-                dMat{n} = [dMat{n}, log(e_v(:) + eps), log(h_v(:) + eps)];
+                dMat{n} =...
+                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_e_v04',...
                         'delimiter', '', '-append');
@@ -843,7 +850,8 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(e_v(:) + eps), log(h_v(:) + eps)];
+                dMat{n} =...
+                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_e_v02',...
                         'delimiter', '', '-append');
@@ -864,7 +872,8 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(e_v(:) + eps), log(h_v(:) + eps)];
+                dMat{n} =...
+                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_e_v01',...
                         'delimiter', '', '-append');
@@ -885,7 +894,8 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(e_v(:) + eps), log(h_v(:) + eps)];
+                dMat{n} =...
+                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_e_v005',...
                         'delimiter', '', '-append');
@@ -903,7 +913,7 @@ classdef StokesData < handle
                 end
                 
                 %log mean chord length
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logMeanChordLength',...
                         'delimiter', '', '-append');
@@ -933,7 +943,7 @@ classdef StokesData < handle
                 end
                 
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_2pointCorr04',...
                         'delimiter', '', '-append');
@@ -956,7 +966,7 @@ classdef StokesData < handle
                 end
                 
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_2pointCorr02',...
                         'delimiter', '', '-append');
@@ -979,7 +989,7 @@ classdef StokesData < handle
                 end
                 
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_2pointCorr01',...
                         'delimiter', '', '-append');
@@ -1001,7 +1011,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + eps)];
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_2pointCorr005',...
                         'delimiter', '', '-append');

@@ -32,4 +32,6 @@ exclfrac = 1 - porefrac;
 lc = .5*pi*(meanSqRadii./meanRadii).*(porefrac./exclfrac);
 %Set maximum chord length to maximum edge length
 lc(lc > edg_max) = edg_max(lc > edg_max);
+%can happen in macro-cells with no exclusions
+lc(~isfinite(lc)) = edg_max(~isfinite(lc));
 

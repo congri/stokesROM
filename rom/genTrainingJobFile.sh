@@ -1,5 +1,5 @@
-BCX="u_x=-0.8 + 2.0*x[1]"
-BCY="u_y=-1.2 + 2.0*x[0]"
+BCX="u_x=0.0-2.0*x[1]"
+BCY="u_y=1.0-2.0*x[0]"
 
 N1=5.5
 N2=1.0
@@ -9,26 +9,23 @@ MARG1=0.01
 MARG2=0.01
 MARG3=0.01
 MARG4=0.01
-MU1=0.7
-MU2=0.3
-COV1=0.2
-COV2=0.3
+XMU="0.7_0.3"
+XCOV="0.2_0.0_0.3"
 
-NTRAIN=128
+NTRAIN=4
 
-NCORES=16
+NCORES=8
 if [ $NTRAIN -lt $NCORES ]; then
 NCORES=$NTRAIN
 fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="errorplot_4x4"
+NAMEBASE="errorplot_2x2"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
-JOBNAME="${DATESTR}_${NAMEBASE}_nTrain=${NTRAIN}"
-JOBDIR="/home/constantin/python/data/stokesEquation/meshes/meshSize=128/nNonOverlapCircExcl=logn${N1}-${N2}/coordDist=gauss_mu=[${MU1}, ${MU2}]cov=[[${COV1}, 0.0], [0.0, ${COV2}]]_margins=(${MARG1}, ${MARG2}, ${MARG3}, ${MARG4})/radiiDist=logn_r_params=(${R1}, ${R2})/errorplot/${JOBNAME}"
-SPOOL_FILE=/home/constantin/spooledOutput/${DATESTR}_${JOBNAME}
+JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"
+JOBDIR="/home/constantin/python/data/stokesEquation/meshSize=128/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~gauss/mu=${XMU}/cov=${XCOV}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/errorplot/${JOBNAME}"
 
 echo $JOBDIR
 
@@ -56,20 +53,29 @@ printf "#PBS -N $JOBNAME
 cd \"$JOBDIR\"
 
 #Set parameters
-sed -i \"9s/.*/nTrain = ${NTRAIN};/\" ./trainModel.m
-sed -i \"35s/.*/u_bc{1} = \'${BCX}\';/\" ./trainModel.m
-sed -i \"36s/.*/u_bc{2} = \'${BCY}\';/\" ./trainModel.m
+sed -i \"19s/.*/nTrain = ${NTRAIN};/\" ./trainModel.m
+sed -i \"35s/.*/u_bc = {'${BCX}', '${BCY}'}/\" ./StokesData.m
 sed -i \"7s/.*/        numberParams = [${N1}, ${N2}]/\" ./StokesData.m
 sed -i \"10s/.*/        r_params = [${R1}, ${R2}]/\" ./StokesData.m
 sed -i \"9s/.*/        margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}]/\" ./StokesData.m
+sed -i \"12s/.*/        coordDist_mu = '${XMU}'/\" ./StokesData.m
+sed -i \"13s/.*/        coordDist_cov = '${XCOV}'/\" ./StokesData.m
 
 
 
 #Run Matlab
-/home/matlab/R2017a/bin/matlab -nodesktop -nodisplay -nosplash -r \"trainModel ; quit;\" | tee ${SPOOL_FILE}" >> job_file.sh
+/home/matlab/R2017a/bin/matlab -nodesktop -nodisplay -nosplash -r \"trainModel ; quit;\"" >> job_file.sh
 
 chmod +x job_file.sh
 #directly submit job file
 qsub job_file.sh
 #./job_file.sh	#to test in shell
+
+
+
+
+
+
+
+
 

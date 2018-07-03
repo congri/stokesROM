@@ -453,7 +453,8 @@ classdef StokesROM < handle
         end
         
         function [predMeanArray, predVarArray, meanEffCond, meanSqDist,...
-                sqDist, meanLogLikelihood, R, R_i] = predict(self, testData, mode)
+                sqDist, meanLogLikelihood, R, R_i] =...
+                predict(self, testData, mode)
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
             %   mode:       'local' for separate theta_c's per macro-cell
@@ -671,21 +672,14 @@ classdef StokesROM < handle
             meanPerplexity = exp(meanLogPerplexity);
             
             %Coefficient of determination, see wikipedia
-            SS_res = mean(meanSqDist)
-            msd = mean(cell2mat(sqDist))
+            SS_res = mean(meanSqDist);
             P = cell2mat(P);
             p_bar = mean(P, 2);
             p_var = mean((P - p_bar).^2, 2);
-            size(p_var)
             SS_tot = mean(var(P, 1, 2));
-            R = 1 - SS_res/SS_tot
-            size(meanSqDist)
-            
+            R = 1 - SS_res/SS_tot;
             R_i = 1 - meanSqDist./p_var(2:end);
-            mean_R_i = mean(R_i)
-            p_var_n = mean((P - p_bar).^2);
-            R_n = 1 - msd./p_var_n
-            mean_R_n = mean(R_n)
+
             
             %% plotting the predictions
             plotPrediction = true;
