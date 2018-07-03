@@ -11,6 +11,7 @@ classdef ModelParams < matlab.mixin.Copyable
         %FEM grid of coarse Darcy emulator
         coarseGridX = (1/2)*ones(1, 2)
         coarseGridY = (1/2)*ones(1, 2)
+        %grid of random field
         gridRF = RectangularMesh((1/2)*ones(1, 2))
         
         %Recorded elbo
@@ -371,6 +372,12 @@ classdef ModelParams < matlab.mixin.Copyable
                 filename = './data/elbo';
                 elbo = self.elbo;
                 save(filename, 'elbo', '-ascii', '-append');
+            end
+            
+            if contains(params, 'cell_score')
+                filename = './data/cell_score';
+                cell_score = self.cell_score';
+                save(filename, 'cell_score', '-ascii', '-append');
             end
             %Optimal params
             %W matrices

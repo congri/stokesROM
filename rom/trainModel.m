@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 4;
+nTrain = 16;
 nStart = randi(1024) - 1 - nTrain;     samples = nStart:(nTrain - 1 + nStart);
 loadParams = false;     %load parameters from previous run?
 
@@ -208,6 +208,7 @@ while ~converged
     rom.modelParams.write2file('theta_c');
     rom.modelParams.write2file('sigma_c');
     rom.modelParams.write2file('elbo');
+    rom.modelParams.write2file('cell_score');
     modelParams = copy(rom.modelParams);
     %Save modelParams after every iteration
     disp('Saving modelParams...')

@@ -95,6 +95,8 @@ classdef StokesROM < handle
                             self.trainingData.designMatrix{n}'*...
                             diag(tau_c)*XMean(:, n);
                     end
+                    tt = full(logical(tau_theta))
+                    pause
                     Sigma_theta = inv(tau_theta);
                     mu_theta = Sigma_theta*sumPhiTau_cXMean;
                 end

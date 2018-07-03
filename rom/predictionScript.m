@@ -5,7 +5,7 @@ addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 if ~exist('rom', 'var')
     rom = StokesROM;
 end
-testSamples = 128:256;
+testSamples = 0:1023;
 
 testData = StokesData(testSamples);
 [~,~,~, meanSqDist, ~, mll, R, ~] = rom.predict(testData, 'local');
