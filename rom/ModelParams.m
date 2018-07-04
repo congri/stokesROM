@@ -9,10 +9,10 @@ classdef ModelParams < matlab.mixin.Copyable
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
         %FEM grid of coarse Darcy emulator
-        coarseGridX = (1/8)*ones(1, 8)
-        coarseGridY = (1/8)*ones(1, 8)
+        coarseGridX = (1/4)*ones(1, 4)
+        coarseGridY = (1/4)*ones(1, 4)
         %grid of random field
-        gridRF = RectangularMesh((1/8)*ones(1, 8))
+        gridRF = RectangularMesh((1/4)*ones(1, 4))
         
         %Recorded elbo
         elbo
@@ -468,6 +468,12 @@ classdef ModelParams < matlab.mixin.Copyable
             %sum over N and macro-cells
             sum_logdet_lambda_c = sum(sum(log(Sigma_lambda_c)));
             
+            try
+                logdet_Sigma_theta_c = logdet(self.Sigma_theta_c, 'chol');
+            catch
+                logdet_Sigma_theta_c = logdet(self.Sigma_theta_c);
+                warning('Sigma_theta_c not pos. def.')
+            end
             
             self.elbo = -.5*N*N_dof*log(2*pi) +.5*sum_logdet_lambda_c + ...
                 .5*N*D_c + N_dof*(ee*log(ff) + log(gamma(self.e)) -...
@@ -476,7 +482,7 @@ classdef ModelParams < matlab.mixin.Copyable
                 self.c*sum(log(self.d)) + D_gamma*(aa*log(bb) +...
                 log(gamma(self.a)) - log(gamma(aa))) - ...
                 self.a*sum(log(self.b(1:D_gamma))) + ...
-                .5*logdet(self.Sigma_theta_c, 'chol') + .5*D_theta_c;
+                .5*logdet_Sigma_theta_c + .5*D_theta_c;
             if strcmp(self.prior_theta_c, 'sharedVRVM')
                 gamma_expected = psi(self.a) - log(self.b);
                 self.elbo= self.elbo + (D_c - 1)*sum(.5*gamma_expected -...

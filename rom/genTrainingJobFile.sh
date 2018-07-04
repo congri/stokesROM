@@ -13,9 +13,9 @@ XMU="0.7_0.3"
 XCOV="0.2_0.0_0.3"
 
 GRADIENTSAMPLES=4000
-STOCHOPTTIME=120    
+STOCHOPTTIME=240    
 
-NTRAIN=32
+NTRAIN=4
 NTESTSTART=0
 NTESTEND=1023
 
@@ -28,7 +28,7 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="errorplot_2x2_2"
+NAMEBASE="errorplot_4x4"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"

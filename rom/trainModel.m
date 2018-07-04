@@ -17,7 +17,7 @@ rng('shuffle');
 %% Initialization
 %Which data samples for training?
 nTrain = 16;
-nStart = randi(1024) - 1 - nTrain;     samples = nStart:(nTrain - 1 + nStart);
+nStart = randi(1023 - nTrain);     samples = nStart:(nTrain - 1 + nStart);
 loadParams = false;     %load parameters from previous run?
 
 rom = StokesROM;
