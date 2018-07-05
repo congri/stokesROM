@@ -74,7 +74,7 @@ while not converged:
              trainingData.p_interp[n].vector().get_local()) for n in trainingData.samples]
 
     max_x = []
-    maxmode = 'parallel'
+    maxmode = 'serial'
     if maxmode == 'serial':
         for arg_n in args:
             x = minimize_neg_log_q(arg_n)
@@ -90,7 +90,7 @@ while not converged:
     print('...pre-VI maximization done.')
 
     # VI starts here
-    vimode = 'parallel'
+    vimode = 'serial'
     t_s = time.time()
 
 

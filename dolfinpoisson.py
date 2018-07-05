@@ -3,6 +3,7 @@
 import numpy as np
 from flowproblem import FlowProblem
 import dolfin as df
+import time
 
 
 class DolfinPoisson(FlowProblem):
@@ -29,14 +30,26 @@ class DolfinPoisson(FlowProblem):
 
     def solvePDE(self, diffusivityFunction):
         # Define variational problem
+        t1 = time.time()
         u = df.TrialFunction(self.solutionFunctionSpace)
         v = df.TestFunction(self.solutionFunctionSpace)
+        t2 = time.time()
+        print('decl fun space time = ', t2 - t1)
         a = diffusivityFunction * df.inner(df.grad(v), df.grad(u)) * df.dx
+        t3 = time.time()
+        print('a time = ', t3 - t2)
         L = self.sourceTerm * v * df.dx + self.bcFlux * v * df.ds
+        t4 = time.time()
+        print('L time = ', t4 - t3)
 
         # Compute solution
         u = df.Function(self.solutionFunctionSpace)
-        df.solve(a == L, u, self.bcPressure)
+        t5 = time.time()
+        print('Decl u time = ', t5 - t4)
+        df.solve(a == L, u, self.bcPressure, solver_parameters={'linear_solver': 'gmres',
+                         'preconditioner': 'ilu'})
+        t6 = time.time()
+        print('solve time = ', t6 - t5)
 
         # val = np.empty(1, dtype=float)
         # u.eval(val, np.array([.0, .0]))

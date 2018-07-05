@@ -43,7 +43,6 @@ Out.globalForce = get_glob_force(mesh, Out.diffusionStiffness);
 %Finally solving the equation system
 Out.naturalTemperatures = Out.globalStiffness\Out.globalForce;
 
-
 %Temperature field
 Tf = zeros(mesh.nNodes, 1);
 Tf(mesh.id) = Out.naturalTemperatures;
