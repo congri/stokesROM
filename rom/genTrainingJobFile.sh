@@ -12,14 +12,14 @@ MARG4=0.01
 XMU="0.7_0.3"
 XCOV="0.2_0.0_0.3"
 
-GRADIENTSAMPLES=4000
-STOCHOPTTIME=240    
+GRADIENTSAMPLES=1000
+STOCHOPTTIME=120    
 
-NTRAIN=4
+NTRAIN=8
 NTESTSTART=0
 NTESTEND=1023
 
-MAXEMITER=400
+MAXEMITER=200
 
 NCORES=8
 if [ $NTRAIN -lt $NCORES ]; then
@@ -70,6 +70,7 @@ sed -i \"13s/.*/        coordDist_cov = '${XCOV}'/\" ./StokesData.m
 sed -i \"16s/.*/nSamples = ${GRADIENTSAMPLES};/\" ./VI/efficientStochOpt.m
 sed -i \"18s/.*/maxCompTime = ${STOCHOPTTIME};/\" ./VI/efficientStochOpt.m
 sed -i \"73s/.*/        max_EM_iter = ${MAXEMITER}/\" ./ModelParams.m
+sed -i \"11s/.*/testSamples = ${NTESTSTART}:${NTESTEND};/\" ./predictionScript.m
 
 
 

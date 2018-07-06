@@ -497,8 +497,10 @@ classdef StokesROM < handle
             end
             
             %Read in trained params form ./data folder
+            disp('Loading trained model params...')
             load('./data/modelParams.mat');
             self.modelParams = modelParams;
+            disp('...trained model params loaded.')
             
             testData.evaluateFeatures(self.modelParams.gridRF);
             if exist('./data/featureFunctionMin', 'file')

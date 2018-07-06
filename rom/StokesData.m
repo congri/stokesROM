@@ -403,6 +403,8 @@ classdef StokesData < handle
                 self.readData('m');
             end
             
+            disp('Evaluating feature functions...');
+            
             mData = self.microstructData;
             dMat = self.designMatrix;
             delta_log = 1;
@@ -1024,6 +1026,7 @@ classdef StokesData < handle
                 end
             end
             self.designMatrix = dMat;
+            disp('...feature functions evaluated.');
         end
         
         function shapeToLocalDesignMat(self)

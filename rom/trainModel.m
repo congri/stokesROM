@@ -210,11 +210,13 @@ while ~converged
     rom.modelParams.write2file('elbo');
     rom.modelParams.write2file('cell_score');
     if ~mod(EMiter, 10)
+        tic
         modelParams = copy(rom.modelParams);
         %Save modelParams after every iteration
         disp('Saving modelParams...')
         save('./data/modelParams.mat', 'modelParams', '-v7.3');
         disp('...modelParams saved.')
+        save_time = toc
     end
     save('./data/XMean', 'XMean');
     save('./data/XSqMean', 'XSqMean');

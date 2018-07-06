@@ -9,10 +9,10 @@ classdef ModelParams < matlab.mixin.Copyable
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
         %FEM grid of coarse Darcy emulator
-        coarseGridX = (1/2)*ones(1, 2)
-        coarseGridY = (1/2)*ones(1, 2)
+        coarseGridX = (1/4)*ones(1, 4)
+        coarseGridY = (1/4)*ones(1, 4)
         %grid of random field
-        gridRF = RectangularMesh((1/2)*ones(1, 2))
+        gridRF = RectangularMesh((1/4)*ones(1, 4))
         
         %Recorded elbo
         elbo
