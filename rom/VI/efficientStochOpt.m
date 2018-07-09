@@ -13,9 +13,9 @@ beta2 = .99999;
 epsilon = 1e-8;                  %curvature stabilization parameter
 
 stepOffset = 100;                %Robbins-Monro step offset
-nSamples = 500;                  %gradient samples per iteration
+nSamples = 1000;                  %gradient samples per iteration
 maxIterations = 1e4;
-maxCompTime = 30;
+maxCompTime = 10;
 
 converged = false;
 steps = 0;
@@ -133,7 +133,6 @@ while ~converged
         converged = true;
         disp('Converged because max number of iterations exceeded')
     elseif compTime > maxCompTime
-%         steps
         converged = true;
         disp('Converged because max computation time exceeded')
     end

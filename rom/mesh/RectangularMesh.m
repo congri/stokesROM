@@ -64,7 +64,7 @@ classdef RectangularMesh < Mesh
         
         function self = split_cell(self, cll)
             %Splits the rectangular cell cll
-            
+
             %Create new vertices
             new_vertices{1} = self.create_vertex(cll.centroid);
             lo_coord = .5*(cll.edges{1}.vertices{1}.coordinates + ...
@@ -122,7 +122,7 @@ classdef RectangularMesh < Mesh
             self.create_cell(vertices, edges);
             
             %Delete old edges and cell
-            cll.delete_edges(1:4);
+%             cll.delete_edges(1:4);
             delete(cll);
             
             %Update statistics

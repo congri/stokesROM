@@ -17,8 +17,12 @@ for cll = gridRF.cells
         A0(n) = cll{1}.surface;
         A(n) = cll{1}.surface - pi*sum(radii_in_n.^2);
         for edg = 1:numel(cll{1}.edges)
-            if cll{1}.edges{edg}.length > edg_max(n)
-                edg_max(n) = cll{1}.edges{edg}.length;
+            if isvalid(cll{1}.edges{edg})
+                if cll{1}.edges{edg}.length > edg_max(n)
+                    edg_max(n) = cll{1}.edges{edg}.length;
+                end
+            else
+                warning('Cell with deleted edge');
             end
         end
         n = n + 1;

@@ -86,6 +86,7 @@ converged = false;
 EMiter = 0;
 epoch = 0;  %one epoch == one time seen every data point
 ppool = parPoolInit(nTrain);
+pend = 0;
 while ~converged
     
     for n = 1:nTrain
@@ -123,10 +124,29 @@ while ~converged
     end
     varDistParamsVec = rom.modelParams.varDistParamsVec;
     
+    if epoch > 0
+        %Sequentially update N_threads qi's at a time, then perform M-step
+        pstart = pend + 1;
+        if pstart > nTrain
+            pstart = 1;
+            epoch = epoch + 1;
+        end
+        pend = pstart + ppool.NumWorkers - 1;
+        if pend > nTrain
+            pend = nTrain;
+        elseif pend < pstart
+            pend = pstart;
+        end
+    else
+        pstart = 1;
+        pend = nTrain;
+        epoch = epoch + 1;
+    end
+    
     disp('Variational Inference...')
     ticBytes(gcp);
     tic
-    parfor n = 1:nTrain
+    parfor n = pstart:pend
 %         mx{n} = max_fun(lg_q_max{n}, varDistParamsVec{n}(1:nRFc));
 %         varDistParamsVec{n}(1:nRFc) = mx{n};
         %Finding variational approximation to q_n
@@ -143,7 +163,7 @@ while ~converged
     sw = sw_decay*sw;
     sw(sw < sw_min) = sw_min(sw < sw_min);
     
-    for n = 1:nTrain
+    for n = pstart:pend
         %Compute expected values under variational approximation
         rom.modelParams.variational_mu{n} = varDistParams{n}.mu;
         rom.modelParams.variational_sigma{n} = varDistParams{n}.sigma;
@@ -167,7 +187,9 @@ while ~converged
         
     %M-step: determine optimal parameters given the sample set
     tic
+    disp('M-step...')
     rom.M_step(XMean, XSqMean, sqDist)
+    disp('...M-step done.')
     M_step_time = toc
     
     rom.modelParams.compute_elbo(nTrain, XMean, XSqMean);
@@ -221,10 +243,11 @@ while ~converged
     save('./data/XMean', 'XMean');
     save('./data/XSqMean', 'XSqMean');
     
-    if EMiter > rom.modelParams.max_EM_iter
+    if epoch > rom.modelParams.max_EM_iter
         converged = true;
     else
         EMiter = EMiter + 1
+        epoch
     end
 end
 

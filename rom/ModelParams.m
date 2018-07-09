@@ -9,10 +9,11 @@ classdef ModelParams < matlab.mixin.Copyable
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
         %FEM grid of coarse Darcy emulator
-        coarseGridX = (1/4)*ones(1, 4)
-        coarseGridY = (1/4)*ones(1, 4)
+        coarseGridX = (1/8)*ones(1, 8)
+        coarseGridY = (1/8)*ones(1, 8)
         %grid of random field
-        gridRF = RectangularMesh((1/4)*ones(1, 4))
+        gridRF
+        splitted_cells
         
         %Recorded elbo
         elbo
@@ -47,7 +48,7 @@ classdef ModelParams < matlab.mixin.Copyable
         VRVM_d = eps
         VRVM_e = eps
         VRVM_f = eps
-        VRVM_iter = 100 %iterations with fixed q(lambda_c)
+        VRVM_iter = 10 %iterations with fixed q(lambda_c)
         
         %current parameters of variational distributions
         a
@@ -70,7 +71,7 @@ classdef ModelParams < matlab.mixin.Copyable
         featureFunctionMax
         
         %% Training parameters
-        max_EM_iter = 200
+        max_EM_iter = 800
         
         %% Settings
         computeElbo = true
@@ -87,6 +88,14 @@ classdef ModelParams < matlab.mixin.Copyable
             %Constructor; Set up all params that are unchanged during training
             %   u_bc:       boundary velocity field
             %   p_bc:       boundary pressure field
+            
+            %only for a single cell here!!!
+            %grid of random field
+            self.gridRF = RectangularMesh((1/2)*ones(1, 2));
+            self.splitted_cells = [1 3];
+            for splt_cll = self.splitted_cells
+                self.gridRF.split_cell(self.gridRF.cells{splt_cll});
+            end
             self.rf2fem =self.gridRF.map2fine(self.coarseGridX,...
                 self.coarseGridY);
             

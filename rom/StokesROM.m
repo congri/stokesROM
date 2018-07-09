@@ -631,7 +631,7 @@ classdef StokesROM < handle
                 end
             end
             
-            for n = 1:nTest
+            parfor n = 1:nTest
                 for i = 1:nSamples_p_c
                     
                     isotropicDiffusivity = true;

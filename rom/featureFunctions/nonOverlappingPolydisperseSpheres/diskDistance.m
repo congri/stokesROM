@@ -31,8 +31,12 @@ for cll = gridRF.cells
             %warning('Cell with one or less exclusions. Setting distances = 0')
             distances = 0;
             for edg = 1:numel(cll{1}.edges)
-                if cll{1}.edges{edg}.length > edg_max(n)
-                    edg_max(n) = cll{1}.edges{edg}.length;
+                if isvalid(cll{1}.edges{edg})
+                    if cll{1}.edges{edg}.length > edg_max(n)
+                        edg_max(n) = cll{1}.edges{edg}.length;
+                    end
+                else
+                    warning('cell with deleted edge')
                 end
             end
             exception_flag = true;

@@ -15,11 +15,11 @@ XCOV="0.2_0.0_0.3"
 GRADIENTSAMPLES=1000
 STOCHOPTTIME=120    
 
-NTRAIN=8
+NTRAIN=128
 NTESTSTART=0
 NTESTEND=1023
 
-MAXEMITER=200
+MAXEMITER=500
 
 NCORES=8
 if [ $NTRAIN -lt $NCORES ]; then
@@ -28,7 +28,7 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="errorplot_4x4"
+NAMEBASE="errorplot_split1&4oldcell"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"
@@ -69,7 +69,7 @@ sed -i \"12s/.*/        coordDist_mu = '${XMU}'/\" ./StokesData.m
 sed -i \"13s/.*/        coordDist_cov = '${XCOV}'/\" ./StokesData.m
 sed -i \"16s/.*/nSamples = ${GRADIENTSAMPLES};/\" ./VI/efficientStochOpt.m
 sed -i \"18s/.*/maxCompTime = ${STOCHOPTTIME};/\" ./VI/efficientStochOpt.m
-sed -i \"73s/.*/        max_EM_iter = ${MAXEMITER}/\" ./ModelParams.m
+sed -i \"74s/.*/        max_EM_iter = ${MAXEMITER}/\" ./ModelParams.m
 sed -i \"11s/.*/testSamples = ${NTESTSTART}:${NTESTEND};/\" ./predictionScript.m
 
 
