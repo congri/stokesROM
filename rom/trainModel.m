@@ -53,6 +53,8 @@ else
         interp = false;
     end
 end
+%do not remove! if no cell is splitted, pass empty array
+rom.modelParams.splitRFcells([1 2]);
 
 %Parameters from previous runs are deleted here
 if exist('./data/', 'dir')
@@ -71,7 +73,11 @@ if strcmp(rom.modelParams.mode, 'local')
     rom.trainingData.shapeToLocalDesignMat;
 end
 %theta_c must be initialized after design matrices exist
-rom.modelParams.theta_c = 0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
+if isempty(rom.modelParams.theta_c)
+    disp('Initializing theta_c...')
+    rom.modelParams.theta_c=0*ones(size(rom.trainingData.designMatrix{1},2), 1);
+    disp('...done.')
+end
 
 rom.trainingData.vtx2Cell(rom.modelParams);
 

@@ -33,6 +33,8 @@ classdef ModelParams < matlab.mixin.Copyable
         
         %Mapping from random field to FEM discretization
         rf2fem
+        %cell index dictionary
+        cell_dictionary
         
         %Transformation options of diffusivity parameter
         diffTransform = 'log'
@@ -92,12 +94,7 @@ classdef ModelParams < matlab.mixin.Copyable
             %only for a single cell here!!!
             %grid of random field
             self.gridRF = RectangularMesh((1/2)*ones(1, 2));
-            self.splitted_cells = [1 4];
-            for splt_cll = self.splitted_cells
-                self.gridRF.split_cell(self.gridRF.cells{splt_cll});
-            end
-            self.rf2fem =self.gridRF.map2fine(self.coarseGridX,...
-                self.coarseGridY);
+            self.cell_dictionary = 1:self.gridRF.nCells;
             
             %% Initialize coarse mesh object
             %Coarse mesh object
@@ -121,7 +118,7 @@ classdef ModelParams < matlab.mixin.Copyable
             
             p_bc_handle = str2func(strcat('@(x)', p_bc));
             
-            nX = length(self.coarseGridX); 
+            nX = length(self.coarseGridX);
             nY = length(self.coarseGridY);
             self.coarseMesh = self.coarseMesh.setBoundaries(2:(2*nX + 2*nY),...
                 p_bc_handle, u_bc_handle);
@@ -162,11 +159,97 @@ classdef ModelParams < matlab.mixin.Copyable
             self.variational_sigma{1} = 1e-4*ones(1, self.gridRF.nCells);
             self.variational_sigma = repmat(self.variational_sigma, nData, 1);
             
-            %Bring variational distribution params in form for 
+            %Bring variational distribution params in form for
             %unconstrained optimization
             varDistParamsVecInit{1} = [self.variational_mu{1},...
                 -2*log(self.variational_sigma{1})];
             self.varDistParamsVec = repmat(varDistParamsVecInit, nData, 1);
+        end
+        
+        function splitRFcells(self, splt_cells)
+            %Split cell of random field and initialize corresponding params
+            %from coarser random field discretization
+            
+            nElc = size(self.Sigma_c, 1);
+            self.splitted_cells = splt_cells;
+            for splt_cll = self.splitted_cells
+                if isnan(self.cell_dictionary(splt_cll))
+                    warning('Trying to split an already splitted cell. Skip.')
+                else
+                    self.gridRF.split_cell(self.gridRF.cells{splt_cll});
+                    
+                    %extend Sigma_c
+                    index = self.cell_dictionary(splt_cll);
+                    self.Sigma_c = blkdiag(self.Sigma_c,...
+                        self.Sigma_c(index, index)*eye(4));
+                    self.Sigma_c(index, :) = [];
+                    self.Sigma_c(:, index) = [];
+                    
+                    %extend theta_c
+                    if(~isempty(self.theta_c) && strcmp(self.mode, 'local'))
+                        theta_c_mat = reshape(self.theta_c, [], nElc);
+                        theta_c = theta_c_mat;
+                        theta_c(:, index) = [];
+                        theta_c = theta_c(:);
+                        self.theta_c=[theta_c;repmat(theta_c_mat(:,index),4,1)];
+                    end
+                    
+                    %extend hyperparameter gamma
+                    if(~isempty(self.gamma) && strcmp(self.mode, 'local'))
+                        gamma_mat = reshape(self.gamma, [], nElc);
+                        gamma = gamma_mat;
+                        gamma(:, index) = [];
+                        gamma = gamma(:);
+                        self.gamma = [gamma; repmat(gamma_mat(:, index), 4, 1)];
+                    end
+                    
+                    %extend Sigma_theta_c
+                    if(~isempty(self.Sigma_theta_c)&& strcmp(self.mode,'local'))
+                        nFeatures = size(self.Sigma_theta_c, 1)/nElc;
+                        Sigma_theta_c_k = self.Sigma_theta_c(...
+                            ((index - 1)*nFeatures + 1):(index*nFeatures),...
+                            ((index - 1)*nFeatures + 1):(index*nFeatures));
+                        self.Sigma_theta_c(((index - 1)*nFeatures + 1):...
+                            (index*nFeatures), :) = [];
+                        self.Sigma_theta_c(:, ((index - 1)*nFeatures + 1):...
+                            (index*nFeatures)) = [];
+                        self.Sigma_theta_c = blkdiag(self.Sigma_theta_c, ...
+                            Sigma_theta_c_k, Sigma_theta_c_k, ...
+                            Sigma_theta_c_k, Sigma_theta_c_k);
+                    end
+                    
+                    %extend variational parameters
+                    for n = 1:numel(self.variational_mu)
+                        mu_k = self.variational_mu{n}(index);
+                        sigma_k = self.variational_sigma{n}(index);
+                        self.variational_mu{n}(index) = [];
+                        self.variational_sigma{n}(index) = [];
+                        self.variational_mu{n} =...
+                            [self.variational_mu{n}, mu_k*ones(1, 4)];
+                        self.variational_sigma{n} = ...
+                            [self.variational_sigma{n}, sigma_k*ones(1,4)];
+                        self.varDistParamsVec{n} = [self.variational_mu{n},...
+                            -2*log(self.variational_sigma{n})];
+                    end
+                    
+                    %Update cell index dictionary
+                    self.cell_dictionary(splt_cll) = nan;
+                    self.cell_dictionary((splt_cll + 1):end) = ...
+                        self.cell_dictionary((splt_cll + 1):end) - 1;
+                    if isnan(self.cell_dictionary(end))
+                        self.cell_dictionary = [self.cell_dictionary, ...
+                            (self.cell_dictionary(end - 1) + 1):...
+                            (self.cell_dictionary(end - 1) + 4)];
+                    else
+                        self.cell_dictionary = [self.cell_dictionary, ...
+                            (self.cell_dictionary(end) + 1):...
+                            (self.cell_dictionary(end) + 4)];
+                    end
+                    %cll_dict = self.cell_dictionary
+                end
+            end
+            self.rf2fem = self.gridRF.map2fine(self.coarseGridX,...
+                self.coarseGridY);
         end
         
         %depreceated
