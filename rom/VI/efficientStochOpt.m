@@ -9,13 +9,16 @@ updateRule = 'adam';
 % beta1 = .7;                     %the higher, the more important is momentum
 % beta2 = .8;                    %curvature parameter
 beta1 = .9;
-beta2 = .99999;
+beta2 = .9999995;
 epsilon = 1e-8;                  %curvature stabilization parameter
 
-stepOffset = 100;                %Robbins-Monro step offset
-nSamples = 1000;                  %gradient samples per iteration
+stepOffset = 200000;                %Robbins-Monro step offset
 maxIterations = 1e4;
 maxCompTime = 10;
+nSamplesStart = 3;                  %gradient samples per iteration
+nSamplesEnd = 20;
+nIncr = (nSamplesEnd - nSamplesStart)/maxCompTime;
+nSamples = nSamplesStart;
 
 converged = false;
 steps = 0;
@@ -48,7 +51,7 @@ if debug
     sb2 = subplot(2, 2, 2, 'Parent', f);
     sb2.YScale = 'log';
     hold on;
-    title('$-2\log \sigma$')
+    title('$\sigma$')
     sb3 = subplot(2, 2, 3, 'Parent', f);
     sb3.YScale = 'log';
     hold on;
@@ -64,9 +67,11 @@ if debug
     end
     p_momentum = animatedline('Parent', sb3);
     p_grad = animatedline('Parent', sb4);
+    
+    t_plot = tic;
 end
 
-tic;
+cmpt = tic;
 while ~converged
     
     gradient =...
@@ -116,28 +121,35 @@ while ~converged
     end
     
     if debug
-        plotStep = 10;
-        if(mod(steps, plotStep) == 0 && steps > plotStep)
-            addpoints(p_grad, steps, norm(gradient));
-            addpoints(p_momentum, steps, norm(momentum));
+        t = toc(t_plot);
+        compTime = toc(cmpt);
+        if(t > 2)
+            addpoints(p_grad, compTime, norm(gradient));
+            addpoints(p_momentum, compTime, norm(momentum));
             for d = 1:dim
-                addpoints(p_mu(d), steps, varDistParams.mu(d));
-                addpoints(p_sigma(d), steps, varDistParams.sigma(d));
+                addpoints(p_mu(d), compTime, varDistParams.mu(d));
+                addpoints(p_sigma(d), compTime, varDistParams.sigma(d));
             end
+            axis(sb1, 'tight'), axis(sb1, 'fill');
+            axis(sb2, 'tight'), axis(sb2, 'fill');
+            axis(sb3, 'tight'), axis(sb3, 'fill');
+            axis(sb4, 'tight'), axis(sb4, 'fill');
             drawnow
+            t_plot = tic;
         end
     end
     
-    compTime = toc;
+    compTime = toc(cmpt);
+    nSamples = ceil(nIncr*compTime + nSamplesStart);
     if steps > maxIterations
         converged = true;
         disp('Converged because max number of iterations exceeded')
     elseif compTime > maxCompTime
         converged = true;
         disp('Converged because max computation time exceeded')
-    end
-    if mod(steps, 100000) == 0
-        nSamples = nSamples + 1;%this is purely heuristic! remove if unwanted
+        if debug
+            steps
+        end
     end
 end
 

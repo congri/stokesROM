@@ -8,7 +8,7 @@ addpath('./rom')
 if ~exist('rom', 'var')
     rom = StokesROM;
 end
-testSamples = 0:15;
+testSamples = 0:128;
 
 testData = StokesData(testSamples);
 [~,~,~, meanSqDist, ~, mll, R, ~] = rom.predict(testData, 'local');

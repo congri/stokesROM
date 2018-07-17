@@ -17,8 +17,10 @@ rng('shuffle');
 %% Initialization
 %Which data samples for training?
 nTrain = 16;
-nStart = randi(1023 - nTrain);     samples = nStart:(nTrain - 1 + nStart);
-loadParams = false;     %load parameters from previous run?
+% nStart = randi(1023 - nTrain); 
+nStart = 1;
+samples = nStart:(nTrain - 1 + nStart);
+loadParams = true;     %load parameters from previous run?
 
 rom = StokesROM;
 
@@ -76,9 +78,9 @@ rom.trainingData.vtx2Cell(rom.modelParams);
 
 %Step width for stochastic optimization in VI
 nRFc = rom.modelParams.gridRF.nCells;
-sw =[3e-2*ones(1, nRFc), 1e-2*ones(1, nRFc)];
+sw =[5e-3*ones(1, nRFc), 1e-4*ones(1, nRFc)];
 sw_decay = .98; %decay factor per iteration
-sw_min = 1e-3*sw;
+sw_min = 1e-1*sw;
 
 %% Actual training phase:
 
@@ -130,6 +132,9 @@ while ~converged
         if pstart > nTrain
             pstart = 1;
             epoch = epoch + 1;
+            %Gradually reduce VI step width
+            sw = sw_decay*sw;
+            sw(sw < sw_min) = sw_min(sw < sw_min);
         end
         pend = pstart + ppool.NumWorkers - 1;
         if pend > nTrain
@@ -158,10 +163,6 @@ while ~converged
     VI_time = toc
     rom.modelParams.varDistParamsVec = varDistParamsVec;
     disp('... VI done.')
-    
-    %Gradually reduce VI step width
-    sw = sw_decay*sw;
-    sw(sw < sw_min) = sw_min(sw < sw_min);
     
     for n = pstart:pend
         %Compute expected values under variational approximation
@@ -193,6 +194,16 @@ while ~converged
     M_step_time = toc
     
     rom.modelParams.compute_elbo(nTrain, XMean, XSqMean);
+    elbo = rom.modelParams.elbo
+    
+    if ~mod(EMiter, 20)
+        activeCells_S = rom.findMeshRefinement(true)'
+        filename = './data/activeCells_S';
+        save(filename, 'activeCells_S', '-ascii', '-append');
+        activeCells = rom.findMeshRefinement(false)'
+        filename = './data/activeCells';
+        save(filename, 'activeCells', '-ascii', '-append');
+    end
     
     
     
@@ -223,6 +234,101 @@ while ~converged
             end
             rom.modelParams.plotElbo(figElbo, EMiter);
         end
+        
+        % Plot data and reconstruction (modal value)
+        if ~exist('figCellScore')
+            figCellScore =...
+                figure('units','normalized','outerposition',[0 0 1 1]);
+        end
+        %plot cell scores
+        sp1 = subplot(2, 3, 1, 'Parent', figCellScore);
+        imagesc(reshape(rf2fem*(-rom.modelParams.cell_score),...
+            numel(rom.modelParams.coarseGridX),...
+            numel(rom.modelParams.coarseGridY))', 'Parent', sp1);
+        sp1.YDir = 'normal';
+        axis(sp1, 'square');
+        sp1.GridLineStyle = 'none';
+        sp1.XTick = [];
+        sp1.YTick = [];
+        cbp_lambda = colorbar('Parent', figCellScore);
+        
+        sp2 = subplot(2, 3, 2, 'Parent', figCellScore);
+        imagesc(reshape(rf2fem*log(activeCells'),...
+            numel(rom.modelParams.coarseGridX),...
+            numel(rom.modelParams.coarseGridY))', 'Parent', sp2);
+        sp2.YDir = 'normal';
+        axis(sp2, 'square');
+        p2.GridLineStyle = 'none';
+        sp2.XTick = [];
+        sp2.YTick = [];
+        cbp_lambda = colorbar('Parent', figCellScore);
+        
+        sp3 = subplot(2, 3, 3, 'Parent', figCellScore);
+        imagesc(reshape(rf2fem*log(activeCells_S'),...
+            numel(rom.modelParams.coarseGridX),...
+            numel(rom.modelParams.coarseGridY))', 'Parent', sp3);
+        sp3.YDir = 'normal';
+        axis(sp3, 'square');
+        p2.GridLineStyle = 'none';
+        sp3.XTick = [];
+        sp3.YTick = [];
+        cbp_lambda = colorbar('Parent', figCellScore);
+        
+        sp4 = subplot(2, 3, 4, 'Parent', figCellScore);
+        map = colormap(sp4, 'lines');
+        if ~exist('p_cell_score')
+            for k = 1:numel(rom.modelParams.cell_score)
+                p_cell_score(k) = animatedline('Parent', sp4);
+                p_cell_score(k).LineWidth = 2;
+                p_cell_score(k).Marker = 'x';
+                p_cell_score(k).MarkerSize = 10;
+                p_cell_score(k).Color = map(k, :);
+            end
+            sp4.XLabel.String = 'iteration';
+            sp4.YLabel.String = 'cell score';
+        end
+        for k = 1:numel(rom.modelParams.cell_score)
+            addpoints(p_cell_score(k), EMiter, -rom.modelParams.cell_score(k));
+        end
+        axis(sp4, 'tight');
+        axis(sp4, 'fill');
+        
+        sp5 = subplot(2, 3, 5, 'Parent', figCellScore);
+        if ~exist('p_active_cells')
+            for k = 1:numel(activeCells)
+                p_active_cells(k) = animatedline('Parent', sp5);
+                p_active_cells(k).LineWidth = 2;
+                p_active_cells(k).Marker = 'x';
+                p_active_cells(k).MarkerSize = 10;
+                p_active_cells(k).Color = map(k, :);
+            end
+            sp5.XLabel.String = 'iteration';
+            sp5.YLabel.String = 'active cell score';
+        end
+        for k = 1:numel(activeCells)
+            addpoints(p_active_cells(k), EMiter, log(activeCells(k)));
+        end
+        axis(sp5, 'tight');
+        axis(sp5, 'fill');
+        
+        sp6 = subplot(2, 3, 6, 'Parent', figCellScore);
+        if ~exist('p_active_cells_S')
+            for k = 1:numel(activeCells_S)
+                p_active_cells_S(k) = animatedline('Parent', sp6);
+                p_active_cells_S(k).LineWidth = 2;
+                p_active_cells_S(k).Marker = 'x';
+                p_active_cells_S(k).MarkerSize = 10;
+                p_active_cells_S(k).Color = map(k, :);
+            end
+            sp6.XLabel.String = 'iteration';
+            sp6.YLabel.String = 'active cell score with S';
+        end
+        for k = 1:numel(activeCells_S)
+            addpoints(p_active_cells_S(k), EMiter, log(activeCells_S(k)));
+        end
+        axis(sp6, 'tight');
+        axis(sp6, 'fill');
+        drawnow;
     end
     
     %write parameters to disk to investigate convergence
@@ -234,6 +340,10 @@ while ~converged
     if ~mod(EMiter, 10)
         tic
         modelParams = copy(rom.modelParams);
+        modelParams.p_theta = [];
+        modelParams.p_sigma = [];
+        modelParams.p_gamma = [];
+        modelParams.p_elbo = [];
         %Save modelParams after every iteration
         disp('Saving modelParams...')
         save('./data/modelParams.mat', 'modelParams', '-v7.3');

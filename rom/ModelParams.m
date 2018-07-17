@@ -92,7 +92,7 @@ classdef ModelParams < matlab.mixin.Copyable
             %only for a single cell here!!!
             %grid of random field
             self.gridRF = RectangularMesh((1/2)*ones(1, 2));
-            self.splitted_cells = [1 3];
+            self.splitted_cells = [1 4];
             for splt_cll = self.splitted_cells
                 self.gridRF.split_cell(self.gridRF.cells{splt_cll});
             end
@@ -159,7 +159,7 @@ classdef ModelParams < matlab.mixin.Copyable
             self.variational_mu{1} = -8.5*ones(1, self.gridRF.nCells);
             self.variational_mu = repmat(self.variational_mu, nData, 1);
             
-            self.variational_sigma{1} = 1e-5*ones(1, self.gridRF.nCells);
+            self.variational_sigma{1} = 1e-4*ones(1, self.gridRF.nCells);
             self.variational_sigma = repmat(self.variational_sigma, nData, 1);
             
             %Bring variational distribution params in form for 
@@ -307,10 +307,12 @@ classdef ModelParams < matlab.mixin.Copyable
                 addpoints(self.p_theta{d}, iter, self.theta_c(d));
             end
             axis(sb1, 'tight');
+            axis(sb1, 'fill');
             
             sb2 = subplot(3, 2, 2, 'Parent', figHandle);
             bar(self.theta_c, 'linewidth', 1, 'Parent', sb2)
             axis(sb2, 'tight');
+            axis(sb2, 'fill');
             sb2.XLabel.String = 'component $i$';
             sb2.YLabel.String = '$\theta_{c,i}$';
             
@@ -329,6 +331,7 @@ classdef ModelParams < matlab.mixin.Copyable
                 addpoints(self.p_sigma{d}, iter, self.Sigma_c(d, d));
             end
             axis(sb3, 'tight');
+            axis(sb3, 'fill');
             
             sb4 = subplot(3, 2, 4, 'Parent', figHandle);
             
@@ -361,6 +364,7 @@ classdef ModelParams < matlab.mixin.Copyable
                 addpoints(self.p_gamma{d}, iter, self.gamma(d));
             end
             axis(sb5, 'tight');
+            axis(sb5, 'fill');
             
             sb6 = subplot(3, 2, 6, 'Parent', figHandle);
             imagesc(reshape(sqrt(self.sigma_cf.s0), nSX, nSY)', 'Parent', sb6)
@@ -514,6 +518,7 @@ classdef ModelParams < matlab.mixin.Copyable
             end
             addpoints(self.p_elbo, EMiter, self.elbo);
             axis(sp, 'tight');
+            axis(sp, 'fill');
             drawnow;
         end
     end

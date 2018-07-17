@@ -12,27 +12,28 @@ MARG4=0.01
 XMU="0.7_0.3"
 XCOV="0.2_0.0_0.3"
 
-GRADIENTSAMPLES=1000
-STOCHOPTTIME=120    
+GRADIENTSAMPLESSTART=3
+GRADIENTSAMPLESEND=20
+STOCHOPTTIME=10    
 
 NTRAIN=128
 NTESTSTART=0
 NTESTEND=1023
 
-MAXEMITER=500
+MAXEMITER=200
 
-NCORES=8
+NCORES=16
 if [ $NTRAIN -lt $NCORES ]; then
 NCORES=$NTRAIN
 fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="errorplot_split1&4oldcell"
+NAMEBASE="split8x8_1_4"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"
-JOBDIR="/home/constantin/python/data/stokesEquation/meshSize=128/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~gauss/mu=${XMU}/cov=${XCOV}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/errorplot/${JOBNAME}"
+JOBDIR="/home/constantin/python/data/stokesEquation/meshSize=128/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~gauss/mu=${XMU}/cov=${XCOV}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/split/${JOBNAME}"
 
 echo $JOBDIR
 
@@ -67,8 +68,9 @@ sed -i \"10s/.*/        r_params = [${R1}, ${R2}]/\" ./StokesData.m
 sed -i \"9s/.*/        margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}]/\" ./StokesData.m
 sed -i \"12s/.*/        coordDist_mu = '${XMU}'/\" ./StokesData.m
 sed -i \"13s/.*/        coordDist_cov = '${XCOV}'/\" ./StokesData.m
-sed -i \"16s/.*/nSamples = ${GRADIENTSAMPLES};/\" ./VI/efficientStochOpt.m
-sed -i \"18s/.*/maxCompTime = ${STOCHOPTTIME};/\" ./VI/efficientStochOpt.m
+sed -i \"17s/.*/maxCompTime = ${STOCHOPTTIME};/\" ./VI/efficientStochOpt.m
+sed -i \"18s/.*/nSamplesStart = ${GRADIENTSAMPLESSTART};/\" ./VI/efficientStochOpt.m
+sed -i \"19s/.*/nSamplesEnd = ${GRADIENTSAMPLESEND};/\" ./VI/efficientStochOpt.m
 sed -i \"74s/.*/        max_EM_iter = ${MAXEMITER}/\" ./ModelParams.m
 sed -i \"11s/.*/testSamples = ${NTESTSTART}:${NTESTEND};/\" ./predictionScript.m
 

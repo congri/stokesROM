@@ -25,7 +25,7 @@ for cll = gridRF.cells
             x2 = [Inf, Inf];
             tic;
             t_elapsed = 0;
-            while(~cll{1}.inside(x2) && t_elapsed < 5)
+            while(~cll{1}.inside(x2) && t_elapsed < .5)
                 phi = 2*pi*rand;
                 dx = distance*[cos(phi), sin(phi)];
                 x2 = x1 + dx;
