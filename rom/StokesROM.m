@@ -486,7 +486,7 @@ classdef StokesROM < handle
             end
             
             %Some hard-coded prediction params
-            nSamples_p_c = 100000;    %Samples
+            nSamples_p_c = 10000;    %Samples
             
             %Load test data
             if isempty(testData.X)

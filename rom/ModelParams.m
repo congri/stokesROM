@@ -73,7 +73,7 @@ classdef ModelParams < matlab.mixin.Copyable
         featureFunctionMax
         
         %% Training parameters
-        max_EM_iter = 800
+        max_EM_iter = 5
         
         %% Settings
         computeElbo = true
@@ -376,7 +376,8 @@ classdef ModelParams < matlab.mixin.Copyable
             end
             
             sb1 = subplot(3, 2, 1, 'Parent', figHandle);
-            if isempty(self.p_theta)
+            if(isempty(self.p_theta) ||...
+                    numel(self.theta_c) ~= numel(self.p_theta))
                 %random colors
                 colors = [1 0 0; 0 1 0; 0 0 1; 1 0 1; 0 1 1; 0 0 0];
                 for d = 1:numel(self.theta_c)
@@ -400,7 +401,8 @@ classdef ModelParams < matlab.mixin.Copyable
             sb2.YLabel.String = '$\theta_{c,i}$';
             
             sb3 = subplot(3, 2, 3, 'Parent', figHandle);
-            if isempty(self.p_sigma)
+            if(isempty(self.p_sigma) || ... 
+                    numel(self.p_sigma) ~= self.gridRF.nCells)
                 %random colors
                 for d = 1:self.gridRF.nCells
                     self.p_sigma{d} = animatedline('color',...

@@ -29,7 +29,7 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="split8x8_1"
+NAMEBASE="split8x8_1_5_12"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"
