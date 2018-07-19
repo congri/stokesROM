@@ -29,7 +29,7 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="split8x8_1_4"
+NAMEBASE="split8x8_1"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"
@@ -71,7 +71,7 @@ sed -i \"13s/.*/        coordDist_cov = '${XCOV}'/\" ./StokesData.m
 sed -i \"17s/.*/maxCompTime = ${STOCHOPTTIME};/\" ./VI/efficientStochOpt.m
 sed -i \"18s/.*/nSamplesStart = ${GRADIENTSAMPLESSTART};/\" ./VI/efficientStochOpt.m
 sed -i \"19s/.*/nSamplesEnd = ${GRADIENTSAMPLESEND};/\" ./VI/efficientStochOpt.m
-sed -i \"74s/.*/        max_EM_iter = ${MAXEMITER}/\" ./ModelParams.m
+sed -i \"76s/.*/        max_EM_iter = ${MAXEMITER}/\" ./ModelParams.m
 sed -i \"11s/.*/testSamples = ${NTESTSTART}:${NTESTEND};/\" ./predictionScript.m
 
 

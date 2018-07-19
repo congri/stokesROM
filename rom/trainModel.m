@@ -20,7 +20,7 @@ nTrain = 16;
 % nStart = randi(1023 - nTrain); 
 nStart = 1;
 samples = nStart:(nTrain - 1 + nStart);
-loadParams = true;     %load parameters from previous run?
+loadParams = false;     %load parameters from previous run?
 
 rom = StokesROM;
 
@@ -54,7 +54,7 @@ else
     end
 end
 %do not remove! if no cell is splitted, pass empty array
-rom.modelParams.splitRFcells([1 2]);
+rom.modelParams.splitRFcells([1]);
 
 %Parameters from previous runs are deleted here
 if exist('./data/', 'dir')

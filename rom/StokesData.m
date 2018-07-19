@@ -1152,7 +1152,6 @@ classdef StokesData < handle
             
             %figHandle = figure;
             pltIndex = 1;
-            N = numel(samples);
             for n = samples
                 %figure(figHandle);
                 figHandle(n) = figure(n);

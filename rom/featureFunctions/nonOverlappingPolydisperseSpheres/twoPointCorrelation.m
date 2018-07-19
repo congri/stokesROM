@@ -9,7 +9,7 @@ function [twoPtCorr] = twoPointCorrelation(diskCenters, diskRadii, gridRF,...
 diskRadiiSq = diskRadii.^2;
 n = 1;
 twoPtCorr = zeros(gridRF.nCells, 1);
-mcerr_twoPtCorr = Inf;
+t_conv = tic;
 for cll = gridRF.cells
     if isvalid(cll{1})  %check if cell has been deleted during splitting
         %this loop can be vectorized
@@ -23,13 +23,13 @@ for cll = gridRF.cells
             
             %x2 is at distance 'distance' to x1 -- reject if x2 is not in cell
             x2 = [Inf, Inf];
-            tic;
+            t_in = tic;
             t_elapsed = 0;
             while(~cll{1}.inside(x2) && t_elapsed < .5)
                 phi = 2*pi*rand;
                 dx = distance*[cos(phi), sin(phi)];
                 x2 = x1 + dx;
-                t_elapsed = toc;
+                t_elapsed = toc(t_in);
             end
             %Check if the points lie within a circle, i.e. outside domain
             isout1 = any(sum((x1 - diskCenters).^2, 2) < diskRadiiSq');
@@ -44,7 +44,9 @@ for cll = gridRF.cells
             end
             mcerr_twoPtCorr = sqrt((twoPtCorr(n) - twoPtCorr(n)^2)/nSamples);
             %Error limits are hard-coded here
-            if (mcerr_twoPtCorr/twoPtCorr(n) < 0.05 && nSamples > 50)
+            t_elapsed_conv = toc(t_conv);
+            if ((mcerr_twoPtCorr/twoPtCorr(n) < 0.05 && nSamples > 50) ||...
+                    t_elapsed_conv > 10)
                 converged = true;
             end
             nSamples = nSamples + 1;
@@ -53,9 +55,6 @@ for cll = gridRF.cells
     end
 end
 
-if ~all(twoPtCorr > 0)
-    twoPtCorr
-    pause
-end
+twoPtCorr(twoPtCorr <= 0) = 0;
 
 end
