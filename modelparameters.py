@@ -28,10 +28,11 @@ class ModelParameters:
         self.VRVM_d = np.finfo(float).eps
         self.VRVM_e = np.finfo(float).eps
         self.VRVM_f = np.finfo(float).eps
-        self.VRVM_iter = 30
+        self.VRVM_iter = 4
 
         # log_p_cf parameters
         self.Sinv_vec = 1e-3 * np.ones(self.pInterpSpace.dim())
+        self.sumLogS = - np.sum(np.log(self.Sinv_vec))
         # coarse to fine interpolation matrix in log_p_cf
         self.W = computeInterpolationMatrix(self.coarseSolutionSpace, self.pInterpSpace)
 
@@ -80,7 +81,6 @@ class ModelParameters:
             axes[0].relim()  # recompute the data limits
             axes[0].autoscale_view()  # automatic axis scaling
             axes[0].set_ylim(np.amin(thetaArray[:, -1]), np.amax(thetaArray[:, -1]))
-            fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
 
         # theta_c,i
         if not axes[1].lines:
@@ -94,7 +94,6 @@ class ModelParameters:
             lin.set_data((np.arange(np.size(thetaArray, axis=0)), thetaArray[:, -1]))
             axes[1].relim()  # recompute the data limits
             axes[1].autoscale_view()  # automatic axis scaling
-            fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
 
         # sigma_c
         if not axes[2].lines:
@@ -111,7 +110,6 @@ class ModelParameters:
                 iter_index += 1
             axes[2].relim()  # recompute the data limits
             axes[2].autoscale_view()  # automatic axis scaling
-            fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
 
         # sigma_c map
         coords = self.coarseMesh.coordinates()
@@ -119,6 +117,8 @@ class ModelParameters:
         axes[3].margins(.0, .0)
         axes[3].set_aspect('equal', 'box')
         axes[3].set_title(r'$\sigma_c$')
+        axes[3].set_xticks(())
+        axes[3].set_yticks(())
 
         pos3 = axes[3].get_position()
         if len(axes) > 6:
@@ -140,7 +140,6 @@ class ModelParameters:
                 iter_index += 1
             axes[4].relim()  # recompute the data limits
             axes[4].autoscale_view()  # automatic axis scaling
-            fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
 
         s = df.Function(self.pInterpSpace)
         s.vector().set_local(np.sqrt(1/self.Sinv_vec))
@@ -152,6 +151,11 @@ class ModelParameters:
         cbaxes_s = fig.add_axes([pos6.x0 + pos6.width + .015, pos6.y0, 0.015, pos6.height])
         plt.colorbar(simg, ax=axes[5], cax=cbaxes_s)
         axes[5].set_title(r'$\sigma_{cf}$')
+        axes[5].set_xticks(())
+        axes[5].set_yticks(())
+
+        fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
+        plt.show(block=False)
 
         time.sleep(.01)
 

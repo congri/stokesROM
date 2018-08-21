@@ -15,9 +15,9 @@ class StochasticOptimization:
 
         self.stepOffset = 10000        # learning rate decay offset parameter
         self.stepWidth = .01
-        self.nSamples = 1           # gradient samples per iteration
+        self.nSamples = 20           # gradient samples per iteration
         self.maxIterations = 1e6
-        self.maxCompTime = 5       # maximum optimization time in s
+        self.maxCompTime = 30       # maximum optimization time in s
 
     def adamOpt(self, x):
         # ADAM stochastic maximization

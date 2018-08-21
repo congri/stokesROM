@@ -3,6 +3,7 @@
 import numpy as np
 from flowproblem import FlowProblem
 import dolfin as df
+import scipy as sp
 import time
 
 
@@ -10,6 +11,9 @@ class DolfinPoisson(FlowProblem):
     # Dolfin Darcy solver
 
     stiffnessMatrixGradient = []
+    stiffnessMatrixGradient_swap = []
+    stiffnessMatrixConstantTerm = []        # K = K_const + sum_i lambda_i dK/dlambda_i;
+                                            # this one is K_const
 
     # Get boundary condition in dolfin form
     def __init__(self, mesh, solutionSpace):
@@ -26,42 +30,40 @@ class DolfinPoisson(FlowProblem):
         #     self.bcPressure = dfa.DirichletBC(self.solutionFunctionSpace, self.pressureField,
         #                                       self.pressureBoundary)
         self.bcFlux = df.inner(df.FacetNormal(self.mesh), self.flowField)
+        self.RHS = []
+        self.assembled_RHS = []
+        self.assembleRHS()
+        self.assembled_RHS_local = self.assembled_RHS.get_local()
+
         return
 
-    def solvePDE(self, diffusivityFunction):
-        # Define variational problem
-        u = df.TrialFunction(self.solutionFunctionSpace)
+    def assembleRHS(self):
         v = df.TestFunction(self.solutionFunctionSpace)
-        a = diffusivityFunction * df.inner(df.grad(v), df.grad(u)) * df.dx
-        L = self.sourceTerm * v * df.dx + self.bcFlux * v * df.ds
+        self.RHS = self.sourceTerm * v * df.dx + self.bcFlux * v * df.ds
+        self.assembled_RHS = df.assemble(self.RHS)
+        self.bcPressure.apply(self.assembled_RHS)
 
-        # Compute solution
-        u = df.Function(self.solutionFunctionSpace)
-        # t5 = time.time()
-        # for i in range(1000):
-        #     df.solve(a == L, u, self.bcPressure, solver_parameters={'linear_solver': 'gmres',
-        #                      'preconditioner': 'ilu'})
-        # t6 = time.time()
-        # print('solve time = ', (t6 - t5)/1000)
+        return
 
-        df.solve(a == L, u, self.bcPressure, solver_parameters={'linear_solver': 'gmres',
-                         'preconditioner': 'ilu'})
+    def getStiffnessMatrix(self, diffusivity_vector):
 
-        # val = np.empty(1, dtype=float)
-        # u.eval(val, np.array([.0, .0]))
-        # print('u_c origin = ', val)
+        if not len(self.stiffnessMatrixGradient):
+            self.getStiffnessMatrixGradient()
+
+        stiffnessMatrix = diffusivity_vector.dot(self.stiffnessMatrixGradient_swap) + self.stiffnessMatrixConstantTerm
+
+        return stiffnessMatrix
+
+    def solvePDE(self, stiffnessMatrix):
+
+        # more efficient than fenics solve
+        u = np.linalg.solve(stiffnessMatrix, self.assembled_RHS_local)
 
         return u
 
-    def getAdjoints(self, diffusivityFunction, dJ):
-        u = df.TrialFunction(self.solutionFunctionSpace)
-        v = df.TestFunction(self.solutionFunctionSpace)
-        a = diffusivityFunction * df.inner(df.grad(v), df.grad(u)) * df.dx
+    def getAdjoints(self, stiffnessMatrix, dJ):
 
-        K = df.assemble(a)
-        self.bcPressure.apply(K)
-        K = K.array()
-        adjoints = np.linalg.solve(K.T, dJ)
+        adjoints = np.linalg.solve(stiffnessMatrix.T, dJ)
 
         return adjoints
 
@@ -82,9 +84,10 @@ class DolfinPoisson(FlowProblem):
             self.bcPressure.apply(K_0)
             K_0 = K_0.array()
 
-            #Finite difference gradient is independent of h as K depends linear on diffusivity
+            # Finite difference gradient is independent of h as K depends linear on diffusivity
             h = 1.0
             self.stiffnessMatrixGradient = np.zeros((self.diffusivityFunctionSpace.dim(), K_0.shape[0], K_0.shape[1]))
+            self.stiffnessMatrixConstantTerm = K_0.copy()
             for i in range(0, self.diffusivityFunctionSpace.dim()):
                 diff_tmp = df.Function(self.diffusivityFunctionSpace)
                 diff_tmp_vec = diffusivityFunction.vector().get_local().copy()
@@ -96,7 +99,8 @@ class DolfinPoisson(FlowProblem):
                 self.bcPressure.apply(K_tmp)
                 K_tmp = K_tmp.array()
                 self.stiffnessMatrixGradient[i, :, :] = (K_tmp - K_0)/h
+                self.stiffnessMatrixConstantTerm -= (K_tmp - K_0)/h
 
-            self.stiffnessMatrixGradient = np.swapaxes(self.stiffnessMatrixGradient, 0, 1)
+            self.stiffnessMatrixGradient_swap = np.swapaxes(self.stiffnessMatrixGradient, 0, 1)
 
-        return self.stiffnessMatrixGradient
+        return self.stiffnessMatrixGradient_swap

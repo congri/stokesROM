@@ -6,6 +6,7 @@ import dolfin as df
 import warnings
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import time
 
 
@@ -16,7 +17,7 @@ class ReducedOrderModel:
         self.trainingData = trainingData
         self.coarseSolver = DolfinPoisson(self.modelParams.coarseMesh, self.modelParams.coarseSolutionSpace)
 
-    def log_p_cf(self, u_c, u_f_n, Sinv_vec):
+    def log_p_cf(self, u_c, u_f_n):
         # Reconstruction distribution
         #   u_f_interp:              model reconstruction
         #   solution_n:     full single solution with index n (velocity and pressure)
@@ -24,10 +25,10 @@ class ReducedOrderModel:
 
         diff_n = np.array(self.modelParams.W.dot(u_c) - u_f_n)
 
-        log_p = .5 * np.sum(np.log(Sinv_vec)) -\
+        log_p = .5 * self.modelParams.sumLogS -\
                 .5 * self.modelParams.Sinv_vec.dot(diff_n**2)
 
-        d_log_p_d_u_c = - np.dot(Sinv_vec*diff_n, self.modelParams.W)
+        d_log_p_d_u_c = - np.dot(self.modelParams.Sinv_vec*diff_n, self.modelParams.W)
 
         return log_p, d_log_p_d_u_c
 
@@ -53,15 +54,15 @@ class ReducedOrderModel:
 
         lg_p_c_n, d_lg_p_c_n = self.log_p_c(X_n, designMatrix_n)
 
-        diffusivityFunction = df.Function(self.coarseSolver.diffusivityFunctionSpace)
-        diffusivityFunction.vector()[:], d_diffusivity = \
+        diffusivity_vector, d_diffusivity = \
             rt.diffusivityTransform(X_n, 'log', 'backward', return_grad=True)
 
-        u_c_n = self.coarseSolver.solvePDE(diffusivityFunction)
-        u_c_n = u_c_n.vector().get_local()
+        stiffnessMatrix = self.coarseSolver.getStiffnessMatrix(diffusivity_vector)
+        u_c_n = self.coarseSolver.solvePDE(stiffnessMatrix)
 
-        lg_p_cf_n, d_lg_p_cf_n_d_u_c = self.log_p_cf(u_c_n, u_f_n, self.modelParams.Sinv_vec)
-        adjoints = self.coarseSolver.getAdjoints(diffusivityFunction, d_lg_p_cf_n_d_u_c)
+        lg_p_cf_n, d_lg_p_cf_n_d_u_c = self.log_p_cf(u_c_n, u_f_n)
+
+        adjoints = self.coarseSolver.getAdjoints(stiffnessMatrix, d_lg_p_cf_n_d_u_c)
         dK = self.coarseSolver.getStiffnessMatrixGradient()
         d_lg_p_cf_n = - d_diffusivity * adjoints.dot(dK.dot(u_c_n))
 
@@ -85,11 +86,10 @@ class ReducedOrderModel:
         sqDist = 0.0
         index = 1
         for x in X:
-            diffusivityFunction = df.Function(self.coarseSolver.diffusivityFunctionSpace)
-            diffusivityFunction.vector()[:], _ = rt.diffusivityTransform(x, 'log', 'backward', return_grad=True)
+            diffusivity_vector, _ = rt.diffusivityTransform(x, 'log', 'backward', return_grad=True)
 
-            u_c = self.coarseSolver.solvePDE(diffusivityFunction)
-            u_c = u_c.vector().get_local()
+            stiffnessMatrix = self.coarseSolver.getStiffnessMatrix(diffusivity_vector)
+            u_c = self.coarseSolver.solvePDE(stiffnessMatrix)
 
             sqDist = (1/index)*((index - 1)*sqDist + np.array(self.modelParams.W.dot(u_c) - u_f_n)**2)
             index += 1
@@ -166,6 +166,7 @@ class ReducedOrderModel:
 
             # assign < S >, < Sigma_c >, < theta_c >
             self.modelParams.Sinv_vec = tau_cf
+            self.modelParams.sumLogS = - np.sum(np.log(self.modelParams.Sinv_vec))
             self.modelParams.Sigma_c = 1/tau_c
             self.modelParams.theta_c = mu_theta
             self.modelParams.Sigma_theta_c = Sigma_theta
@@ -229,9 +230,10 @@ class ReducedOrderModel:
             # data and predictive mode
             p = self.trainingData.p_interp[n].compute_vertex_values()
             x_c_mode = self.trainingData.designMatrix[n].dot(self.modelParams.theta_c)
-            diffusivityFunction.vector()[:], _ = rt.diffusivityTransform(x_c_mode, 'log', 'backward', return_grad=True)
-            u_c = self.coarseSolver.solvePDE(diffusivityFunction)
-            u_c = u_c.vector().get_local()
+            diffusivity_vector, _ = rt.diffusivityTransform(x_c_mode, 'log', 'backward', return_grad=True)
+            stiffnessMatrix = self.coarseSolver.getStiffnessMatrix(diffusivity_vector)
+            u_c = self.coarseSolver.solvePDE(stiffnessMatrix)
+
             u_reconst = self.modelParams.W.dot(u_c)
             u_reconst_fun = df.Function(self.modelParams.pInterpSpace)
             u_reconst_fun.vector().set_local(u_reconst)
@@ -239,6 +241,8 @@ class ReducedOrderModel:
             axes[3*n + 2].cla()
             axes[3*n + 2].plot_trisurf(coords[:, 0], coords[:, 1], u_reconst_vtx)
             axes[3*n + 2].set_zlabel(r'$p$')
+            axes[3*n + 2].set_xticks(())
+            axes[3*n + 2].set_yticks(())
             axes[3*n + 2].margins(x=.0, y=.0, z=.0)
             axes[3*n + 2].view_init(elev=15, azim=255)
             axes[3*n + 2].plot_trisurf(coords[:, 0], coords[:, 1], p, cmap='inferno')
@@ -247,20 +251,31 @@ class ReducedOrderModel:
             if not axes[3*n + 1].get_title():
                 plt.sca(axes[3*n + 1])
                 axes[3*n + 1].set_title('mesh')
+                axes[3*n + 1].set_xticks(())
+                axes[3*n + 1].set_yticks(())
                 df.plot(self.trainingData.mesh[n], linewidth=1)
                 axes[3*n + 1].margins(x=.0, y=.0)
 
             # mode diffusivities
             plt.sca(axes[3*n])
-            pdiff = df.plot(diffusivityFunction)
+            diffusivityFunction.vector().set_local(diffusivity_vector)
+            pdiff = df.plot(diffusivityFunction, norm=colors.LogNorm(vmin=diffusivity_vector.min(),
+                                                                     vmax=diffusivity_vector.max()))
+
             if not axes[3*n].get_title():
-                pos = axes[3*n].get_position()
-                cbaxes = fig.add_axes([pos.x0 + pos.width - .02, pos.y0, 0.015, pos.height])
-                plt.colorbar(pdiff, ax=axes[3*n], cax=cbaxes)
                 axes[3 * n].margins(x=.0, y=.0)
                 axes[3*n].set_title('eff. diff. mode')
+                axes[3*n].set_xticks(())
+                axes[3*n].set_yticks(())
 
-        time.sleep(.01)
+            if len(axes) > 12:
+                cbaxes = axes[12 + n]
+            else:
+                pos = axes[3 * n].get_position()
+                cbaxes = fig.add_axes([pos.x0 + pos.width - .02, pos.y0, 0.015, pos.height])
+            plt.colorbar(pdiff, ax=axes[3*n], cax=cbaxes)
+
+        time.sleep(1e-5)
 
         return
 

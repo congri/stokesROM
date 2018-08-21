@@ -74,7 +74,7 @@ while not converged:
              trainingData.p_interp[n].vector().get_local()) for n in trainingData.samples]
 
     max_x = []
-    maxmode = 'serial'
+    maxmode = ''        # type any other string to avoid pre-VI maximization
     if maxmode == 'serial':
         for arg_n in args:
             x = minimize_neg_log_q(arg_n)
@@ -84,13 +84,14 @@ while not converged:
         max_x = parpool.map(minimize_neg_log_q, args)
         parpool.close()
 
-    for n in trainingData.samples:
-        modelParams.paramsVec[n][0:modelParams.coarseMesh.num_cells()] = max_x[n]
+    if maxmode == 'serial' or maxmode == 'parallel':
+        for n in trainingData.samples:
+            modelParams.paramsVec[n][0:modelParams.coarseMesh.num_cells()] = max_x[n]
 
     print('...pre-VI maximization done.')
 
     # VI starts here
-    vimode = 'serial'
+    vimode = 'parallel'
     t_s = time.time()
 
 
@@ -101,7 +102,7 @@ while not converged:
             lg_q_emp, d_lg_q_emp = rom.log_q_n(x, Phi_n, pp)
             return lg_q_emp, d_lg_q_emp
 
-        paramsVec_n = VI.variationalInference(paramsVec_n, log_emp_dist)
+        paramsVec_n = VI.variationalInference(paramsVec_n, log_emp_dist, nSamples=30)
         return paramsVec_n
 
 
@@ -131,6 +132,7 @@ while not converged:
     t_e = time.time()
     print('M_step time = ', t_e - t_s)
     print('theta_c = ', modelParams.theta_c)
+    print('sigma_c = ', modelParams.Sigma_c)
     print('gamma = ', modelParams.gamma[:2])
     print('elbo =', elbo)
     print('cell score = ', cell_score)
@@ -141,29 +143,41 @@ while not converged:
     gamma_temp = np.expand_dims(modelParams.gamma, axis=1)
     gammaArray = np.append(gammaArray, gamma_temp, axis=1)
 
-    # plot current parameters
-    if not plt.fignum_exists(1):
-        plt.ion()
-        figParams = plt.figure(1)
-        figParams.show()
-        for i in range(6):
-            figParams.add_subplot(3, 2, i + 1)
-        mngr = plt.get_current_fig_manager()
-        mngr.window.setGeometry(0, 0, 960, 1200)  # half Dell display
-    modelParams.plot(figParams, thetaArray, sigmaArray, gammaArray)
+    plt_things = True
+    if plt_things:
+        # plot current parameters
+        t0 = time.time()
+        print('Plotting model parameters...')
+        if not plt.fignum_exists(1):
+            plt.ion()
+            figParams = plt.figure(1)
+            figParams.show()
+            for i in range(6):
+                figParams.add_subplot(3, 2, i + 1)
+            mngr = plt.get_current_fig_manager()
+            mngr.window.setGeometry(0, 0, 960, 1200)  # half Dell display
+        modelParams.plot(figParams, thetaArray, sigmaArray, gammaArray)
+        print('...model parameters plotted.')
+        t1 = time.time()
+        print('plot time == ', t1 - t0)
 
-    # plot current state
-    if not plt.fignum_exists(2):
-        figState = plt.figure(2)
-        figState.show()
-        for i in range(12):
-            if (i + 1) % 3 == 0:
-                figState.add_subplot(4, 3, i + 1, projection='3d')
-            else:
-                figState.add_subplot(4, 3, i + 1)
-        mngr = plt.get_current_fig_manager()
-        mngr.window.setGeometry(50, 50, 1820, 1100)  # full Dell display
-    rom.plot_current_state(figState)
+        # plot current state
+        t2 = time.time()
+        print('Plotting current reconstruction state...')
+        if not plt.fignum_exists(2):
+            figState = plt.figure(2)
+            figState.show()
+            for i in range(12):
+                if (i + 1) % 3 == 0:
+                    figState.add_subplot(4, 3, i + 1, projection='3d')
+                else:
+                    figState.add_subplot(4, 3, i + 1)
+            mngr = plt.get_current_fig_manager()
+            mngr.window.setGeometry(50, 50, 1820, 1100)  # full Dell display
+        rom.plot_current_state(figState)
+        print('...reconstruction plotted.')
+        t3 = time.time()
+        print('plot time == ', t3 - t2)
 
     if train_iter >= modelParams.max_iterations:
         converged = True

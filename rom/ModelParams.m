@@ -73,7 +73,7 @@ classdef ModelParams < matlab.mixin.Copyable
         featureFunctionMax
         
         %% Training parameters
-        max_EM_iter = 5
+        max_EM_iter = 30
         
         %% Settings
         computeElbo = true

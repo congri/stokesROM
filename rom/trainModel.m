@@ -16,9 +16,9 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 16;
+nTrain = 64;
 % nStart = randi(1023 - nTrain); 
-nStart = 1;
+nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
 loadParams = false;     %load parameters from previous run?
 
@@ -71,7 +71,7 @@ p_active_cells_S = {};
 p_cell_score = {};
 
 EMiter = 0;
-nSplits = 3;
+nSplits = 4;
 for split_iter = 1:(nSplits + 1)
     
     clear XMean XSqMean

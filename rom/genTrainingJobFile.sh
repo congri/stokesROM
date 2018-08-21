@@ -16,11 +16,11 @@ GRADIENTSAMPLESSTART=3
 GRADIENTSAMPLESEND=20
 STOCHOPTTIME=10    
 
-NTRAIN=128
+NTRAIN=256
 NTESTSTART=0
 NTESTEND=1023
 
-MAXEMITER=200
+MAXEMITER=30
 
 NCORES=16
 if [ $NTRAIN -lt $NCORES ]; then
@@ -29,7 +29,7 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="split8x8_1_5_12"
+NAMEBASE="split8x8_autosplit"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"
