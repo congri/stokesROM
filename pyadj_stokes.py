@@ -12,6 +12,14 @@ import time
 import VI.variationalinference as VI
 import matplotlib.pyplot as plt
 
+from pyqtgraph.Qt import QtGui
+import pyqtgraph as pg
+import pyqtgraph.exporters
+
+## Switch to using white background and black foreground
+pg.setConfigOption('background', 'w')
+pg.setConfigOption('foreground', 'k')
+
 df.set_log_level(30)
 
 modelParams = ModelParameters()
@@ -46,14 +54,14 @@ epoch = 0   # one epoch == every data point has been seen once
 thetaArray = np.expand_dims(modelParams.theta_c, axis=1)
 sigmaArray = np.expand_dims(modelParams.Sigma_c, axis=1)
 gammaArray = np.expand_dims(modelParams.gamma, axis=1)
+elboArray = np.array([])
 
 
 rom = ReducedOrderModel(modelParams, trainingData)
 
 # paramsVec contains [mu, -2*log(sigma)] for every data point
-modelParams.paramsVec = trainingData.samples.size * [np.zeros(2*modelParams.coarseMesh.num_cells())]
-x_0 = np.zeros(modelParams.coarseMesh.num_cells())      # start point for pre-VI maximization
-x_0 = trainingData.samples.size * [x_0]
+modelParams.paramsVec = trainingData.samples.size * [np.concatenate((-8*np.ones(modelParams.coarseMesh.num_cells()),
+                                                                    np.zeros(modelParams.coarseMesh.num_cells())))]
 sq_dist = trainingData.samples.size * [None]
 
 while not converged:
@@ -129,6 +137,7 @@ while not converged:
 
     t_s = time.time()
     elbo, cell_score = rom.M_step(sq_dist)
+
     t_e = time.time()
     print('M_step time = ', t_e - t_s)
     print('theta_c = ', modelParams.theta_c)
@@ -142,21 +151,78 @@ while not converged:
     sigmaArray = np.append(sigmaArray, sigma_temp, axis=1)
     gamma_temp = np.expand_dims(modelParams.gamma, axis=1)
     gammaArray = np.append(gammaArray, gamma_temp, axis=1)
+    elboArray = np.append(elboArray, elbo)
 
     plt_things = True
     if plt_things:
         # plot current parameters
         t0 = time.time()
         print('Plotting model parameters...')
-        if not plt.fignum_exists(1):
-            plt.ion()
-            figParams = plt.figure(1)
-            figParams.show()
-            for i in range(6):
-                figParams.add_subplot(3, 2, i + 1)
-            mngr = plt.get_current_fig_manager()
-            mngr.window.setGeometry(0, 0, 960, 1200)  # half Dell display
-        modelParams.plot(figParams, thetaArray, sigmaArray, gammaArray)
+        # if not plt.fignum_exists(1):
+        #     plt.ion()
+        #     figParams = plt.figure(1)
+        #     figParams.show()
+        #     for i in range(6):
+        #         figParams.add_subplot(3, 2, i + 1)
+        #     mngr = plt.get_current_fig_manager()
+        #     mngr.window.setGeometry(0, 0, 960, 1200)  # half Dell display
+        # modelParams.plot(figParams, thetaArray, sigmaArray, gammaArray)
+
+        if train_iter == 0:
+            app = QtGui.QApplication([])
+            win_params = pg.GraphicsWindow(title='params window')  # creates a window
+            win_params.resize(960, 1200)        # half Dell display
+
+            # theta vs. iteration
+            curve_theta = []
+            p_theta = win_params.addPlot(title="Realtime theta", row=0, col=0)
+            p_theta.showGrid(x=True, y=True)
+            for i in range(len(thetaArray)):
+                curve_theta.append(p_theta.plot(pen=pg.mkPen((i, len(thetaArray)), width=2)))
+
+            # theta at iteration i
+            p_theta_i = win_params.addPlot(title="Realtime theta_i", row=0, col=1)
+            p_theta_i.showGrid(x=True, y=True)
+            curve_theta_i = p_theta_i.plot(pen=pg.mkPen('k', width=2))
+
+            # sigma_c vs. iteration
+            curve_sigma_c = []
+            p_sigma_c = win_params.addPlot(title="Realtime sigma_c", row=1, col=0)
+            p_sigma_c.setLogMode(y=True)
+            p_sigma_c.showGrid(x=True, y=True)
+            for i in range(len(sigmaArray)):
+                curve_sigma_c.append(p_sigma_c.plot(pen=pg.mkPen((i, len(sigmaArray)), width=2)))
+
+            # gamma vs. iteration
+            nFeatures = np.size(thetaArray, axis=0)
+            if modelParams.priorModel == 'sharedVRVM':
+                nFeatures /= modelParams.coarseMesh.num_cells()
+                nFeatures = int(nFeatures)
+
+            curve_gamma = []
+            p_gamma = win_params.addPlot(title="Realtime gamma", row=2, col=0)
+            p_gamma.setLogMode(y=True)
+            p_gamma.showGrid(x=True, y=True)
+            for i in range(nFeatures):
+                curve_gamma.append(p_gamma.plot(pen=pg.mkPen((i, nFeatures), width=2)))
+
+        # theta vs. iteration
+        for i in range(len(thetaArray)):
+            curve_theta[i].setData(thetaArray[i])
+
+        # theta at iteration i
+        curve_theta_i.setData(thetaArray[:, -1])
+
+        # sigma_c vs. iteration
+        for i in range(len(sigmaArray)):
+            curve_sigma_c[i].setData(sigmaArray[i])
+
+        # gamma vs. iteration
+        for i in range(nFeatures):
+            curve_gamma[i].setData(gammaArray[i])
+
+        exporter = pg.exporters.SVGExporter(p_gamma.scene())
+        exporter.export('params_pyqtgraph.svg')
         print('...model parameters plotted.')
         t1 = time.time()
         print('plot time == ', t1 - t0)
@@ -179,15 +245,34 @@ while not converged:
         t3 = time.time()
         print('plot time == ', t3 - t2)
 
+        # elbo plot
+        t4 = time.time()
+        print('Plotting elbo...')
+        if train_iter == 0:
+            # app = QtGui.QApplication([])
+            win_elbo = pg.GraphicsWindow(title='Elbo window')  # creates a window
+            p_elbo = win_elbo.addPlot(title="Realtime elbo")  # creates empty space for the plot in the window
+            p_elbo.showGrid(x=True, y=True)
+            curve_elbo = p_elbo.plot(pen=pg.mkPen('k', width=2))  # create an empty "plot" (a curve to plot)
+
+        curve_elbo.setData(np.linspace(0, train_iter, train_iter + 1), elboArray)
+        # app.processEvents()
+        exporter = pg.exporters.SVGExporter(p_elbo.scene())
+        # exporter.params.param('width').setValue(640, blockSignal=exporter.widthChanged)
+        # exporter.params.param('height').setValue(480, blockSignal=exporter.heightChanged)
+        exporter.export('elbo_pyqtgraph.svg')
+        time.sleep(1e-1)
+        print('...elbo plotted.')
+        t5 = time.time()
+        print('plot time == ', t5 - t4)
+
     if train_iter >= modelParams.max_iterations:
         converged = True
     else:
         train_iter += 1
 
 
-
-
-
+plt.savefig('./current_state.png')
 
 
 

@@ -4,9 +4,13 @@ import romtoolbox as rt
 from dolfinpoisson import DolfinPoisson
 import dolfin as df
 import warnings
+
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+
+
+
 import time
 
 
@@ -16,6 +20,9 @@ class ReducedOrderModel:
         self.modelParams = ModelParams
         self.trainingData = trainingData
         self.coarseSolver = DolfinPoisson(self.modelParams.coarseMesh, self.modelParams.coarseSolutionSpace)
+
+        # plot handles
+        self.reconst_surf = 4*[None]
 
     def log_p_cf(self, u_c, u_f_n):
         # Reconstruction distribution
@@ -220,15 +227,30 @@ class ReducedOrderModel:
 
     def plot_current_state(self, fig):
 
+        fig.show()
+        fig.canvas.draw()
         axes = fig.get_axes()
 
         coords = self.modelParams.interpMesh.coordinates()
+        coords_coarse = self.modelParams.coarseMesh.coordinates()
         diffusivityFunction = df.Function(self.coarseSolver.diffusivityFunctionSpace)
+
+        if self.reconst_surf[0] is None:
+            for n in range(4):
+                p = self.trainingData.p_interp[n].compute_vertex_values()
+                axes[3*n + 2].set_zlabel(r'$p$')
+                axes[3*n + 2].set_xticks(())
+                axes[3*n + 2].set_yticks(())
+                axes[3*n + 2].margins(x=.0, y=.0, z=.0)
+                axes[3*n + 2].view_init(elev=15, azim=255)
+                axes[3*n + 2].plot_trisurf(coords[:, 0], coords[:, 1], p, cmap='inferno')
+        else:
+            for n in range(4):
+                self.reconst_surf[n].remove()
 
         for n in range(4):
 
             # data and predictive mode
-            p = self.trainingData.p_interp[n].compute_vertex_values()
             x_c_mode = self.trainingData.designMatrix[n].dot(self.modelParams.theta_c)
             diffusivity_vector, _ = rt.diffusivityTransform(x_c_mode, 'log', 'backward', return_grad=True)
             stiffnessMatrix = self.coarseSolver.getStiffnessMatrix(diffusivity_vector)
@@ -238,14 +260,14 @@ class ReducedOrderModel:
             u_reconst_fun = df.Function(self.modelParams.pInterpSpace)
             u_reconst_fun.vector().set_local(u_reconst)
             u_reconst_vtx = u_reconst_fun.compute_vertex_values()
-            axes[3*n + 2].cla()
-            axes[3*n + 2].plot_trisurf(coords[:, 0], coords[:, 1], u_reconst_vtx)
-            axes[3*n + 2].set_zlabel(r'$p$')
-            axes[3*n + 2].set_xticks(())
-            axes[3*n + 2].set_yticks(())
-            axes[3*n + 2].margins(x=.0, y=.0, z=.0)
-            axes[3*n + 2].view_init(elev=15, azim=255)
-            axes[3*n + 2].plot_trisurf(coords[:, 0], coords[:, 1], p, cmap='inferno')
+
+            u_c_fun = df.Function(self.modelParams.coarseSolutionSpace)
+            u_c_fun.vector().set_local(u_c)
+            u_c_vtx = u_c_fun.compute_vertex_values()
+
+            # axes[3*n + 2].cla()
+            self.reconst_surf[n] =\
+                axes[3*n + 2].plot_trisurf(coords_coarse[:, 0], coords_coarse[:, 1], u_c_vtx, color=(.0, .0, 1.0, .5))
 
             # meshes
             if not axes[3*n + 1].get_title():
@@ -275,7 +297,11 @@ class ReducedOrderModel:
                 cbaxes = fig.add_axes([pos.x0 + pos.width - .02, pos.y0, 0.015, pos.height])
             plt.colorbar(pdiff, ax=axes[3*n], cax=cbaxes)
 
-        time.sleep(1e-5)
+        fig.canvas.draw()
+        fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
+        plt.show(block=False)
+        # plt.savefig('./current_state.png')
+        time.sleep(1e-2)
 
         return
 

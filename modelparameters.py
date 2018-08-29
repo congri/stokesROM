@@ -28,7 +28,7 @@ class ModelParameters:
         self.VRVM_d = np.finfo(float).eps
         self.VRVM_e = np.finfo(float).eps
         self.VRVM_f = np.finfo(float).eps
-        self.VRVM_iter = 4
+        self.VRVM_iter = 1
 
         # log_p_cf parameters
         self.Sinv_vec = 1e-3 * np.ones(self.pInterpSpace.dim())
@@ -47,12 +47,12 @@ class ModelParameters:
         self.featFunMax = None
 
         # Training parameters
-        self.max_iterations = 200
+        self.max_iterations = 50
 
     def initHyperparams(self):
         # Initialize hyperparameters gamma. Can only be done after theta_c has been set (because of dimensionality)
         if self.priorModel == 'RVM' or self.priorModel == 'VRVM' or self.priorModel == 'sharedVRVM':
-            self.gamma = 1e-6 * np.ones_like(self.theta_c)
+            self.gamma = 1e-2 * np.ones_like(self.theta_c)
         elif self.priorModel == 'none':
             self.gamma = None
         else:
