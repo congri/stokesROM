@@ -22,6 +22,7 @@ class DolfinPoisson(FlowProblem):
         # Create mesh and define function space
         self.mesh = mesh
         self.solutionFunctionSpace = solutionSpace
+        self.vtx2dof = df.vertex_to_dof_map(self.solutionFunctionSpace)
         self.diffusivityFunctionSpace = df.FunctionSpace(mesh, 'DG', 0)
         self.sourceTerm = df.project(df.Constant(0.0), self.solutionFunctionSpace)
         self.bcPressure = df.DirichletBC(self.solutionFunctionSpace, self.pressureField,
