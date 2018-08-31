@@ -172,17 +172,17 @@ def diskDistance(microstructureInformation, meshRF, property, p_norm):
     diskRadii = np.squeeze(microstructureInformation['diskRadii'], axis=0)
     diskCenters = microstructureInformation['diskCenters']
 
-    distQuantity = np.empty(meshRF.num_cells())
+    distQuantity = np.empty((meshRF.num_cells(), 1))
     for cll_idx in range(meshRF.num_cells()):
         cll = df.Cell(meshRF, cll_idx)
         exception_flag = False
-        centers = np.array([])
+        centers = np.array([]).reshape(0, 2)
         radii = np.array([])
         for excl_index in range(diskRadii.size):
             if cll.contains(df.Point(np.array(diskCenters[excl_index]))):
-                centers = np.append(centers, np.array(diskCenters[excl_index]), axis=0)
+                centers = np.vstack((centers, np.array(diskCenters[excl_index])))
                 radii = np.append(radii, diskRadii[excl_index])
-        distances = np.empty(radii.size*(radii.size - 1)/2)
+        distances = np.empty(int(radii.size*(radii.size - 1)/2))
 
         ind = 0
         if radii.size > 1:   # we neeed at least 2 exclusions on macro-cell
@@ -194,8 +194,7 @@ def diskDistance(microstructureInformation, meshRF, property, p_norm):
                     else:
                         # Computes p - norm between disk centers
                         distances[ind] = np.linalg.norm(centers[i] - centers[j], p_norm)
-                ind += 1
-
+                    ind += 1
         else:
             # warning('Cell with one or less exclusions. Setting distances = 0')
             distances = .0
@@ -204,9 +203,9 @@ def diskDistance(microstructureInformation, meshRF, property, p_norm):
         if property == 'mean':
             distQuantity[cll_idx] = np.mean(distances)
         elif property == 'max':
-            distQuantity[cll_idx] = max(distances)
+            distQuantity[cll_idx] = np.max(distances)
         elif property == 'min':
-            distQuantity[cll_idx] = min(distances)
+            distQuantity[cll_idx] = np.min(distances)
         elif property == 'std':
             distQuantity[cll_idx] = np.std(distances)
         elif property == 'var':
@@ -270,7 +269,7 @@ def twoPointCorrelation(microstructureInformation, meshRF, phase, distance):
             # Error limits are hard-coded here
             t_elapsed_conv = t_init - time.time()
 
-            if ((mcerr_twoPtCorr/twoPtCorr[n] < 0.05) and (nSamples > 50)) or (t_elapsed_conv > 10):
+            if ((mcerr_twoPtCorr/(twoPtCorr[n] + 1e-12) < 0.05) and (nSamples > 50)) or (t_elapsed_conv > 10):
                 converged = True
 
             nSamples += 1

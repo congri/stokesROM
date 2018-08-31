@@ -23,7 +23,7 @@ class StokesData(FlowProblem):
     viscosity = 1.0
 
     # general parameters
-    samples = np.arange(0, 4)  # vector of random meshes to load
+    samples = np.arange(0, 32)  # vector of random meshes to load
     nElements = 128
 
     # microstructure parameters
@@ -258,8 +258,6 @@ class StokesData(FlowProblem):
 
     def evaluateFeatures(self, Phi, sample_index, modelParameters, writeTextFile=False):
         # Evaluate feature functions and set up design matrix for sample n
-
-        print('Evaluating feature functions...')
 
         Phi[sample_index] = np.empty((modelParameters.coarseMesh.num_cells(), 0))
 
@@ -498,6 +496,7 @@ class StokesData(FlowProblem):
     def computeDesignMatrix(self, modelParameters, parallel_or_serial='parallel'):
         # Evaluate features for all samples and write to design matrix property
 
+        print('Evaluate features ...')
         if parallel_or_serial == 'parallel':
 
             if __name__ == 'stokesdata':
@@ -531,7 +530,7 @@ class StokesData(FlowProblem):
             self.evaluateFeatures(self.designMatrix, 0, modelParameters, True)   # to write feature text file
             for n in range(1, self.samples.size):
                 self.evaluateFeatures(self.designMatrix, n, modelParameters, False)
-
+        print('...features evaluated.')
 
 # Static functions
 def getFunctionSpace(mesh):

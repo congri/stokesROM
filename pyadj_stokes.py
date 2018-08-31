@@ -29,7 +29,7 @@ trainingData = StokesData()
 trainingData.loadData(('mesh', 'solution'))
 trainingData.interpolate('p', modelParams)
 trainingData.shiftData()
-trainingData.computeDesignMatrix(modelParams, 'serial')
+trainingData.computeDesignMatrix(modelParams)
 trainingData.normalizeDesignMatrix(modelParams)
 trainingData.shapeToLocalDesignMatrix()
 
