@@ -80,3 +80,28 @@ def finiteDifferenceGradientCheck(function, input):
     else:
         return False
 
+
+def triangrnd(vertices, N=1):
+    # uniformly distributed 2d random vectors within the triangle given by vertices
+    # vertices: 6d vector with vertex coordinates
+
+    vertices = np.reshape(vertices, (3, 2))
+
+    # Define mapping from reference triangle (0, 0) -- (1, 0) -- (0, 1) to triangle given by vertices
+    M = np.transpose(np.vstack((vertices[1] - vertices[0], vertices[2] - vertices[0])))
+
+    # draw random vector in reference triangle
+    x1 = np.random.rand(N)
+    x2 = (1 - x1)*np.random.rand(N)
+    x = np.vstack((x1, x2))
+
+    # map to new triangle
+    x_new = M.dot(x)
+    x_new[0, :] += vertices[0, 0]
+    x_new[1, :] += vertices[0, 1]
+
+
+    return x_new
+
+
+

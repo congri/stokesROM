@@ -55,6 +55,6 @@ for cll = gridRF.cells
     end
 end
 
-twoPtCorr(twoPtCorr <= 0) = 0;
+twoPtCorr(twoPtCorr < 0) = 0;
 
 end

@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from pyqtgraph.Qt import QtGui
 import pyqtgraph as pg
 import pyqtgraph.exporters
+import pyqtgraph.opengl as gl
 
 ## Switch to using white background and black foreground
 pg.setConfigOption('background', 'w')
@@ -28,7 +29,7 @@ trainingData = StokesData()
 trainingData.loadData(('mesh', 'solution'))
 trainingData.interpolate('p', modelParams)
 trainingData.shiftData()
-trainingData.computeDesignMatrix(modelParams)
+trainingData.computeDesignMatrix(modelParams, 'serial')
 trainingData.normalizeDesignMatrix(modelParams)
 trainingData.shapeToLocalDesignMatrix()
 
@@ -142,7 +143,7 @@ while not converged:
     print('M_step time = ', t_e - t_s)
     print('theta_c = ', modelParams.theta_c)
     print('sigma_c = ', modelParams.Sigma_c)
-    print('gamma = ', modelParams.gamma[:2])
+    print('gamma = ', modelParams.gamma[:rom.modelParams.get_numberOfFeatures()])
     print('elbo =', elbo)
     print('cell score = ', cell_score)
     theta_temp = np.expand_dims(modelParams.theta_c, axis=1)

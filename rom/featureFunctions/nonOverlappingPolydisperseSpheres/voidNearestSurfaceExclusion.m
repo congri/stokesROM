@@ -1,7 +1,7 @@
 function [e_v, h_v] = voidNearestSurfaceExclusion(diskCenters, diskRadii,...
     gridRF, distance)
 %Mean chord length for non-overlapping polydisp. spheres
-%according to Torquato 6.48
+%according to Torquato 6.50, 6.51
 
 meanRadii = zeros(gridRF.nCells, 1);
 meanSqRadii = zeros(gridRF.nCells, 1);

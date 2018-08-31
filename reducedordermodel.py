@@ -227,8 +227,6 @@ class ReducedOrderModel:
 
     def plot_current_state(self, fig):
 
-        fig.show()
-        fig.canvas.draw()
         axes = fig.get_axes()
 
         coords = self.modelParams.interpMesh.coordinates()
@@ -256,26 +254,11 @@ class ReducedOrderModel:
             stiffnessMatrix = self.coarseSolver.getStiffnessMatrix(diffusivity_vector)
             u_c = self.coarseSolver.solvePDE(stiffnessMatrix)
 
-            # u_reconst = self.modelParams.W.dot(u_c)
-            # u_reconst_fun = df.Function(self.modelParams.pInterpSpace)
-            # u_reconst_fun.vector().set_local(u_reconst)
-            # u_reconst_vtx = u_reconst_fun.compute_vertex_values()
-
-            t0 = time.time()
-            u_c_fun = df.Function(self.modelParams.coarseSolutionSpace)
-            u_c_fun.vector().set_local(u_c)
-            u_c_vtx = u_c_fun.compute_vertex_values()
-            t1 = time.time()
-
-            u_c_vtx2 = u_c[self.coarseSolver.vtx2dof]
-            t2 = time.time()
-
-            print('mapping1 time == ', t1 - t0)
-            print('mapping2 time == ', t2 - t1)
+            u_c_vtx = u_c[self.coarseSolver.vtx2dof]
 
             # axes[3*n + 2].cla()
             self.reconst_surf[n] =\
-                axes[3*n + 2].plot_trisurf(coords_coarse[:, 0], coords_coarse[:, 1], u_c_vtx2, color=(.0, .0, 1.0, .5))
+                axes[3*n + 2].plot_trisurf(coords_coarse[:, 0], coords_coarse[:, 1], u_c_vtx, color=(.0, .0, 1.0, .5))
 
             # meshes
             if not axes[3*n + 1].get_title():
@@ -309,7 +292,7 @@ class ReducedOrderModel:
         fig.canvas.flush_events()  # update the plot and take care of window events (like resizing etc.)
         plt.show(block=False)
         # plt.savefig('./current_state.png')
-        time.sleep(1e-2)
+        time.sleep(1e-5)
 
         return
 

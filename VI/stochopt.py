@@ -14,7 +14,7 @@ class StochasticOptimization:
         self.epsilon = 1e-4
 
         self.stepOffset = 10000        # learning rate decay offset parameter
-        self.stepWidth = .003
+        self.stepWidth = .001
         self.nSamples = 100           # gradient samples per iteration
         self.maxIterations = 1e6
         self.maxCompTime = 30       # maximum optimization time in s

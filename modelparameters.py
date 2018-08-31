@@ -30,6 +30,8 @@ class ModelParameters:
         self.VRVM_f = np.finfo(float).eps
         self.VRVM_iter = 1
 
+        self.numberOfFeatures = None
+
         # log_p_cf parameters
         self.Sinv_vec = 1e-3 * np.ones(self.pInterpSpace.dim())
         self.sumLogS = - np.sum(np.log(self.Sinv_vec))
@@ -47,7 +49,7 @@ class ModelParameters:
         self.featFunMax = None
 
         # Training parameters
-        self.max_iterations = 50
+        self.max_iterations = 500
 
     def initHyperparams(self):
         # Initialize hyperparameters gamma. Can only be done after theta_c has been set (because of dimensionality)
@@ -58,12 +60,19 @@ class ModelParameters:
         else:
             raise ValueError('What prior model for theta_c?')
 
+    def get_numberOfFeatures(self):
+
+        if self.numberOfFeatures is None:
+            nFeatures = self.theta_c.size
+            if self.priorModel == 'sharedVRVM':
+                nFeatures /= self.coarseMesh.num_cells()
+                nFeatures = int(nFeatures)
+
+        return nFeatures
+
     def plot(self, fig, thetaArray, sigmaArray, gammaArray):
 
-        nFeatures = np.size(thetaArray, axis=0)
-        if self.priorModel == 'sharedVRVM':
-            nFeatures /= self.coarseMesh.num_cells()
-            nFeatures = int(nFeatures)
+        nFeatures = self.get_numberOfFeatures()
 
         axes = fig.get_axes()
         # theta_c
@@ -167,7 +176,8 @@ def computeInterpolationMatrix(fromFunSpace, toFunSpace):
         f = df.Function(fromFunSpace)
         f.vector().set_local(np.zeros(fromFunSpace.dim()))
         f.vector()[i] = 1.0
-        fun = df.interpolate(f, toFunSpace)
+        # fun = df.interpolate(f, toFunSpace)
+        fun = df.project(f, toFunSpace)
         W[:, i] = fun.vector().get_local()
 
     return W
