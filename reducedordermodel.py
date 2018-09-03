@@ -141,6 +141,7 @@ class ReducedOrderModel:
 
             mu_theta = self.modelParams.theta_c
 
+            print('diag sigma theta == ', np.diag(Sigma_theta))
             for i in range(self.modelParams.VRVM_iter):
                 b = self.modelParams.VRVM_b + .5 * (mu_theta**2 + np.diag(Sigma_theta))
                 if self.modelParams.priorModel == 'sharedVRVM':
@@ -157,13 +158,13 @@ class ReducedOrderModel:
                             self.trainingData.designMatrix[n].dot(Sigma_theta).dot(self.trainingData.designMatrix[n].T))
                     d = d + .5 * PhiThetaSq_n
                 tau_c = c/d     # precision of p_c
-                sqrt_tau_c = np.sqrt(tau_c)
+                sqrt_tau_c = np.sqrt(tau_c).reshape(nElc, 1)
                 tau_theta = np.diag(gam)
                 sumPhiTau_cXMean = 0.0
                 for n in range(self.trainingData.samples.size):
                     # to ensure pos. def.
-                    A = np.diag(sqrt_tau_c).dot(self.trainingData.designMatrix[n])
-                    tau_theta = tau_theta + A.T.dot(A)
+                    A = sqrt_tau_c*self.trainingData.designMatrix[n]
+                    tau_theta += A.T.dot(A)
                     # tau_theta +=
                     # self.trainingData.designMatrix[n].T.dot(diag(tau_c)).dot(self.trainingData.designMatrix[n])
                     sumPhiTau_cXMean += self.trainingData.designMatrix[n].T.dot(np.diag(tau_c)).dot(XMean[n])

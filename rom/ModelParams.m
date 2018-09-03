@@ -9,8 +9,8 @@ classdef ModelParams < matlab.mixin.Copyable
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
         %FEM grid of coarse Darcy emulator
-        coarseGridX = (1/8)*ones(1, 8)
-        coarseGridY = (1/8)*ones(1, 8)
+        coarseGridX = (1/16)*ones(1, 16)
+        coarseGridY = (1/16)*ones(1, 16)
         %grid of random field
         gridRF
         splitted_cells
@@ -73,7 +73,7 @@ classdef ModelParams < matlab.mixin.Copyable
         featureFunctionMax
         
         %% Training parameters
-        max_EM_iter = 30
+        max_EM_iter = 100
         
         %% Settings
         computeElbo = true

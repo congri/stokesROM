@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 64;
+nTrain = 16;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -43,6 +43,7 @@ if loadParams
     disp('... modelParams loaded.')
 else
     rom.modelParams = ModelParams(rom.trainingData.u_bc, rom.trainingData.p_bc);
+%     rom.modelParams = ModelParams(rom.trainingData.u_bc, '10.0');
     rom.modelParams.initialize(nTrain);
     if any(rom.modelParams.interpolationMode)
         rom.trainingData.interpolate(rom.modelParams);
@@ -54,7 +55,7 @@ else
     end
 end
 %do not remove! if no cell is splitted, pass empty array
-rom.modelParams.splitRFcells([]);
+rom.modelParams.splitRFcells([1 3 4 5]);
 
 %Parameters from previous runs are deleted here
 if exist('./data/', 'dir')
@@ -169,7 +170,7 @@ for split_iter = 1:(nSplits + 1)
         disp('Variational Inference...')
         ticBytes(gcp);
         tic
-        parfor n = pstart:pend
+        for n = pstart:pend
             %         mx{n} = max_fun(lg_q_max{n}, varDistParamsVec{n}(1:nRFc));
             %         varDistParamsVec{n}(1:nRFc) = mx{n};
             %Finding variational approximation to q_n
@@ -268,6 +269,7 @@ for split_iter = 1:(nSplits + 1)
             sp1.GridLineStyle = 'none';
             sp1.XTick = [];
             sp1.YTick = [];
+            sp1.Title.String = 'Elbo cell score';
             cbp_lambda = colorbar('Parent', figCellScore);
             
             sp2 = subplot(2, 3, 2, 'Parent', figCellScore);
@@ -279,6 +281,7 @@ for split_iter = 1:(nSplits + 1)
             p2.GridLineStyle = 'none';
             sp2.XTick = [];
             sp2.YTick = [];
+            sp2.Title.String = 'active cells';
             cbp_lambda = colorbar('Parent', figCellScore);
             
             sp3 = subplot(2, 3, 3, 'Parent', figCellScore);
@@ -290,6 +293,7 @@ for split_iter = 1:(nSplits + 1)
             p2.GridLineStyle = 'none';
             sp3.XTick = [];
             sp3.YTick = [];
+            sp3.Title.String = '$\log p_{cf}$';
             cbp_lambda = colorbar('Parent', figCellScore);
             
             sp4 = subplot(2, 3, 4, 'Parent', figCellScore);

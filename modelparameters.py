@@ -24,11 +24,11 @@ class ModelParameters:
         self.variationalDist = 'diagonalGauss'      # variational distribution on lambda_c
         self.VRVM_a = np.finfo(float).eps
         self.VRVM_b = np.finfo(float).eps
-        self.VRVM_c = 1e-10
+        self.VRVM_c = 1e-6
         self.VRVM_d = np.finfo(float).eps
         self.VRVM_e = np.finfo(float).eps
         self.VRVM_f = np.finfo(float).eps
-        self.VRVM_iter = 10
+        self.VRVM_iter = 1000
 
         self.numberOfFeatures = None
 
@@ -54,7 +54,7 @@ class ModelParameters:
     def initHyperparams(self):
         # Initialize hyperparameters gamma. Can only be done after theta_c has been set (because of dimensionality)
         if self.priorModel == 'RVM' or self.priorModel == 'VRVM' or self.priorModel == 'sharedVRVM':
-            self.gamma = 1e-0 * np.ones_like(self.theta_c)
+            self.gamma = 1e0 * np.ones_like(self.theta_c)
         elif self.priorModel == 'none':
             self.gamma = None
         else:

@@ -34,6 +34,7 @@ classdef MeshFEM
         globalNodeNumber            %globalNodeNumber holds the global node
                                     %number, given the element number as row
                                     %and the local node number as column indices
+        essentialNodeInElement
         Bvec                        %Shape function gradient array, precomputed
                                     %for performance
         d_N                         %Shape function gradient array for Gauss
@@ -57,6 +58,7 @@ classdef MeshFEM
         fs                          %local forces due to heat source
         fh                          %local forces due to natural boundary
         f_tot                       %sum of fs and fh
+        F_natural                   %glob force due to sources and flux
         
         compute_grad = false
         d_loc_stiff                 %local stiffness gradient
@@ -559,6 +561,8 @@ classdef MeshFEM
             self.f_tot = self.fh + self.fs;
             self = setNodalCoordinates(self);
             self = setBvec(self);
+            self = self.get_essential_node_in_element;
+            self = self.get_glob_natural_force;
         end
         
         function self = shrink(self)
@@ -599,19 +603,51 @@ classdef MeshFEM
         
         function self = get_glob_stiff_grad(self)
             %gives global stiffness matrix gradient
+            self.d_glob_stiff = [];
             for e = 1:self.nEl
                 grad_loc_k = zeros(4, 4, self.nEl);
                 grad_loc_k(:, :, e) = self.d_loc_stiff(:, :, e);
-                self.d_glob_stiff{e} = sparse(self.Equations(:, 1),...
-                    self.Equations(:, 2), grad_loc_k(self.kIndex));
+                self.d_glob_stiff = [self.d_glob_stiff; ...
+                    sparse(self.Equations(:, 1), self.Equations(:, 2),...
+                    grad_loc_k(self.kIndex));];
             end
         end
         
         function self = get_glob_force_grad(self)
-            %compute global force gradient
+            %compute global force gradient matrix
             for e = 1:self.nEl
-                self.d_glob_force{e} = get_glob_force_gradient(self, ...
-                    self.d_loc_stiff(:, :, e), e);
+                self.d_glob_force(e, :) = get_glob_force_gradient(self, ...
+                    self.d_loc_stiff(:, :, e), e)';
+            end
+            self.d_glob_force = sparse(self.d_glob_force);
+        end
+        
+        function self = get_essential_node_in_element(self)
+            %true if element contains essential node, false if not
+            
+            self.essentialNodeInElement = false(self.nEl, 4);
+            for e = 1:self.nEl
+                for i = 1:4
+                    self.essentialNodeInElement(e, i) =...
+                        any(self.globalNodeNumber(e, i) == self.essentialNodes);
+                end
+            end
+            
+        end
+        
+        function self = get_glob_natural_force(self)
+            % independent of diffusivity and can be precomputed
+            
+            self.F_natural = zeros(self.nEq, 1);
+            % for performance
+            for e = 1:self.nEl
+                for ln = 1:4
+                    eqn = self.lm(e, ln);
+                    if(eqn ~= 0)
+                        self.F_natural(eqn) =...
+                            self.F_natural(eqn) + self.f_tot(ln, e);
+                    end
+                end
             end
         end
         

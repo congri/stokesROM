@@ -1,8 +1,8 @@
-function [F] = get_glob_force_gradient(domain, k, el)
+function [F] = get_glob_force_gradient(domain, d_k, el)
 %Assemble global force vector
 
 %nested function for performance
-    function f2 = get_loc_force_gradient2(domain, k)
+    function f2 = get_loc_force_gradient2(domain, d_k)
         f2 = zeros(4, 1);
         %Boundary value temperature of element e
         Tb = zeros(4, 1);
@@ -16,14 +16,14 @@ function [F] = get_glob_force_gradient(domain, k, el)
             end
         end
         if(Tbflag)
-            f2 = -k*Tb;
+            f2 = -d_k*Tb;
         end
         
     end
 
 
 F = zeros(domain.nEq,1);
-f = get_loc_force_gradient2(domain, k);
+f = get_loc_force_gradient2(domain, d_k);
 
 ln = 1:4;
 eqnTemp = domain.lm(el, :);

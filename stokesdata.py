@@ -23,7 +23,7 @@ class StokesData(FlowProblem):
     viscosity = 1.0
 
     # general parameters
-    samples = np.arange(0, 32)  # vector of random meshes to load
+    samples = np.arange(0, 4)  # vector of random meshes to load
     nElements = 128
 
     # microstructure parameters
@@ -337,105 +337,105 @@ class StokesData(FlowProblem):
             np.append(Phi[sample_index], ff.matrixLinealPath(microstructureInformation, self.mesh[sample_index],
                                                              modelParameters.coarseMesh, .02), axis=1)
         file.write('linealPath02\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.matrixLinealPath(microstructureInformation, self.mesh[sample_index],
-                                                             modelParameters.coarseMesh, .01), axis=1)
-        file.write('linealPath01\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.matrixLinealPath(microstructureInformation, self.mesh[sample_index],
-                                                             modelParameters.coarseMesh, .005), axis=1)
-        file.write('linealPath005\n') if writeTextFile else False
-
-        # Chord length density
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.chordLengthDensity(microstructureInformation, self.mesh[sample_index],
-                                                               modelParameters.coarseMesh, .04), axis=1)
-        file.write('ChordLengthDensity04\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.chordLengthDensity(microstructureInformation, self.mesh[sample_index],
-                                                               modelParameters.coarseMesh, .02), axis=1)
-        file.write('ChordLengthDensity02\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.chordLengthDensity(microstructureInformation, self.mesh[sample_index],
-                                                               modelParameters.coarseMesh, .01), axis=1)
-        file.write('ChordLengthDensity01\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.chordLengthDensity(microstructureInformation, self.mesh[sample_index],
-                                                               modelParameters.coarseMesh, .005), axis=1)
-        file.write('ChordLengthDensity005\n') if writeTextFile else False
-
-        # mean chord length
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.meanChordLength(microstructureInformation, self.mesh[sample_index],
-                                                            modelParameters.coarseMesh), axis=1)
-        file.write('MeanChordLength\n') if writeTextFile else False
-
-        # disk distance
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
-                                                         'mean', 'edge2edge'), axis=1)
-        file.write('meanEdge2EdgeDistance\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
-                                                         'mean', 2.0), axis=1)
-        file.write('meanDistance\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
-                                                         'mean', 1.0), axis=1)
-        file.write('mean1Distance\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
-                                                         'mean', -1.0), axis=1)
-        file.write('mean-1Distance\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
-                                                         'max', 2.0), axis=1)
-        file.write('maxDistance\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
-                                                         'min', 2.0), axis=1)
-        file.write('minDistance\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
-                                                         'std', 2.0), axis=1)
-        file.write('stdDistance\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
-                                                         'var', 2.0), axis=1)
-        file.write('varDistance\n') if writeTextFile else False
-
-        # 2-point correlation for pore phase (True)
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.twoPointCorrelation(microstructureInformation,
-                                                                modelParameters.coarseMesh, True, .04), axis=1)
-        file.write('pore2-point-correlation04\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.twoPointCorrelation(microstructureInformation,
-                                                                modelParameters.coarseMesh, True, .02), axis=1)
-        file.write('pore2-point-correlation02\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.twoPointCorrelation(microstructureInformation,
-                                                                modelParameters.coarseMesh, True, .01), axis=1)
-        file.write('pore2-point-correlation01\n') if writeTextFile else False
-
-        Phi[sample_index] = \
-            np.append(Phi[sample_index], ff.twoPointCorrelation(microstructureInformation,
-                                                                modelParameters.coarseMesh, True, .005), axis=1)
-        file.write('pore2-point-correlation005\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.matrixLinealPath(microstructureInformation, self.mesh[sample_index],
+        #                                                      modelParameters.coarseMesh, .01), axis=1)
+        # file.write('linealPath01\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.matrixLinealPath(microstructureInformation, self.mesh[sample_index],
+        #                                                      modelParameters.coarseMesh, .005), axis=1)
+        # file.write('linealPath005\n') if writeTextFile else False
+        #
+        # # Chord length density
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.chordLengthDensity(microstructureInformation, self.mesh[sample_index],
+        #                                                        modelParameters.coarseMesh, .04), axis=1)
+        # file.write('ChordLengthDensity04\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.chordLengthDensity(microstructureInformation, self.mesh[sample_index],
+        #                                                        modelParameters.coarseMesh, .02), axis=1)
+        # file.write('ChordLengthDensity02\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.chordLengthDensity(microstructureInformation, self.mesh[sample_index],
+        #                                                        modelParameters.coarseMesh, .01), axis=1)
+        # file.write('ChordLengthDensity01\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.chordLengthDensity(microstructureInformation, self.mesh[sample_index],
+        #                                                        modelParameters.coarseMesh, .005), axis=1)
+        # file.write('ChordLengthDensity005\n') if writeTextFile else False
+        #
+        # # mean chord length
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.meanChordLength(microstructureInformation, self.mesh[sample_index],
+        #                                                     modelParameters.coarseMesh), axis=1)
+        # file.write('MeanChordLength\n') if writeTextFile else False
+        #
+        # # disk distance
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
+        #                                                  'mean', 'edge2edge'), axis=1)
+        # file.write('meanEdge2EdgeDistance\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
+        #                                                  'mean', 2.0), axis=1)
+        # file.write('meanDistance\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
+        #                                                  'mean', 1.0), axis=1)
+        # file.write('mean1Distance\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
+        #                                                  'mean', -1.0), axis=1)
+        # file.write('mean-1Distance\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
+        #                                                  'max', 2.0), axis=1)
+        # file.write('maxDistance\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
+        #                                                  'min', 2.0), axis=1)
+        # file.write('minDistance\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
+        #                                                  'std', 2.0), axis=1)
+        # file.write('stdDistance\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.diskDistance(microstructureInformation, modelParameters.coarseMesh,
+        #                                                  'var', 2.0), axis=1)
+        # file.write('varDistance\n') if writeTextFile else False
+        #
+        # # 2-point correlation for pore phase (True)
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.twoPointCorrelation(microstructureInformation,
+        #                                                         modelParameters.coarseMesh, True, .04), axis=1)
+        # file.write('pore2-point-correlation04\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.twoPointCorrelation(microstructureInformation,
+        #                                                         modelParameters.coarseMesh, True, .02), axis=1)
+        # file.write('pore2-point-correlation02\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.twoPointCorrelation(microstructureInformation,
+        #                                                         modelParameters.coarseMesh, True, .01), axis=1)
+        # file.write('pore2-point-correlation01\n') if writeTextFile else False
+        #
+        # Phi[sample_index] = \
+        #     np.append(Phi[sample_index], ff.twoPointCorrelation(microstructureInformation,
+        #                                                         modelParameters.coarseMesh, True, .005), axis=1)
+        # file.write('pore2-point-correlation005\n') if writeTextFile else False
 
         file.close() if writeTextFile else False
 

@@ -36,8 +36,8 @@ end
 if nargout > 1
     %Gradient of FEM equation system w.r.t. conductivities
     
-    d_r = FEMgrad(FEMout, coarseMesh);
-    d_rx = d_r;
+    d_r = FEMgrad(FEMout.naturalTemperatures, coarseMesh);
+%     d_rx = d_r;
     if strcmp(transType, 'log')
         %We need gradient of r w.r.t. log conductivities X,
         %multiply each row with resp. conductivity
