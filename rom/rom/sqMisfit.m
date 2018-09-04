@@ -19,8 +19,7 @@ else
     FEMout = heat2d(mesh, D);
 end
 
-Tc = FEMout.Tff';
-Tc = Tc(:);
+Tc = FEMout.u;
 
 p_cf_exp = (Tf_n_minus_mu - W_cf_n*Tc).^2;
 

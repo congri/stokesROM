@@ -42,8 +42,8 @@ if loadParams
     end
     disp('... modelParams loaded.')
 else
-    rom.modelParams = ModelParams(rom.trainingData.u_bc, rom.trainingData.p_bc);
-%     rom.modelParams = ModelParams(rom.trainingData.u_bc, '10.0');
+%     rom.modelParams = ModelParams(rom.trainingData.u_bc, rom.trainingData.p_bc);
+    rom.modelParams = ModelParams(rom.trainingData.u_bc, '10.0');
     rom.modelParams.initialize(nTrain);
     if any(rom.modelParams.interpolationMode)
         rom.trainingData.interpolate(rom.modelParams);
@@ -170,7 +170,7 @@ for split_iter = 1:(nSplits + 1)
         disp('Variational Inference...')
         ticBytes(gcp);
         tic
-        for n = pstart:pend
+        parfor n = pstart:pend
             %         mx{n} = max_fun(lg_q_max{n}, varDistParamsVec{n}(1:nRFc));
             %         varDistParamsVec{n}(1:nRFc) = mx{n};
             %Finding variational approximation to q_n

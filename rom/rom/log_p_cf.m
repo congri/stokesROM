@@ -1,4 +1,4 @@
-function [log_p, d_log_p, Tc] = log_p_cf(Tf_n_minus_mu, coarseMesh, Xn,...
+function [log_p, d_log_p, Tc] = log_p_cf(Tf_n_minus_mu, coarseMesh,Xn,...
     W_cf_n, S_cf_n, transType, transLimits, rf2fem, onlyGrad)
 %Coarse-to-fine map
 %ignore constant prefactor
@@ -19,8 +19,7 @@ else
     FEMout = heat2d(coarseMesh, D);
 end
 
-Tc = FEMout.Tff';
-Tc = Tc(:);
+Tc = FEMout.u;
 
 Tf_n_minus_mu_minus_WTc = Tf_n_minus_mu - W_cf_n*Tc;
 %only for diagonal S!
@@ -91,16 +90,7 @@ if nargout > 1
                 end
                 FEMoutFD = heat2d(coarseMesh, DFD);
             end
-            checkLocalStiffness = false;
-            if checkLocalStiffness
-                k = FEMout.diffusionStiffness(:, :, e);
-                kFD = FEMoutFD.diffusionStiffness(:, :, e);
-                d_k = FEMout.diffusionStiffness(:, :, e)/conductivity(e);
-                d_kFD = (FEMoutFD.diffusionStiffness(:, :, e) - ...
-                    FEMout.diffusionStiffness(:, :, e))/d;
-                relgrad_k = d_k./d_kFD
-                pause
-            end
+
             TcFD = FEMoutFD.Tff';
             TcFD = TcFD(:);
             

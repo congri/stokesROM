@@ -1,4 +1,4 @@
-function [F] = get_glob_force(mesh, k)
+function [F] = get_glob_force(mesh, conductivity)
 %Assemble global force vector
 
 F = mesh.F_natural;
@@ -20,7 +20,7 @@ for e = 1:mesh.nEl
         for ln = 1:4
             eqn = mesh.lm(e, ln);
             if(eqn ~= 0)
-                fT = k(:, :, e)*Tb;
+                fT = conductivity(e)*mesh.d_loc_stiff(:, :, e)*Tb;
                 F(eqn) = F(eqn) - fT(ln);
             end
         end

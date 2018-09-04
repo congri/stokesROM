@@ -426,8 +426,7 @@ classdef StokesROM < handle
                     coarseFEMout = heat2d(self.modelParams.coarseMesh, D);
                 end
                 
-                Tc = coarseFEMout.Tff';
-                Tc = Tc(:);
+                Tc = coarseFEMout.u;
                 nx = numel(self.modelParams.fineGridX) + 1;
                 ny = numel(self.modelParams.fineGridY) + 1;
                 XX = reshape(self.trainingData.X_interp{1}(:, 1), nx, ny);

@@ -62,7 +62,9 @@ classdef MeshFEM
         
         compute_grad = false
         d_loc_stiff                 %local stiffness gradient
-        d_glob_stiff                %global stiffness gradient
+        d_glob_stiff                %glob. stiff. grad. for grad. computation
+        d_glob_stiff_assemble       %permuted version of d_glob_stiff for fast
+                                    %stiffness assembly
         
         d_glob_force                %global force gradient
     end
@@ -604,13 +606,16 @@ classdef MeshFEM
         function self = get_glob_stiff_grad(self)
             %gives global stiffness matrix gradient
             self.d_glob_stiff = [];
+            self.d_glob_stiff_assemble = zeros(self.nEq*self.nEq, self.nEl);
             for e = 1:self.nEl
                 grad_loc_k = zeros(4, 4, self.nEl);
                 grad_loc_k(:, :, e) = self.d_loc_stiff(:, :, e);
-                self.d_glob_stiff = [self.d_glob_stiff; ...
-                    sparse(self.Equations(:, 1), self.Equations(:, 2),...
-                    grad_loc_k(self.kIndex));];
+                d_Ke = sparse(self.Equations(:, 1), self.Equations(:, 2),...
+                    grad_loc_k(self.kIndex));
+                self.d_glob_stiff = [self.d_glob_stiff; d_Ke];
+                self.d_glob_stiff_assemble(:, e) = d_Ke(:);
             end
+            self.d_glob_stiff_assemble = sparse(self.d_glob_stiff_assemble);
         end
         
         function self = get_glob_force_grad(self)
