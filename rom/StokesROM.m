@@ -643,13 +643,13 @@ classdef StokesROM < handle
                         end
                         FEMout = heat2d(cm, D);
                     end
-                    Tctemp = FEMout.Tff';
+                    Tctemp = FEMout.u;
                     
                     %sample from p_cf
                     if intp
-                        mu_cf = W_cf{1}*Tctemp(:);
+                        mu_cf = W_cf{1}*Tctemp;
                     else
-                        mu_cf = W_cf{n}*Tctemp(:);
+                        mu_cf = W_cf{n}*Tctemp;
                     end
                     
                     %only for diagonal S!!
