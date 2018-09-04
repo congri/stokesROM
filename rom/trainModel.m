@@ -55,7 +55,7 @@ else
     end
 end
 %do not remove! if no cell is splitted, pass empty array
-rom.modelParams.splitRFcells([1 3 4 5]);
+rom.modelParams.splitRFcells([]);
 
 %Parameters from previous runs are deleted here
 if exist('./data/', 'dir')
@@ -72,7 +72,7 @@ p_active_cells_S = {};
 p_cell_score = {};
 
 EMiter = 0;
-nSplits = 4;
+nSplits = 0;
 for split_iter = 1:(nSplits + 1)
     
     clear XMean XSqMean

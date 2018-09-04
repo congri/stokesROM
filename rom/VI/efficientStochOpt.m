@@ -14,7 +14,7 @@ epsilon = 1e-8;                  %curvature stabilization parameter
 
 stepOffset = 200000;                %Robbins-Monro step offset
 maxIterations = 1e4;
-maxCompTime = 10;
+maxCompTime = 15;
 nSamplesStart = 3;                  %gradient samples per iteration
 nSamplesEnd = 20;
 nIncr = (nSamplesEnd - nSamplesStart)/maxCompTime;

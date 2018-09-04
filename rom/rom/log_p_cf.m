@@ -42,7 +42,7 @@ if nargout > 1
         %We need gradient of r w.r.t. log conductivities X,
         %multiply each row with resp. conductivity
         %d_rx(1:coarseMesh.nEl, :)= diag(conductivity)*d_r(1:coarseMesh.nEl, :);
-        d_rx = conductivity.*d_r;
+        d_rx = d_r.*conductivity;
     elseif strcmp(transType, 'logit')
         %We need gradient w.r.t. x,
         %where x is - log((lambda_up - lambda_lo)/(lambda - lambda_lo) - 1)

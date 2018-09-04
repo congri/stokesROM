@@ -93,7 +93,7 @@ classdef ModelParams < matlab.mixin.Copyable
             
             %only for a single cell here!!!
             %grid of random field
-            self.gridRF = RectangularMesh((1/2)*ones(1, 2));
+            self.gridRF = RectangularMesh((1/4)*ones(1, 4));
             self.cell_dictionary = 1:self.gridRF.nCells;
             
             %% Initialize coarse mesh object
