@@ -15,9 +15,14 @@ classdef ModelParams < matlab.mixin.Copyable
         gridRF
         splitted_cells
         
+        %Matrix summing up all values of a fine-scale vector belonging to
+        %a certain macro-cell
+        sum_in_macrocell
+        
         %Recorded elbo
         elbo
         cell_score
+        cell_score_full   %includes also terms of p_cf to elbo cell score
         
         %p_cf
         W_cf
@@ -171,7 +176,7 @@ classdef ModelParams < matlab.mixin.Copyable
             %from coarser random field discretization
             
             nElc = size(self.Sigma_c, 1);
-            self.splitted_cells = splt_cells;
+            self.splitted_cells = [self.splitted_cells, splt_cells];
             for splt_cll = self.splitted_cells
                 if isnan(self.cell_dictionary(splt_cll))
                     warning('Trying to split an already splitted cell. Skip.')
@@ -537,7 +542,23 @@ classdef ModelParams < matlab.mixin.Copyable
             
         end
         
-        function compute_elbo(self, N, XMean, XSqMean)
+        function set_summation_matrix(self, X)
+            %sets up sum_in_macrocell matrix
+            nx = numel(self.fineGridX) + 1;
+            ny = numel(self.fineGridY) + 1;
+            self.sum_in_macrocell = zeros(self.gridRF.nCells, nx*ny);
+            
+            kk = 1;
+            for k = 1:numel(self.gridRF.cells)
+                if isvalid(self.gridRF.cells{k})
+                    self.sum_in_macrocell(kk, :) =...
+                        self.gridRF.cells{k}.inside(X)';
+                    kk = kk + 1;
+                end
+            end
+        end
+        
+        function compute_elbo(self, N, XMean, XSqMean, X_vtx, EMiter, fig)
             %General form of elbo allowing model comparison
             %   N:                   number of training samples
             %   XMean, XSqMean:      first and second moments of transformed
@@ -565,9 +586,19 @@ classdef ModelParams < matlab.mixin.Copyable
             Sigma_lambda_c = XSqMean - XMean.^2;
             %sum over N and macro-cells
             sum_logdet_lambda_c = sum(sum(log(Sigma_lambda_c)));
-            
+
             try
-                logdet_Sigma_theta_c = logdet(self.Sigma_theta_c, 'chol');
+                if strcmp(self.prior_theta_c, 'sharedVRVM')
+                    logdet_Sigma_theta_ck = zeros(D_c, 1);
+                    for k = 1:D_c
+                        logdet_Sigma_theta_ck(k) = logdet(self.Sigma_theta_c(...
+                            ((k-1)*D_gamma + 1):(k*D_gamma),...
+                            ((k - 1)*D_gamma + 1):(k*D_gamma)), 'chol');
+                    end
+                    logdet_Sigma_theta_c = sum(logdet_Sigma_theta_ck);
+                else
+                    logdet_Sigma_theta_c = logdet(self.Sigma_theta_c, 'chol');
+                end
             catch
                 logdet_Sigma_theta_c = logdet(self.Sigma_theta_c);
                 warning('Sigma_theta_c not pos. def.')
@@ -583,11 +614,77 @@ classdef ModelParams < matlab.mixin.Copyable
                 .5*logdet_Sigma_theta_c + .5*D_theta_c;
             if strcmp(self.prior_theta_c, 'sharedVRVM')
                 gamma_expected = psi(self.a) - log(self.b);
-                self.elbo= self.elbo + (D_c - 1)*sum(.5*gamma_expected -...
+                self.elbo = self.elbo + (D_c - 1)*sum(.5*gamma_expected -...
                     (self.a./self.b).*(self.b - bb));
             end
+            self.set_summation_matrix(X_vtx);
             self.cell_score = .5*sum(log(Sigma_lambda_c), 2) - ...
-                self.c*log(self.d);
+                self.c*log(self.d) + .5*logdet_Sigma_theta_ck;
+            f_contribution = - self.e*log(self.f);
+
+            self.cell_score_full = self.cell_score +...
+                self.sum_in_macrocell*f_contribution;
+            
+            sp1 = subplot(3, 4, 1, 'Parent', fig);
+            hold(sp1, 'on')
+            sp1.Title.String = '$\sum \log \det \lambda_c$';
+            plot(EMiter, sum_logdet_lambda_c, 'kx', 'Parent', sp1);
+            axis(sp1, 'tight');
+            
+            sp2 = subplot(3, 4, 2, 'Parent', fig);
+            hold(sp2, 'on')
+            sp2.Title.String = '$\log \Gamma(e)$';
+            plot(EMiter, log(gamma(self.e)), 'kx', 'Parent', sp2);
+            axis(sp2, 'tight');
+            
+            sp3 = subplot(3, 4, 3, 'Parent', fig);
+            hold(sp3, 'on')
+            sp3.Title.String = '$-e \cdot \sum \log f$';
+            plot(EMiter, - self.e*sum(log(self.f)), 'kx', 'Parent', sp3);
+            axis(sp3, 'tight');
+            
+            sp4 = subplot(3, 4, 4, 'Parent', fig);
+            hold(sp4, 'on')
+            sp4.Title.String = '$D_c \log \Gamma(c)$';
+            plot(EMiter, D_c*log(gamma(self.c)), 'kx', 'Parent', sp4);
+            axis(sp4, 'tight');
+            
+            sp5 = subplot(3, 4, 5, 'Parent', fig);
+            hold(sp5, 'on')
+            sp5.Title.String = '$c\sum \log(d)$';
+            plot(EMiter, -self.c*sum(log(self.d)), 'kx', 'Parent', sp5);
+            axis(sp5, 'tight');
+            
+            sp6 = subplot(3, 4, 6, 'Parent', fig);
+            hold(sp6, 'on')
+            sp6.Title.String = '$D_\gamma \cdot \log(\Gamma(a))$';
+            plot(EMiter, D_gamma*log(gamma(self.a)), 'kx', 'Parent', sp6);
+            axis(sp6, 'tight');
+            
+            sp7 = subplot(3, 4, 7, 'Parent', fig);
+            hold(sp7, 'on')
+            sp7.Title.String = '$a\sum \log b_{1:D_{\gamma}}$';
+            plot(EMiter,-self.a*sum(log(self.b(1:D_gamma))),'kx','Parent', sp7);
+            axis(sp7, 'tight');
+            
+            sp8 = subplot(3, 4, 8, 'Parent', fig);
+            hold(sp8, 'on')
+            sp8.Title.String = '$\frac{1}{2}\log |\Sigma_{\theta_c}|$';
+            plot(EMiter, .5*logdet_Sigma_theta_c, 'kx', 'Parent', sp8);
+            axis(sp8, 'tight');
+            
+            sp9 = subplot(3, 4, 9, 'Parent', fig);
+            hold(sp9, 'on')
+            sp9.Title.String = '$\frac{1}{2}(D_c - 1)\sum <\gamma>$';
+            plot(EMiter, (D_c - 1)*.5*sum(gamma_expected), 'kx', 'Parent', sp9);
+            axis(sp9, 'tight');
+            
+            sp10 = subplot(3, 4, 10, 'Parent', fig);
+            hold(sp10, 'on')
+            sp10.Title.String = '$-(D_c - 1)\sum \frac{a}{b}(b - b_0)$';
+            plot(EMiter, -(D_c - 1)*sum((self.a./self.b).*(self.b - bb)),...
+                'kx', 'Parent', sp10);
+            axis(sp10, 'tight');
         end
         
         function plotElbo(self, fig, EMiter)

@@ -60,6 +60,7 @@ classdef StokesROM < handle
                 end
                 mu_theta = self.modelParams.theta_c;
                 
+                Phi_full = cell2mat(self.trainingData.designMatrix);
                 for i = 1:self.modelParams.VRVM_iter
                     b = self.modelParams.VRVM_b + .5*(mu_theta.^2 +...
                             diag(Sigma_theta));
@@ -74,13 +75,18 @@ classdef StokesROM < handle
                         PhiThetaMean_n = self.trainingData.designMatrix{n}*...
                             mu_theta;
                         d = d - XMean(:, n).*PhiThetaMean_n;
-                        PhiThetaSq_n = diag(PhiThetaMean_n*PhiThetaMean_n'+...
-                            self.trainingData.designMatrix{n}*...
-                            Sigma_theta*self.trainingData.designMatrix{n}');
+%                         PhiThetaSq_n = diag(PhiThetaMean_n*PhiThetaMean_n'+...
+%                             self.trainingData.designMatrix{n}*...
+%                             Sigma_theta*self.trainingData.designMatrix{n}');
+                        PhiThetaSq_n = PhiThetaMean_n.^2 +...
+                            sum(self.trainingData.designMatrix{n}.*...
+                            (self.trainingData.designMatrix{n}*Sigma_theta), 2);
                         d = d + .5*PhiThetaSq_n;
                     end
                     tau_c = c./d;   %precision of p_c
-                    sqrt_tau_c = sqrt(tau_c);
+                    tau_c_long = sparse(1:(nElc*self.trainingData.nSamples), ...
+		                1:(nElc*self.trainingData.nSamples), ...
+		                repmat(tau_c, self.trainingData.nSamples, 1));
                     if strcmp(self.modelParams.mode, 'local')
                         nFeatures = dim_theta/nElc;
                         tau_theta = sparse(1:dim_theta, 1:dim_theta, gam,...
@@ -89,18 +95,15 @@ classdef StokesROM < handle
                         tau_theta = diag(gam);
                     end
                     sumPhiTau_cXMean = 0;
+                    
                     for n = 1:self.trainingData.nSamples
-                        %to ensure pos. def.
-                        %A = diag(sqrt_tau_c)*self.trainingData.designMatrix{n};
-                        A = sqrt_tau_c.*self.trainingData.designMatrix{n};
-                        tau_theta = tau_theta + A'*A;
-%                         tau_theta = tau_theta +...
-%                             self.trainingData.designMatrix{n}'*diag(tau_c)*...
-%                             self.trainingData.designMatrix{n};
+
                         sumPhiTau_cXMean = sumPhiTau_cXMean + ...
                             self.trainingData.designMatrix{n}'*...
                             diag(tau_c)*XMean(:, n);
                     end
+                    
+                    tau_theta = tau_theta + Phi_full'*tau_c_long*Phi_full;
                     
                     if(strcmp(self.modelParams.mode, 'local') && nElc > 4)
                         %solve block-diagonal tau_theta

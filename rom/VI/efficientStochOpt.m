@@ -14,9 +14,9 @@ epsilon = 1e-8;                  %curvature stabilization parameter
 
 stepOffset = 200000;                %Robbins-Monro step offset
 maxIterations = 1e4;
-maxCompTime = 15;
+maxCompTime = 30;
 nSamplesStart = 3;                  %gradient samples per iteration
-nSamplesEnd = 20;
+nSamplesEnd = 50;
 nIncr = (nSamplesEnd - nSamplesStart)/maxCompTime;
 nSamples = nSamplesStart;
 
@@ -150,6 +150,7 @@ while ~converged
         if debug
             steps
         end
+        steps
     end
 end
 

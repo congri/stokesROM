@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 16;
+nTrain = 32;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -42,8 +42,8 @@ if loadParams
     end
     disp('... modelParams loaded.')
 else
-%     rom.modelParams = ModelParams(rom.trainingData.u_bc, rom.trainingData.p_bc);
-    rom.modelParams = ModelParams(rom.trainingData.u_bc, '10.0');
+    rom.modelParams = ModelParams(rom.trainingData.u_bc, rom.trainingData.p_bc);
+%     rom.modelParams = ModelParams(rom.trainingData.u_bc, '10.0');
     rom.modelParams.initialize(nTrain);
     if any(rom.modelParams.interpolationMode)
         rom.trainingData.interpolate(rom.modelParams);
@@ -55,7 +55,7 @@ else
     end
 end
 %do not remove! if no cell is splitted, pass empty array
-rom.modelParams.splitRFcells([]);
+rom.modelParams.splitRFcells([2 3]);
 
 %Parameters from previous runs are deleted here
 if exist('./data/', 'dir')
@@ -72,7 +72,7 @@ p_active_cells_S = {};
 p_cell_score = {};
 
 EMiter = 0;
-nSplits = 0;
+nSplits = 32;
 for split_iter = 1:(nSplits + 1)
     
     clear XMean XSqMean
@@ -97,7 +97,7 @@ for split_iter = 1:(nSplits + 1)
     
     %Step width for stochastic optimization in VI
     nRFc = rom.modelParams.gridRF.nCells;
-    sw =[5e-3*ones(1, nRFc), 1e-4*ones(1, nRFc)];
+    sw =[2e-3*ones(1, nRFc), 5e-5*ones(1, nRFc)];
     sw_decay = .98; %decay factor per iteration
     sw_min = 1e-1*sw;
     
@@ -174,9 +174,8 @@ for split_iter = 1:(nSplits + 1)
             %         mx{n} = max_fun(lg_q_max{n}, varDistParamsVec{n}(1:nRFc));
             %         varDistParamsVec{n}(1:nRFc) = mx{n};
             %Finding variational approximation to q_n
-            [varDistParams{n}, varDistParamsVec{n}] =...
-                efficientStochOpt(varDistParamsVec{n}, lg_q{n}, 'diagonalGauss',...
-                sw, nRFc);
+            [varDistParams{n}, varDistParamsVec{n}] = efficientStochOpt(...
+                varDistParamsVec{n}, lg_q{n}, 'diagonalGauss', sw, nRFc);
         end
         tocBytes(gcp)
         VI_time = toc
@@ -212,7 +211,12 @@ for split_iter = 1:(nSplits + 1)
         disp('...M-step done.')
         M_step_time = toc
         
-        rom.modelParams.compute_elbo(nTrain, XMean, XSqMean);
+        if ~exist('figElboTest')
+            figElboTest =...
+                figure('units','normalized','outerposition',[0 0 1 1]);
+        end
+        rom.modelParams.compute_elbo(nTrain, XMean, XSqMean,...
+            rom.trainingData.X_interp{1}, EMiter, figElboTest);
         elbo = rom.modelParams.elbo
         
         if ~mod(EMiter_split, 20)
@@ -261,7 +265,7 @@ for split_iter = 1:(nSplits + 1)
             end
             %plot cell scores
             sp1 = subplot(2, 3, 1, 'Parent', figCellScore);
-            imagesc(reshape(rf2fem*(-rom.modelParams.cell_score),...
+            imagesc(reshape(rf2fem*(-rom.modelParams.cell_score_full),...
                 numel(rom.modelParams.coarseGridX),...
                 numel(rom.modelParams.coarseGridY))', 'Parent', sp1);
             sp1.YDir = 'normal';
@@ -298,9 +302,9 @@ for split_iter = 1:(nSplits + 1)
             
             sp4 = subplot(2, 3, 4, 'Parent', figCellScore);
             map = colormap(sp4, 'lines');
-            if(numel(rom.modelParams.cell_score) ~= numel(p_cell_score))
+            if(numel(rom.modelParams.cell_score_full) ~= numel(p_cell_score))
                 for k = (numel(p_cell_score) + 1):...
-                        numel(rom.modelParams.cell_score)
+                        numel(rom.modelParams.cell_score_full)
                     p_cell_score{k} = animatedline('Parent', sp4);
                     p_cell_score{k}.LineWidth = 2;
                     p_cell_score{k}.Marker = 'x';
@@ -310,8 +314,9 @@ for split_iter = 1:(nSplits + 1)
                 sp4.XLabel.String = 'iteration';
                 sp4.YLabel.String = 'cell score';
             end
-            for k = 1:numel(rom.modelParams.cell_score)
-                addpoints(p_cell_score{k}, EMiter, -rom.modelParams.cell_score(k));
+            for k = 1:numel(rom.modelParams.cell_score_full)
+                addpoints(p_cell_score{k}, EMiter,...
+                    -rom.modelParams.cell_score_full(k));
             end
             axis(sp4, 'tight');
             axis(sp4, 'fill');
@@ -387,11 +392,12 @@ for split_iter = 1:(nSplits + 1)
     
     if split_iter < (nSplits + 1)
         disp('splitting cell...')
-        activeCells_S = rom.findMeshRefinement(true)'
+%         activeCells_S = rom.findMeshRefinement(true)'
         filename = './data/activeCells_S';
         save(filename, 'activeCells_S', '-ascii', '-append');
         
-        [~, cell_index_pde] = max(activeCells_S);
+%         [~, cell_index_pde] = max(activeCells_S);
+        [~, cell_index_pde] = min(rom.modelParams.cell_score_full);
         cell_index = find(rom.modelParams.cell_dictionary == cell_index_pde)
         rom.modelParams.splitRFcells([cell_index]);
         disp('...cell splitted.')
