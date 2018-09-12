@@ -12,15 +12,15 @@ MARG4=0.01
 XMU="0.7_0.3"
 XCOV="0.2_0.0_0.3"
 
-GRADIENTSAMPLESSTART=10
-GRADIENTSAMPLESEND=30
+GRADIENTSAMPLESSTART=1
+GRADIENTSAMPLESEND=1
 STOCHOPTTIME=30    
 
-NTRAIN=512
+NTRAIN=128
 NTESTSTART=0
 NTESTEND=1023
 
-MAXEMITER=49
+MAXEMITER=120
 
 NCORES=16
 if [ $NTRAIN -lt $NCORES ]; then
@@ -29,13 +29,11 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="autosplit_full_elbo_score_start=4x4_much_more_data"
+NAMEBASE="reduced_elbo_score_extralong_start=4x4"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"
-JOBDIR="/home/constantin/python/data/stokesEquation/meshSize=128/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~gauss/mu=${XMU}/cov=${XCOV}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/split/${JOBNAME}"
-
-echo $JOBDIR
+JOBDIR="/home/constantin/python/data/stokesEquation/meshSize=128/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~gauss/mu=${XMU}/cov=${XCOV}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/split/autosplit/${JOBNAME}"
 
 #Create job directory and copy source code
 mkdir -p "${JOBDIR}"

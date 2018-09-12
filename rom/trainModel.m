@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 16;
+nTrain = 128;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -69,7 +69,7 @@ rom.trainingData.vtx2Cell(rom.modelParams);
 
 sw0_mu = 1e-3;
 sw0_sigma = 1e-6;
-sw_decay = .99; %decay factor per iteration
+sw_decay = .995; %decay factor per iteration
 nSplits = 16;
 tic_tot = tic;
 for split_iter = 1:(nSplits + 1)
@@ -98,7 +98,7 @@ for split_iter = 1:(nSplits + 1)
     nRFc = rom.modelParams.gridRF.nCells;
     sw = (sw_decay^rom.modelParams.EM_iter)*...
         [sw0_mu*ones(1, nRFc), sw0_sigma*ones(1, nRFc)];
-    sw_min = 2e-2*[sw0_mu*ones(1, nRFc), sw0_sigma*ones(1, nRFc)];
+    sw_min = 1e-1*[sw0_mu*ones(1, nRFc), sw0_sigma*ones(1, nRFc)];
     sw(sw < sw_min) = sw_min(sw < sw_min);
     
     %% Actual training phase:
@@ -220,7 +220,8 @@ for split_iter = 1:(nSplits + 1)
             rom.trainingData.X_interp{1}, figElboTest);
         elbo = rom.modelParams.elbo
         
-        if ~mod(rom.modelParams.EM_iter_split - 1, 20)
+%         if ~mod(rom.modelParams.EM_iter_split - 1, 20)
+        if false
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S
             filename = './data/activeCells_S';
@@ -282,7 +283,7 @@ for split_iter = 1:(nSplits + 1)
     
     if split_iter < (nSplits + 1)
         disp('splitting cell...')
-        refinement_objective = 'full_elbo_score';
+        refinement_objective = 'reduced_elbo_score';
         if strcmp(refinement_objective, 'active_cells_S')
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S;
