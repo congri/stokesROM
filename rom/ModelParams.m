@@ -23,6 +23,8 @@ classdef ModelParams < matlab.mixin.Copyable
         elbo
         cell_score
         cell_score_full   %includes also terms of p_cf to elbo cell score
+        active_cells
+        active_cells_S
         
         %p_cf
         W_cf
@@ -55,7 +57,7 @@ classdef ModelParams < matlab.mixin.Copyable
         VRVM_d = eps
         VRVM_e = eps
         VRVM_f = eps
-        VRVM_iter = 10 %iterations with fixed q(lambda_c)
+        VRVM_iter = 500 %iterations with fixed q(lambda_c)
         
         %current parameters of variational distributions
         a
@@ -78,16 +80,18 @@ classdef ModelParams < matlab.mixin.Copyable
         featureFunctionMax
         
         %% Training parameters
-        max_EM_iter = 50
+        EM_iter       = 0    %current total number of iterations
+        EM_iter_split = 0    %current number of iterations after last split
+        max_EM_epochs = 30   %maximum number of epochs
         
         %% Settings
         computeElbo = true
         
         %% plots, initialized as animated lines
-        p_theta
-        p_sigma
-        p_gamma
-        p_elbo
+        plt_params = true    %plot parameter monitoring plots?
+        pParams
+        pElbo
+        pCellScores
     end
     
     methods
@@ -177,7 +181,7 @@ classdef ModelParams < matlab.mixin.Copyable
             
             nElc = size(self.Sigma_c, 1);
             self.splitted_cells = [self.splitted_cells, splt_cells];
-            for splt_cll = self.splitted_cells
+            for splt_cll = splt_cells
                 if isnan(self.cell_dictionary(splt_cll))
                     warning('Trying to split an already splitted cell. Skip.')
                 else
@@ -260,7 +264,7 @@ classdef ModelParams < matlab.mixin.Copyable
         %depreceated
         function load(self)
             %Initialize params theta_c, theta_cf
-                        
+            
             %Coarse mesh object
             if exist('./data/coarseMesh.mat', 'file')
                 load('./data/coarseMesh.mat', 'coarseMesh');
@@ -279,7 +283,7 @@ classdef ModelParams < matlab.mixin.Copyable
             self.theta_c = self.theta_c(end, :)';
             self.Sigma_c = dlmread('./data/sigma_c');
             self.Sigma_c = diag(self.Sigma_c(end, :));
-
+            
             addpath('./mesh');
             load('./data/gridRF.mat');
             self.gridRF = gridRF;
@@ -367,105 +371,6 @@ classdef ModelParams < matlab.mixin.Copyable
             end
         end
         
-        function plot_params(self, figHandle, iter)
-            %Plots the current theta_c
-            
-            %short notation
-            nSX = numel(self.fineGridX); nSY = numel(self.fineGridY);
-            if any(self.interpolationMode)
-                nSX = nSX + 1; nSY = nSY + 1;
-            end
-            
-            if nargin < 2
-                figHandle = figure;
-            end
-            
-            sb1 = subplot(3, 2, 1, 'Parent', figHandle);
-            if(isempty(self.p_theta) ||...
-                    numel(self.theta_c) ~= numel(self.p_theta))
-                %random colors
-                colors = [1 0 0; 0 1 0; 0 0 1; 1 0 1; 0 1 1; 0 0 0];
-                for d = 1:numel(self.theta_c)
-                    self.p_theta{d} = animatedline('color',...
-                        colors(mod(d, 6) + 1, :), 'Parent', sb1);
-                end
-                sb1.XLabel.String = 'iter';
-                sb1.YLabel.String = '$\theta_c$';
-            end
-            for d = 1:numel(self.theta_c)
-                addpoints(self.p_theta{d}, iter, self.theta_c(d));
-            end
-            axis(sb1, 'tight');
-            axis(sb1, 'fill');
-            
-            sb2 = subplot(3, 2, 2, 'Parent', figHandle);
-            bar(self.theta_c, 'linewidth', 1, 'Parent', sb2)
-            axis(sb2, 'tight');
-            axis(sb2, 'fill');
-            sb2.XLabel.String = 'component $i$';
-            sb2.YLabel.String = '$\theta_{c,i}$';
-            
-            sb3 = subplot(3, 2, 3, 'Parent', figHandle);
-            if(isempty(self.p_sigma) || ... 
-                    numel(self.p_sigma) ~= self.gridRF.nCells)
-                %random colors
-                for d = 1:self.gridRF.nCells
-                    self.p_sigma{d} = animatedline('color',...
-                        colors(mod(d, 6) + 1, :), 'Parent', sb3);
-                end
-                sb3.XLabel.String = 'iter';
-                sb3.YLabel.String = '$\sigma_k$';
-                sb3.YScale = 'log';
-            end
-            for d = 1:self.gridRF.nCells
-                addpoints(self.p_sigma{d}, iter, self.Sigma_c(d, d));
-            end
-            axis(sb3, 'tight');
-            axis(sb3, 'fill');
-            
-            sb4 = subplot(3, 2, 4, 'Parent', figHandle);
-            
-            sigma_c_plot = sqrt(self.rf2fem*diag(self.Sigma_c));
-            im = imagesc(reshape(sigma_c_plot, self.coarseMesh.nElX,...
-                self.coarseMesh.nElY)', 'Parent', sb4);
-            sb4.YDir = 'normal';
-            sb4.Title.String = '$\sigma_k$';
-            colorbar('Parent', figHandle);
-            sb4.GridLineStyle = 'none';
-            axis(sb4, 'square');
-            
-            sb5 = subplot(3, 2, 5, 'Parent', figHandle);
-            if strcmp(self.prior_theta_c, 'sharedVRVM')
-                gam = self.gamma(1:(numel(self.theta_c)/self.gridRF.nCells));
-            else
-                gam = self.gamma;
-            end
-            if isempty(self.p_gamma)
-                %random colors
-                for d = 1:numel(gam)
-                    self.p_gamma{d} = animatedline('color',...
-                        colors(mod(d, 6) + 1, :), 'Parent', sb5);
-                end
-                sb3.XLabel.String = 'iter';
-                sb5.YLabel.String = '$\gamma$';
-                sb5.YScale = 'log';
-            end
-            for d = 1:numel(gam)
-                addpoints(self.p_gamma{d}, iter, self.gamma(d));
-            end
-            axis(sb5, 'tight');
-            axis(sb5, 'fill');
-            
-            sb6 = subplot(3, 2, 6, 'Parent', figHandle);
-            imagesc(reshape(sqrt(self.sigma_cf.s0), nSX, nSY)', 'Parent', sb6)
-            sb6.Title.String = 'S';
-            colorbar('Parent', figHandle);
-            sb6.GridLineStyle = 'none';
-            axis(sb6, 'square');
-            sb6.YDir = 'normal';
-            drawnow;
-        end
-                
         function write2file(self, params)
             if ~exist('./data/', 'dir')
                 mkdir('./data/');
@@ -482,6 +387,13 @@ classdef ModelParams < matlab.mixin.Copyable
                 cell_score = self.cell_score';
                 save(filename, 'cell_score', '-ascii', '-append');
             end
+            
+            if contains(params, 'cell_score_full')
+                filename = './data/cell_score_full';
+                cell_score_full = self.cell_score_full';
+                save(filename, 'cell_score_full', '-ascii', '-append');
+            end
+            
             %Optimal params
             %W matrices
             if any(params == 'W')
@@ -492,7 +404,7 @@ classdef ModelParams < matlab.mixin.Copyable
                     save(filename, 'WArray', '-ascii')
                 end
             end
-
+            
             %gamma
             if contains(params, 'thetaPriorHyperparam')
                 filename = './data/thetaPriorHyperparam';
@@ -513,7 +425,7 @@ classdef ModelParams < matlab.mixin.Copyable
                 Sigma_theta_c = self.Sigma_theta_c;
                 save(filename, 'Sigma_theta_c');
             end
-                        
+            
             %sigma
             if contains(params, 'sigma_c')
                 filename = './data/sigma_c';
@@ -558,7 +470,7 @@ classdef ModelParams < matlab.mixin.Copyable
             end
         end
         
-        function compute_elbo(self, N, XMean, XSqMean, X_vtx, EMiter, fig)
+        function compute_elbo(self, N, XMean, XSqMean, X_vtx, fig)
             %General form of elbo allowing model comparison
             %   N:                   number of training samples
             %   XMean, XSqMean:      first and second moments of transformed
@@ -586,7 +498,7 @@ classdef ModelParams < matlab.mixin.Copyable
             Sigma_lambda_c = XSqMean - XMean.^2;
             %sum over N and macro-cells
             sum_logdet_lambda_c = sum(sum(log(Sigma_lambda_c)));
-
+            
             try
                 if strcmp(self.prior_theta_c, 'sharedVRVM')
                     logdet_Sigma_theta_ck = zeros(D_c, 1);
@@ -613,95 +525,370 @@ classdef ModelParams < matlab.mixin.Copyable
                 self.a*sum(log(self.b(1:D_gamma))) + ...
                 .5*logdet_Sigma_theta_c + .5*D_theta_c;
             if strcmp(self.prior_theta_c, 'sharedVRVM')
-                gamma_expected = psi(self.a) - log(self.b);
-                self.elbo = self.elbo + (D_c - 1)*sum(.5*gamma_expected -...
-                    (self.a./self.b).*(self.b - bb));
+                log_gamma_expected = psi(self.a) - log(self.b(1:D_gamma));
+                self.elbo = self.elbo + (D_c - 1)*sum(.5*log_gamma_expected -...
+                    (self.a./self.b(1:D_gamma)).*(self.b(1:D_gamma) - bb));
             end
             self.set_summation_matrix(X_vtx);
             self.cell_score = .5*sum(log(Sigma_lambda_c), 2) - ...
                 self.c*log(self.d) + .5*logdet_Sigma_theta_ck;
             f_contribution = - self.e*log(self.f);
-
+            
             self.cell_score_full = self.cell_score +...
                 self.sum_in_macrocell*f_contribution;
             
             sp1 = subplot(3, 4, 1, 'Parent', fig);
             hold(sp1, 'on')
-            sp1.Title.String = '$\sum \log \det \lambda_c$';
-            plot(EMiter, sum_logdet_lambda_c, 'kx', 'Parent', sp1);
+            sp1.Title.String = '$\frac{1}{2}\sum\log \det \Sigma_{\lambda_c}$';
+            plot(self.EM_iter, .5*sum_logdet_lambda_c, 'kx', 'Parent', sp1);
             axis(sp1, 'tight');
             
             sp2 = subplot(3, 4, 2, 'Parent', fig);
             hold(sp2, 'on')
             sp2.Title.String = '$\log \Gamma(e)$';
-            plot(EMiter, log(gamma(self.e)), 'kx', 'Parent', sp2);
+            plot(self.EM_iter, N_dof*log(gamma(self.e)), 'kx', 'Parent', sp2);
             axis(sp2, 'tight');
             
             sp3 = subplot(3, 4, 3, 'Parent', fig);
             hold(sp3, 'on')
             sp3.Title.String = '$-e \cdot \sum \log f$';
-            plot(EMiter, - self.e*sum(log(self.f)), 'kx', 'Parent', sp3);
+            plot(self.EM_iter, - self.e*sum(log(self.f)), 'kx', 'Parent', sp3);
             axis(sp3, 'tight');
             
             sp4 = subplot(3, 4, 4, 'Parent', fig);
             hold(sp4, 'on')
             sp4.Title.String = '$D_c \log \Gamma(c)$';
-            plot(EMiter, D_c*log(gamma(self.c)), 'kx', 'Parent', sp4);
+            plot(self.EM_iter, D_c*log(gamma(self.c)), 'kx', 'Parent', sp4);
             axis(sp4, 'tight');
             
             sp5 = subplot(3, 4, 5, 'Parent', fig);
             hold(sp5, 'on')
             sp5.Title.String = '$c\sum \log(d)$';
-            plot(EMiter, -self.c*sum(log(self.d)), 'kx', 'Parent', sp5);
+            plot(self.EM_iter, -self.c*sum(log(self.d)), 'kx', 'Parent', sp5);
             axis(sp5, 'tight');
             
             sp6 = subplot(3, 4, 6, 'Parent', fig);
             hold(sp6, 'on')
             sp6.Title.String = '$D_\gamma \cdot \log(\Gamma(a))$';
-            plot(EMiter, D_gamma*log(gamma(self.a)), 'kx', 'Parent', sp6);
+            plot(self.EM_iter, D_gamma*log(gamma(self.a)), 'kx', 'Parent', sp6);
             axis(sp6, 'tight');
             
             sp7 = subplot(3, 4, 7, 'Parent', fig);
             hold(sp7, 'on')
             sp7.Title.String = '$a\sum \log b_{1:D_{\gamma}}$';
-            plot(EMiter,-self.a*sum(log(self.b(1:D_gamma))),'kx','Parent', sp7);
+            plot(self.EM_iter,-self.a*sum(log(self.b(1:D_gamma))),'kx',...
+                'Parent', sp7);
             axis(sp7, 'tight');
             
             sp8 = subplot(3, 4, 8, 'Parent', fig);
             hold(sp8, 'on')
             sp8.Title.String = '$\frac{1}{2}\log |\Sigma_{\theta_c}|$';
-            plot(EMiter, .5*logdet_Sigma_theta_c, 'kx', 'Parent', sp8);
+            plot(self.EM_iter, .5*logdet_Sigma_theta_c, 'kx', 'Parent', sp8);
             axis(sp8, 'tight');
             
             sp9 = subplot(3, 4, 9, 'Parent', fig);
             hold(sp9, 'on')
-            sp9.Title.String = '$\frac{1}{2}(D_c - 1)\sum <\gamma>$';
-            plot(EMiter, (D_c - 1)*.5*sum(gamma_expected), 'kx', 'Parent', sp9);
+            sp9.Title.String = '$\frac{1}{2}(D_c - 1)\sum <\log \gamma>$';
+            plot(self.EM_iter, (D_c - 1)*.5*sum(log_gamma_expected), 'kx',...
+                'Parent', sp9);
             axis(sp9, 'tight');
             
             sp10 = subplot(3, 4, 10, 'Parent', fig);
             hold(sp10, 'on')
-            sp10.Title.String = '$-(D_c - 1)\sum \frac{a}{b}(b - b_0)$';
-            plot(EMiter, -(D_c - 1)*sum((self.a./self.b).*(self.b - bb)),...
-                'kx', 'Parent', sp10);
+            sp10.Title.String = '$-(D_c - 1)\sum < \gamma >(b - b_0)$';
+            plot(self.EM_iter,-(D_c-1)*sum((self.a./self.b(1:D_gamma)).*...
+                (self.b(1:D_gamma) - bb)), 'kx', 'Parent', sp10);
             axis(sp10, 'tight');
         end
         
-        function plotElbo(self, fig, EMiter)
-            sp = subplot(1, 1, 1, 'Parent', fig);
+        function plot_params(self)
+            %Plots the current theta_c
+            
+            if(self.plt_params && feature('ShowFigureWindows'))
+                if ~isfield(self.pParams, 'figParams')
+                    self.pParams.figParams = ...
+                        figure('units','normalized','outerposition',[0 0 .5 1]);
+                end
+                
+                %short notation
+                nSX = numel(self.fineGridX); nSY = numel(self.fineGridY);
+                if any(self.interpolationMode)
+                    nSX = nSX + 1; nSY = nSY + 1;
+                end
+                
+                sb1 = subplot(3, 2, 1, 'Parent', self.pParams.figParams);
+                if(~isfield(self.pParams, 'p_theta') ||...
+                        numel(self.theta_c) ~= numel(self.pParams.p_theta))
+                    %random colors
+                    colors = [1 0 0; 0 1 0; 0 0 1; 1 0 1; 0 1 1; 0 0 0];
+                    for d = 1:numel(self.theta_c)
+                        self.pParams.p_theta{d} = animatedline('color',...
+                            colors(mod(d, 6) + 1, :), 'Parent', sb1);
+                    end
+                    sb1.XLabel.String = 'iter';
+                    sb1.YLabel.String = '$\theta_c$';
+                end
+                for d = 1:numel(self.theta_c)
+                    addpoints(...
+                        self.pParams.p_theta{d}, self.EM_iter, self.theta_c(d));
+                end
+                axis(sb1, 'tight');
+                axis(sb1, 'fill');
+                
+                sb2 = subplot(3, 2, 2, 'Parent', self.pParams.figParams);
+                bar(self.theta_c, 'linewidth', 1, 'Parent', sb2)
+                axis(sb2, 'tight');
+                axis(sb2, 'fill');
+                sb2.XLabel.String = 'component $i$';
+                sb2.YLabel.String = '$\theta_{c,i}$';
+                
+                sb3 = subplot(3, 2, 3, 'Parent', self.pParams.figParams);
+                if(~isfield(self.pParams, 'p_sigma') || ...
+                        numel(self.pParams.p_sigma) ~= self.gridRF.nCells)
+                    %random colors
+                    for d = 1:self.gridRF.nCells
+                        self.pParams.p_sigma{d} = animatedline('color',...
+                            colors(mod(d, 6) + 1, :), 'Parent', sb3);
+                    end
+                    sb3.XLabel.String = 'iter';
+                    sb3.YLabel.String = '$\sigma_k$';
+                    sb3.YScale = 'log';
+                end
+                for d = 1:self.gridRF.nCells
+                    addpoints(self.pParams.p_sigma{d}, ...
+                        self.EM_iter, self.Sigma_c(d, d));
+                end
+                axis(sb3, 'tight');
+                axis(sb3, 'fill');
+                
+                sb4 = subplot(3, 2, 4, 'Parent', self.pParams.figParams);
+                
+                sigma_c_plot = sqrt(self.rf2fem*diag(self.Sigma_c));
+                im = imagesc(reshape(sigma_c_plot, self.coarseMesh.nElX,...
+                    self.coarseMesh.nElY)', 'Parent', sb4);
+                sb4.YDir = 'normal';
+                sb4.Title.String = '$\sigma_k$';
+                colorbar('Parent', self.pParams.figParams);
+                sb4.XTick = [];
+                sb4.YTick = [];
+                sb4.GridLineStyle = 'none';
+                axis(sb4, 'square');
+                
+                sb5 = subplot(3, 2, 5, 'Parent', self.pParams.figParams);
+                if strcmp(self.prior_theta_c, 'sharedVRVM')
+                    gam= self.gamma(1:(numel(self.theta_c)/self.gridRF.nCells));
+                else
+                    gam = self.gamma;
+                end
+                if ~isfield(self.pParams, 'p_gamma')
+                    %random colors
+                    for d = 1:numel(gam)
+                        self.pParams.p_gamma{d} = animatedline('color',...
+                            colors(mod(d, 6) + 1, :), 'Parent', sb5);
+                    end
+                    sb3.XLabel.String = 'iter';
+                    sb5.YLabel.String = '$\gamma$';
+                    sb5.YScale = 'log';
+                end
+                for d = 1:numel(gam)
+                    addpoints(...
+                        self.pParams.p_gamma{d}, self.EM_iter, self.gamma(d));
+                end
+                axis(sb5, 'tight');
+                axis(sb5, 'fill');
+                
+                sb6 = subplot(3, 2, 6, 'Parent', self.pParams.figParams);
+                if ~isfield(self.pParams, 'img_S')
+                self.pParams.img_S = imagesc(...
+                    reshape(sqrt(self.sigma_cf.s0), nSX, nSY), 'Parent', sb6);
+                else
+                    self.pParams.img_S.CData =...
+                        reshape(sqrt(self.sigma_cf.s0),nSX,nSY);
+                end
+                sb6.Title.String = 'S';
+                colorbar('Parent', self.pParams.figParams);
+                sb6.GridLineStyle = 'none';
+                axis(sb6, 'square');
+                sb6.YDir = 'normal';
+                sb6.YTick = [];    sb6.XTick = [];
+                drawnow;
+                
+            end
+        end
+        
+        function plotElbo(self, t_tot)
+            
+            if ~isfield(self.pElbo, 'figure')
+                self.pElbo.figure =...
+                    figure('units','normalized','outerposition',[0 0 1 1]);
+            end
+            
+            sp = subplot(1, 1, 1, 'Parent', self.pElbo.figure);
             hold(sp, 'on');
-            if isempty(self.p_elbo)
-                self.p_elbo = animatedline('Parent', sp);
-                self.p_elbo.LineWidth = 2;
-                self.p_elbo.Marker = 'x';
-                self.p_elbo.MarkerSize = 10;
-                sp.XLabel.String = 'iteration';
+            if ~isfield(self.pElbo, 'animatedline')
+                self.pElbo.animatedline = animatedline('Parent', sp);
+                self.pElbo.animatedline.LineWidth = 2;
+                self.pElbo.animatedline.Marker = 'x';
+                self.pElbo.animatedline.MarkerSize = 10;
+                if nargin > 1
+                    sp.XLabel.String = 'comp time';
+                else
+                    sp.XLabel.String = 'iteration';
+                end
                 sp.YLabel.String = 'elbo';
             end
-            addpoints(self.p_elbo, EMiter, self.elbo);
+            if nargin > 1
+                x = t_tot;
+            else
+                x = self.EM_iter;
+            end
+            addpoints(self.pElbo.animatedline, x, self.elbo);
             axis(sp, 'tight');
             axis(sp, 'fill');
             drawnow;
+        end
+        
+        function plotCellScores(self)
+            %plot adaptive refinement cell scores
+            
+            if ~isfield(self.pCellScores, 'figure')
+                %This is the very first call. Set up things here
+                self.pCellScores.figure =...
+                    figure('units','normalized','outerposition',[0 0 1 1]);
+                
+                self.pCellScores.p_active_cells = {};
+                self.pCellScores.p_active_cells_S = {};
+                self.pCellScores.p_cell_score = {};
+            end
+                
+            %Axes 1
+            self.pCellScores.sp1 =...
+                subplot(2, 3, 1, 'Parent', self.pCellScores.figure);
+            cbp_lambda = colorbar('Parent', self.pCellScores.figure);
+            self.pCellScores.sp1.YDir = 'normal';
+            axis(self.pCellScores.sp1, 'square');
+            
+            %Axes 2
+            self.pCellScores.sp2 =...
+                subplot(2, 3, 2, 'Parent', self.pCellScores.figure);
+            cbp_lambda = colorbar('Parent', self.pCellScores.figure);
+            self.pCellScores.sp2.YDir = 'normal';
+            axis(self.pCellScores.sp2, 'square');
+            
+            %Axes 3
+            self.pCellScores.sp3 =...
+                subplot(2, 3, 3, 'Parent', self.pCellScores.figure);
+            cbp_lambda = colorbar('Parent', self.pCellScores.figure);
+            self.pCellScores.sp3.YDir = 'normal';
+            axis(self.pCellScores.sp3, 'square');
+            
+            %Axes 4
+            self.pCellScores.sp4 =...
+                subplot(2, 3, 4, 'Parent', self.pCellScores.figure);
+            self.pCellScores.sp4.XLabel.String = 'iteration';
+            self.pCellScores.sp4.YLabel.String = 'cell score';
+            
+            %Axes 5
+            self.pCellScores.sp5 =...
+                subplot(2, 3, 5, 'Parent', self.pCellScores.figure);
+            self.pCellScores.sp5.XLabel.String = 'iteration';
+            self.pCellScores.sp5.YLabel.String = 'active cell score';
+            
+            self.pCellScores.sp6 =...
+                subplot(2, 3, 6, 'Parent', self.pCellScores.figure);
+            self.pCellScores.sp6.XLabel.String = 'iteration';
+            self.pCellScores.sp6.YLabel.String = 'active cell score with S';
+
+            
+            imagesc(reshape(self.rf2fem*(-self.cell_score_full),...
+                numel(self.coarseGridX), numel(self.coarseGridY))',...
+                'Parent', self.pCellScores.sp1);
+            self.pCellScores.sp1.GridLineStyle = 'none';
+            self.pCellScores.sp1.XTick = [];
+            self.pCellScores.sp1.YTick = [];
+            self.pCellScores.sp1.Title.String = 'Elbo cell score';
+            
+            imagesc(reshape(self.rf2fem*log(self.active_cells'),...
+                numel(self.coarseGridX), numel(self.coarseGridY))',...
+                'Parent', self.pCellScores.sp2);
+            self.pCellScores.sp2.GridLineStyle = 'none';
+            self.pCellScores.sp2.XTick = [];
+            self.pCellScores.sp2.YTick = [];
+            self.pCellScores.sp2.Title.String = 'active cells';
+            
+            imagesc(reshape(self.rf2fem*log(self.active_cells_S'),...
+                numel(self.coarseGridX), numel(self.coarseGridY))',...
+                'Parent', self.pCellScores.sp3);
+            self.pCellScores.sp3.GridLineStyle = 'none';
+            self.pCellScores.sp2.GridLineStyle = 'none';
+            self.pCellScores.sp3.XTick = [];
+            self.pCellScores.sp3.YTick = [];
+            self.pCellScores.sp3.Title.String = '$\log p_{cf}$';
+            
+            
+            if(numel(self.cell_score_full) ~=...
+                    numel(self.pCellScores.p_cell_score))
+                map = colormap(self.pCellScores.sp4, 'lines');
+                for k = (numel(self.pCellScores.p_cell_score) + 1):...
+                        numel(self.cell_score_full)
+                    self.pCellScores.p_cell_score{k} = ...
+                        animatedline('Parent', self.pCellScores.sp4);
+                    self.pCellScores.p_cell_score{k}.LineWidth = 2;
+                    self.pCellScores.p_cell_score{k}.Marker = 'x';
+                    self.pCellScores.p_cell_score{k}.MarkerSize = 10;
+                    self.pCellScores.p_cell_score{k}.Color = map(k, :);
+                end
+            end
+            for k = 1:numel(self.cell_score_full)
+                addpoints(self.pCellScores.p_cell_score{k}, self.EM_iter,...
+                    -self.cell_score_full(k));
+            end
+            axis(self.pCellScores.sp4, 'tight');
+            axis(self.pCellScores.sp4, 'fill');
+%             self.pCellScores.sp4.YLim = [min(self.cell_score_full), ...
+%                 max(self.cell_score_full)];
+            
+            
+            if(numel(self.pCellScores.p_active_cells)~=numel(self.active_cells))
+                for k = (numel(self.pCellScores.p_active_cells) + 1):...
+                        numel(self.active_cells)
+                    self.pCellScores.p_active_cells{k} = ...
+                        animatedline('Parent', self.pCellScores.sp5);
+                    self.pCellScores.p_active_cells{k}.LineWidth = 2;
+                    self.pCellScores.p_active_cells{k}.Marker = 'x';
+                    self.pCellScores.p_active_cells{k}.MarkerSize = 10;
+                    self.pCellScores.p_active_cells{k}.Color = map(k, :);
+                end
+                
+            end
+            for k = 1:numel(self.active_cells)
+                addpoints(self.pCellScores.p_active_cells{k},...
+                    self.EM_iter, log(self.active_cells(k)));
+            end
+            axis(self.pCellScores.sp5, 'tight');
+            axis(self.pCellScores.sp5, 'fill');
+            
+            
+            if(numel(self.pCellScores.p_active_cells_S)...
+                    ~= numel(self.active_cells_S))
+                for k = (numel(self.pCellScores.p_active_cells_S) + 1):...
+                        numel(self.active_cells_S)
+                    self.pCellScores.p_active_cells_S{k} =...
+                        animatedline('Parent', self.pCellScores.sp6);
+                    self.pCellScores.p_active_cells_S{k}.LineWidth = 2;
+                    self.pCellScores.p_active_cells_S{k}.Marker = 'x';
+                    self.pCellScores.p_active_cells_S{k}.MarkerSize = 10;
+                    self.pCellScores.p_active_cells_S{k}.Color = map(k, :);
+                end
+            end
+            for k = 1:numel(self.active_cells_S)
+                addpoints(self.pCellScores.p_active_cells_S{k},...
+                    self.EM_iter, log(self.active_cells_S(k)));
+            end
+            axis(self.pCellScores.sp6, 'tight');
+            axis(self.pCellScores.sp6, 'fill');
+            drawnow;
+            
         end
     end
 end

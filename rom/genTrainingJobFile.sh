@@ -12,15 +12,15 @@ MARG4=0.01
 XMU="0.7_0.3"
 XCOV="0.2_0.0_0.3"
 
-GRADIENTSAMPLESSTART=3
-GRADIENTSAMPLESEND=20
-STOCHOPTTIME=10    
+GRADIENTSAMPLESSTART=10
+GRADIENTSAMPLESEND=30
+STOCHOPTTIME=30    
 
-NTRAIN=256
+NTRAIN=512
 NTESTSTART=0
 NTESTEND=1023
 
-MAXEMITER=30
+MAXEMITER=49
 
 NCORES=16
 if [ $NTRAIN -lt $NCORES ]; then
@@ -29,7 +29,7 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="split8x8_autosplit"
+NAMEBASE="autosplit_full_elbo_score_start=4x4_much_more_data"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"
@@ -71,7 +71,7 @@ sed -i \"13s/.*/        coordDist_cov = '${XCOV}'/\" ./StokesData.m
 sed -i \"17s/.*/maxCompTime = ${STOCHOPTTIME};/\" ./VI/efficientStochOpt.m
 sed -i \"18s/.*/nSamplesStart = ${GRADIENTSAMPLESSTART};/\" ./VI/efficientStochOpt.m
 sed -i \"19s/.*/nSamplesEnd = ${GRADIENTSAMPLESEND};/\" ./VI/efficientStochOpt.m
-sed -i \"76s/.*/        max_EM_iter = ${MAXEMITER}/\" ./ModelParams.m
+sed -i \"85s/.*/        max_EM_epochs = ${MAXEMITER}/\" ./ModelParams.m
 sed -i \"11s/.*/testSamples = ${NTESTSTART}:${NTESTEND};/\" ./predictionScript.m
 
 

@@ -9,6 +9,7 @@ classdef StokesROM < handle
         %Model parameters
         modelParams
         
+        pCurrState
     end
     
     methods
@@ -127,7 +128,7 @@ classdef StokesROM < handle
                 %assign <S>, <Sigma_c>, <theta_c>
                 self.modelParams.sigma_cf.s0 = 1./tau_cf;
                 
-                self.modelParams.Sigma_c = diag(1./tau_c);
+                self.modelParams.Sigma_c = sparse(diag(1./tau_c));
                 self.modelParams.theta_c = mu_theta;
                 self.modelParams.Sigma_theta_c = Sigma_theta;
                 
@@ -141,6 +142,9 @@ classdef StokesROM < handle
                 self.update_p_c(XMean, XSqMean);
                 self.update_p_cf(sqDist_p_cf);
             end
+
+            self.modelParams.EM_iter = self.modelParams.EM_iter + 1;
+            self.modelParams.EM_iter_split = self.modelParams.EM_iter_split + 1;
         end
         
         function update_p_c(self, XMean, XSqMean)
@@ -371,16 +375,23 @@ classdef StokesROM < handle
             mean_s0 = mean(self.modelParams.sigma_cf.s0)
         end
                 
-        function plotCurrentState(self, fig, dataOffset, transType, transLimits)
+        function plotCurrentState(self, dataOffset, transType, transLimits)
             %Plots the current modal effective property and the modal
             %reconstruction for 2 -training- samples
+            
+            if ~isfield(self.pCurrState, 'figure')
+                self.pCurrState.figure = ...
+                    figure('units','normalized','outerposition',[0 0 1 1]);
+            end
+            
             for i = 1:4
                 Lambda_eff_mode = conductivityBackTransform(...
                     self.trainingData.designMatrix{i + dataOffset}*...
                     self.modelParams.theta_c, transType, transLimits);
                 Lambda_eff_mode = self.modelParams.rf2fem*...
                     Lambda_eff_mode;
-                sb1 = subplot(4, 3, 1 + (i - 1)*3, 'Parent', fig);
+                sb1 = subplot(4, 3, 1 + (i - 1)*3,...
+                    'Parent', self.pCurrState.figure);
                 imagesc(reshape(Lambda_eff_mode,...
                     self.modelParams.coarseMesh.nElX,...
                     self.modelParams.coarseMesh.nElY)', 'Parent', sb1)
@@ -390,8 +401,9 @@ classdef StokesROM < handle
                 sb1.GridLineStyle = 'none';
                 sb1.XTick = [];
                 sb1.YTick = [];
-                cbp_lambda = colorbar('Parent', fig);
-                sb2 = subplot(4, 3, 2 + (i - 1)*3, 'Parent', fig);
+                cbp_lambda = colorbar('Parent', self.pCurrState.figure);
+                sb2 = subplot(4, 3, 2 + (i - 1)*3,...
+                    'Parent', self.pCurrState.figure);
                 if isempty(self.trainingData.cells)
                     self.trainingData.readData('c');
                 end
@@ -415,7 +427,8 @@ classdef StokesROM < handle
                 
 %                 cbp_true = colorbar('Parent', fig);
                 
-                sb3 = subplot(4, 3, 3 + (i - 1)*3, 'Parent', fig);
+                sb3 = subplot(4, 3, 3 + (i - 1)*3,...
+                    'Parent', self.pCurrState.figure);
                 
                 isotropicDiffusivity = true;
                 if isotropicDiffusivity
@@ -471,7 +484,7 @@ classdef StokesROM < handle
                 sb3.BoxStyle = 'full';
                 sb3.XTick = [];
                 sb3.YTick = [];
-                cbp_reconst = colorbar('Parent', fig);
+                cbp_reconst = colorbar('Parent', self.pCurrState.figure);
             end
             drawnow
         end

@@ -5,18 +5,18 @@ function [varDistParams, x] =...
 
 debug = false;   %debug mode
 
-updateRule = 'adam';
+updateRule = 'amsgrad';
 % beta1 = .7;                     %the higher, the more important is momentum
 % beta2 = .8;                    %curvature parameter
 beta1 = .9;
 beta2 = .9999995;
-epsilon = 1e-8;                  %curvature stabilization parameter
+epsilon = 1e-6;                  %curvature stabilization parameter
 
 stepOffset = 200000;                %Robbins-Monro step offset
-maxIterations = 1e4;
-maxCompTime = 30;
-nSamplesStart = 3;                  %gradient samples per iteration
-nSamplesEnd = 50;
+maxIterations = Inf;
+maxCompTime = 20;
+nSamplesStart = 1;                  %gradient samples per iteration
+nSamplesEnd = 1;
 nIncr = (nSamplesEnd - nSamplesStart)/maxCompTime;
 nSamples = nSamplesStart;
 
@@ -74,8 +74,9 @@ end
 cmpt = tic;
 while ~converged
     
-    gradient =...
+    [gradient] =...
         sampleELBOgrad(log_emp_dist, variationalDist, nSamples, varDistParams);
+    
 
     if strcmp(updateRule, 'adam')
         
@@ -92,6 +93,25 @@ while ~converged
         %Optimization update
         x = x + (stepWidth_stepOffset/(stepOffset + steps)).*...
             (1./(sqrt(uncenteredXVariance) + epsilon)).*momentum;
+        
+    elseif strcmp(updateRule, 'amsgrad')
+        
+        if steps == 0
+            %careful first iteration
+            momentum = 1e-6*gradient;
+            uncenteredXVariance = gradient.^2;
+            uncenteredXVariance_max = uncenteredXVariance;
+        else
+            momentum = beta1*momentum + (1 - beta1)*gradient;
+        end
+        uncenteredXVariance = beta2*uncenteredXVariance...
+            + (1 - beta2)*gradient.^2;
+        uncenteredXVariance_max(uncenteredXVariance_max<uncenteredXVariance)...
+            =uncenteredXVariance(uncenteredXVariance_max < uncenteredXVariance);
+        
+        %Optimization update
+        x = x + (stepWidth_stepOffset/(stepOffset + steps)).*...
+            (1./(sqrt(uncenteredXVariance_max) + epsilon)).*momentum;
         
     elseif strcmp(updateRule, 'robbinsMonro')
         delta = ((stepWidth_stepOffset)/(stepOffset + steps)).*gradient;
@@ -150,7 +170,6 @@ while ~converged
         if debug
             steps
         end
-        steps
     end
 end
 
