@@ -9,6 +9,7 @@ from flowproblem import FlowProblem
 import featurefunctions as ff
 import dolfin as df
 import warnings
+import os
 
 
 class StokesData(FlowProblem):
@@ -23,18 +24,18 @@ class StokesData(FlowProblem):
     viscosity = 1.0
 
     # general parameters
-    samples = np.arange(0, 4)  # vector of random meshes to load
-    nElements = 128
+    samples = np.arange(0, 17)  # list of random meshes to load
+    nElements = 256
 
     # microstructure parameters
     nExclusionsDist = 'logn'  # number of exclusions distribution
-    nExclusionParams = (5.5, 1.0)  # for logn: mu and sigma of logn dist.
+    nExclusionParams = (11.0, 1.0)  # for logn: mu and sigma of logn dist.
     coordDist = 'gauss'  # distribution of circ. exclusions in space
-    coord_mu = [.7, .3]
-    coord_cov = [[0.2, 0.0], [0.0, 0.3]]  # covariance of spatial disk distribution
+    coord_mu = [.8, .8]
+    coord_cov = [[0.55, -0.45], [-0.45, 0.55]]  # covariance of spatial disk distribution
     radiiDist = 'logn'  # dist. of disk radii
-    rParams = (-4.5, 0.7)  # mu and sigma of disk radii distribution
-    margins = (0.01, 0.01, 0.01, 0.01)  # margins of exclusions to boundaries
+    rParams = (-6.0, 0.5)  # mu and sigma of disk radii distribution
+    margins = (0.008, 0.008, 0.008, 0.008)  # margins of exclusions to boundaries
     interiorBCtype = 'noslip'  # Boundary condition on exclusion boundary
 
     # data storage
@@ -154,6 +155,9 @@ class StokesData(FlowProblem):
     def saveSolution(self, solutionFunction, meshNumber, filetype='numpy_compressed'):
         mesh = solutionFunction.function_space().mesh()
 
+        if not os.path.exists(self.solutionfolder):
+            os.makedirs(self.solutionfolder)
+
         if filetype == 'hdf5':
             hdf = df.HDF5File(mesh.mpi_comm(), self.solutionfolder + '/solution' + str(meshNumber) + '.h5', "w")
             hdf.write(solutionFunction, 'solution')
@@ -206,7 +210,7 @@ class StokesData(FlowProblem):
             t = time.time()
             try:
                 solution = self.solvePDE(functionSpace, mesh, boundaryConditions)
-                self.saveSolution(solution, meshNumber)
+                # self.saveSolution(solution, meshNumber)
                 self.saveSolution(solution, meshNumber, 'matlab')
                 elapsed_time = time.time() - t
                 print('Stokes PDE solved. Time: ', elapsed_time)

@@ -23,9 +23,14 @@ classdef StokesROM < handle
                     strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
                 dim_theta = numel(self.modelParams.theta_c);
                 nElc = size(self.trainingData.designMatrix{1}, 1);
+                dim_gamma = dim_theta/nElc;
                 
                 %Parameters that do not change when q(lambda_c) is fixed
-                a = self.modelParams.VRVM_a + .5;
+                if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
+                    a = self.modelParams.VRVM_a + .5*nElc;
+                else
+                    a = self.modelParams.VRVM_a + .5;
+                end
                 e = self.modelParams.VRVM_e + .5*self.trainingData.nSamples;
                 c = self.modelParams.VRVM_c + .5*self.trainingData.nSamples;
                 Ncells_gridS = numel(self.modelParams.fineGridX)*...
@@ -63,12 +68,14 @@ classdef StokesROM < handle
                 
                 Phi_full = cell2mat(self.trainingData.designMatrix);
                 for i = 1:self.modelParams.VRVM_iter
-                    b = self.modelParams.VRVM_b + .5*(mu_theta.^2 +...
-                            diag(Sigma_theta));
                     if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
-                        b = reshape(b, dim_theta/nElc, nElc);
-                        b = mean(b, 2);
+                        thetaSq_expect_sum = sum(reshape(...
+                            mu_theta.^2 + diag(Sigma_theta), dim_gamma,nElc),2);
+                        b = self.modelParams.VRVM_b + .5*thetaSq_expect_sum;
                         b = repmat(b, nElc, 1);
+                    else
+                        b = self.modelParams.VRVM_b + .5*(mu_theta.^2 +...
+                            diag(Sigma_theta));
                     end
                     gam = a./b;
                     d = self.modelParams.VRVM_d + .5*sum(XSqMean, 2);

@@ -14,7 +14,7 @@ import time
 mode = 'nonOverlappingCircles'
 nMeshes = 8
 nElements = 128  # PDE discretization
-foldername1 = '/home/constantin/python/data/stokesEquation/meshes/meshSize=' + str(nElements)
+foldername1 = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nElements)
 
 
 #Parameters only for 'circles' mode
@@ -27,8 +27,9 @@ margins = (0.01, .01, .01, .01)
 substractCorners = False     #Substracts circles from domain corners s.t. flow cannot pass
 radiiDist = 'logn'
 r_params = (-4.5, .15)
-coordinate_cov = [[0.2, 0.0], [0.0, 0.3]]
-c_params = [[0.7, 0.3], np.array(coordinate_cov)]
+coordinate_cov = [[0.55, -0.45], [-0.45, 0.55]]
+coordinate_mu = [.8, .8]
+c_params = [coordinate_mu, np.array(coordinate_cov)]
 
 
 #parameters only for 'randomField' mode
@@ -188,18 +189,24 @@ elif mode == 'circles':
 elif mode == 'nonOverlappingCircles':
     print('Generating mesh with non-overlapping circular exclusions...')
 
+    foldername = foldername1 + '/nonOverlappingDisks/margins=' + str(margins[0]) + '_' + str(margins[1]) + '_' + \
+                 str(margins[2]) + '_' + str(margins[3])
+
     if nExclusionsDist == 'uniform':
+        # outdated!!
         foldername = foldername1 + '/nNonOverlapCircExcl=' + str(nExclusionParams[0]) + '-' + str(nExclusionParams[1]) +\
             '/coordDist=' + coordinateDist
     elif nExclusionsDist == 'logn':
-        foldername = foldername1 + '/nNonOverlapCircExcl=logn' + str(nExclusionParams[0]) + '-' + str(nExclusionParams[1]) + \
-                     '/coordDist=' + coordinateDist
+
+        foldername += '/N~logn/mu=' + str(nExclusionParams[0]) + '/sigma=' + str(nExclusionParams[1]) + \
+                     '/x~' + coordinateDist
 
     if coordinateDist == 'gauss':
-        foldername += '_mu=' + str(c_params[0]) + 'cov=' + str(coordinate_cov)
+        foldername += '/mu=' + str(coordinate_mu[0]) + '_' + str(coordinate_mu[1]) + '/cov=' + \
+                      str(coordinate_cov[0][0]) + '_' + str(coordinate_cov[0][1]) + '_' + str(coordinate_cov[1][1]) +\
+                      '/'
 
-    foldername += '_margins=' + str(margins) +\
-        '/radiiDist=' + radiiDist + '_r_params=' + str(r_params)
+    foldername += '/r~' + radiiDist + '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1])
     if not os.path.exists(foldername):
         os.makedirs(foldername)
 
@@ -224,7 +231,7 @@ elif mode == 'nonOverlappingCircles':
         currentExclusions = 0
         t_start = time.time()
         t_elapsed = 0
-        t_lim = 120.0
+        t_lim = 600.0
         print('Drawing non-overlapping disks...')
         while currentExclusions < nExclusions and t_elapsed < t_lim:
             if coordinateDist == 'uniform':
@@ -236,7 +243,7 @@ elif mode == 'nonOverlappingCircles':
                 exclusionCenter = np.random.rand(1, 2)
             elif coordinateDist == 'gauss':
                 exclusionCenter = np.empty([1, 2])
-                exclusionCenter[0] = np.random.multivariate_normal(c_params[0], c_params[1])
+                exclusionCenter[0] = np.random.multivariate_normal(coordinate_mu, coordinate_cov)
 
             if radiiDist == 'uniform':
                 exclusionRadius = (r_params[1] - r_params[0]) * np.random.rand(1) + r_params[0]
@@ -251,7 +258,7 @@ elif mode == 'nonOverlappingCircles':
             for x_circ in exclusionCenters:
                 dist = np.linalg.norm(x_circ - exclusionCenter)
                 if dist <= exclusionRadius + exclusionRadii[iter]:
-                    #disks overlap
+                    # disks overlap
                     overlap = True
                     break
                 iter += 1

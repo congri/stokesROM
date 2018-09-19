@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 128;
+nTrain = 16;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -70,7 +70,7 @@ rom.trainingData.vtx2Cell(rom.modelParams);
 sw0_mu = 1e-3;
 sw0_sigma = 1e-6;
 sw_decay = .995; %decay factor per iteration
-nSplits = 16;
+nSplits = 20;
 tic_tot = tic;
 for split_iter = 1:(nSplits + 1)
     
@@ -98,7 +98,7 @@ for split_iter = 1:(nSplits + 1)
     nRFc = rom.modelParams.gridRF.nCells;
     sw = (sw_decay^rom.modelParams.EM_iter)*...
         [sw0_mu*ones(1, nRFc), sw0_sigma*ones(1, nRFc)];
-    sw_min = 1e-1*[sw0_mu*ones(1, nRFc), sw0_sigma*ones(1, nRFc)];
+    sw_min = 3e-1*[sw0_mu*ones(1, nRFc), sw0_sigma*ones(1, nRFc)];
     sw(sw < sw_min) = sw_min(sw < sw_min);
     
     %% Actual training phase:
@@ -246,7 +246,7 @@ for split_iter = 1:(nSplits + 1)
 %         rom.plotCurrentState(0, transType, transLimits);
         %plot elbo vs. training iteration
         t_tot = toc(tic_tot)
-        rom.modelParams.plotElbo(t_tot);
+%         rom.modelParams.plotElbo(t_tot);
         %Plot adaptive refinement cell scores
 %         rom.modelParams.plotCellScores();
         disp('...plotting done. Plotting time:')
@@ -283,7 +283,7 @@ for split_iter = 1:(nSplits + 1)
     
     if split_iter < (nSplits + 1)
         disp('splitting cell...')
-        refinement_objective = 'reduced_elbo_score';
+        refinement_objective = 'full_elbo_score';
         if strcmp(refinement_objective, 'active_cells_S')
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S;
@@ -291,7 +291,7 @@ for split_iter = 1:(nSplits + 1)
             save(filename, 'activeCells_S', '-ascii', '-append');
             [~, cell_index_pde] = max(rom.modelParams.active_cells_S);
         elseif strcmp(refinement_objective, 'active_cells')
-            rom.modelParams.active_cells_S = rom.findMeshRefinement(false)';
+            rom.modelParams.active_cells = rom.findMeshRefinement(false)';
             activeCells = rom.modelParams.active_cells;
             filename = './data/activeCells';
             save(filename, 'activeCells', '-ascii', '-append');
@@ -300,6 +300,8 @@ for split_iter = 1:(nSplits + 1)
             [~, cell_index_pde] = min(rom.modelParams.cell_score_full);
         elseif strcmp(refinement_objective, 'reduced_elbo_score')
             [~, cell_index_pde] = min(rom.modelParams.cell_score);
+        elseif strcmp(refinement_objective, 'random')
+            cell_index_pde = randi(numel(rom.modelParams.cell_score));
         end
         
         cell_index = find(rom.modelParams.cell_dictionary == cell_index_pde)

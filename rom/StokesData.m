@@ -3,14 +3,14 @@ classdef StokesData < handle
     
     properties
         %Seldomly changed parameters are to bechanged here
-        meshSize = 128
-        numberParams = [5.5, 1.0]   %[min, max] pos. number of circ. exclusions
+        meshSize = 256
+        numberParams = [11.0, 1.0]   %[min, max] pos. number of circ. exclusions
         numberDist = 'logn';
-        margins = [0.01, 0.01, 0.01, 0.01]    %[l., u.] margin for imp. phase
-        r_params = [-4.5, .7]    %[lo., up.] bound on random blob radius
+        margins = [0.008, 0.008, 0.008, 0.008]    %[l., u.] margin for imp. phase
+        r_params = [-6.0, .5]    %[lo., up.] bound on random blob radius
         coordDist = 'gauss'
-        coordDist_mu = '0.7_0.3'   %only for gauss
-        coordDist_cov = '0.2_0.0_0.3'
+        coordDist_mu = '0.8_0.8'   %only for gauss
+        coordDist_cov = '0.55_-0.45_0.55'
         radiiDist = 'logn'
         samples
         nSamples
@@ -59,11 +59,11 @@ classdef StokesData < handle
                     num2str(self.margins(2)), '_', ...
                     num2str(self.margins(3)), '_', ...
                     num2str(self.margins(4)), '/N~', self.numberDist, '/mu=',...
-                    num2str(self.numberParams(1)), '/sigma=', ...
+                    sprintf('%.1f', self.numberParams(1)), '/sigma=', ...
                     sprintf('%.1f', self.numberParams(2)), '/x~',...
                     self.coordDist, '/mu=', self.coordDist_mu, '/cov=',...
                     self.coordDist_cov, '/r~', self.radiiDist, '/mu=',...
-                    num2str(self.r_params(1)), '/sigma=',...
+                    sprintf('%.1f', self.r_params(1)), '/sigma=',...
                     num2str(self.r_params(2)), '/'));
                     
                 

@@ -20,7 +20,7 @@ NTRAIN=128
 NTESTSTART=0
 NTESTEND=1023
 
-MAXEMITER=120
+MAXEMITER=30
 
 NCORES=16
 if [ $NTRAIN -lt $NCORES ]; then
@@ -29,7 +29,7 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="reduced_elbo_score_extralong_start=4x4"
+NAMEBASE="full_elbo_score_start=2x2"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"

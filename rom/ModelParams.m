@@ -57,7 +57,7 @@ classdef ModelParams < matlab.mixin.Copyable
         VRVM_d = eps
         VRVM_e = eps
         VRVM_f = eps
-        VRVM_iter = 500 %iterations with fixed q(lambda_c)
+        VRVM_iter = 100 %iterations with fixed q(lambda_c)
         
         %current parameters of variational distributions
         a
@@ -102,7 +102,7 @@ classdef ModelParams < matlab.mixin.Copyable
             
             %only for a single cell here!!!
             %grid of random field
-            self.gridRF = RectangularMesh((1/4)*ones(1, 4));
+            self.gridRF = RectangularMesh((1/2)*ones(1, 2));
             self.cell_dictionary = 1:self.gridRF.nCells;
             
             %% Initialize coarse mesh object
@@ -524,11 +524,7 @@ classdef ModelParams < matlab.mixin.Copyable
                 log(gamma(self.a)) - log(gamma(aa))) - ...
                 self.a*sum(log(self.b(1:D_gamma))) + ...
                 .5*logdet_Sigma_theta_c + .5*D_theta_c;
-            if strcmp(self.prior_theta_c, 'sharedVRVM')
-                log_gamma_expected = psi(self.a) - log(self.b(1:D_gamma));
-                self.elbo = self.elbo + (D_c - 1)*sum(.5*log_gamma_expected -...
-                    (self.a./self.b(1:D_gamma)).*(self.b(1:D_gamma) - bb));
-            end
+
             self.set_summation_matrix(X_vtx);
             self.cell_score = .5*sum(log(Sigma_lambda_c), 2) - ...
                 self.c*log(self.d) + .5*logdet_Sigma_theta_ck;
@@ -537,68 +533,49 @@ classdef ModelParams < matlab.mixin.Copyable
             self.cell_score_full = self.cell_score +...
                 self.sum_in_macrocell*f_contribution;
             
-            sp1 = subplot(3, 4, 1, 'Parent', fig);
+            constants = -.5*N*N_dof*log(2*pi) + .5*N*D_c + .5*D_theta_c + ...
+                N_dof*(ee*log(ff) + log(gamma(self.e)) - log(gamma(ee))) +...
+                D_c*(cc*log(dd) + log(gamma(self.c)) - log(gamma(cc))) +...
+                D_gamma*(aa*log(bb) + log(gamma(self.a)) - log(gamma(aa)));
+            
+            sp1 = subplot(2, 3, 1, 'Parent', fig);
             hold(sp1, 'on')
-            sp1.Title.String = '$\frac{1}{2}\sum\log \det \Sigma_{\lambda_c}$';
-            plot(self.EM_iter, .5*sum_logdet_lambda_c, 'kx', 'Parent', sp1);
+            sp1.Title.String = 'constants';
+            plot(self.EM_iter, constants, 'kx', 'Parent', sp1);
             axis(sp1, 'tight');
             
-            sp2 = subplot(3, 4, 2, 'Parent', fig);
+            sp2 = subplot(2, 3, 2, 'Parent', fig);
             hold(sp2, 'on')
-            sp2.Title.String = '$\log \Gamma(e)$';
-            plot(self.EM_iter, N_dof*log(gamma(self.e)), 'kx', 'Parent', sp2);
+            sp2.Title.String = '$\frac{1}{2}\sum \log |\Sigma_{\lambda_c}|$';
+            plot(self.EM_iter, .5*sum_logdet_lambda_c, 'kx', 'Parent', sp2);
             axis(sp2, 'tight');
             
-            sp3 = subplot(3, 4, 3, 'Parent', fig);
+            sp3 = subplot(2, 3, 3, 'Parent', fig);
             hold(sp3, 'on')
-            sp3.Title.String = '$-e \cdot \sum \log f$';
-            plot(self.EM_iter, - self.e*sum(log(self.f)), 'kx', 'Parent', sp3);
+            sp3.Title.String = '$\frac{1}{2}\log |\Sigma_{\theta_c}|$';
+            plot(self.EM_iter, .5*logdet_Sigma_theta_c, 'kx', 'Parent', sp3);
             axis(sp3, 'tight');
             
-            sp4 = subplot(3, 4, 4, 'Parent', fig);
+            sp4 = subplot(2, 3, 4, 'Parent', fig);
             hold(sp4, 'on')
-            sp4.Title.String = '$D_c \log \Gamma(c)$';
-            plot(self.EM_iter, D_c*log(gamma(self.c)), 'kx', 'Parent', sp4);
+            sp4.Title.String = '$-e \sum \log f$';
+            plot(self.EM_iter, - self.e*sum(log(self.f)), 'kx', 'Parent', sp4);
             axis(sp4, 'tight');
             
-            sp5 = subplot(3, 4, 5, 'Parent', fig);
+            sp5 = subplot(2, 3, 5, 'Parent', fig);
             hold(sp5, 'on')
-            sp5.Title.String = '$c\sum \log(d)$';
+            sp5.Title.String = '$-c\sum \log(d)$';
             plot(self.EM_iter, -self.c*sum(log(self.d)), 'kx', 'Parent', sp5);
             axis(sp5, 'tight');
             
-            sp6 = subplot(3, 4, 6, 'Parent', fig);
+            sp6 = subplot(2, 3, 6, 'Parent', fig);
             hold(sp6, 'on')
-            sp6.Title.String = '$D_\gamma \cdot \log(\Gamma(a))$';
-            plot(self.EM_iter, D_gamma*log(gamma(self.a)), 'kx', 'Parent', sp6);
-            axis(sp6, 'tight');
-            
-            sp7 = subplot(3, 4, 7, 'Parent', fig);
-            hold(sp7, 'on')
-            sp7.Title.String = '$a\sum \log b_{1:D_{\gamma}}$';
+            sp6.Title.String = '$-a\sum \log b$';
             plot(self.EM_iter,-self.a*sum(log(self.b(1:D_gamma))),'kx',...
-                'Parent', sp7);
-            axis(sp7, 'tight');
+                'Parent', sp6);
+            axis(sp6, 'tight');
+            drawnow;
             
-            sp8 = subplot(3, 4, 8, 'Parent', fig);
-            hold(sp8, 'on')
-            sp8.Title.String = '$\frac{1}{2}\log |\Sigma_{\theta_c}|$';
-            plot(self.EM_iter, .5*logdet_Sigma_theta_c, 'kx', 'Parent', sp8);
-            axis(sp8, 'tight');
-            
-            sp9 = subplot(3, 4, 9, 'Parent', fig);
-            hold(sp9, 'on')
-            sp9.Title.String = '$\frac{1}{2}(D_c - 1)\sum <\log \gamma>$';
-            plot(self.EM_iter, (D_c - 1)*.5*sum(log_gamma_expected), 'kx',...
-                'Parent', sp9);
-            axis(sp9, 'tight');
-            
-            sp10 = subplot(3, 4, 10, 'Parent', fig);
-            hold(sp10, 'on')
-            sp10.Title.String = '$-(D_c - 1)\sum < \gamma >(b - b_0)$';
-            plot(self.EM_iter,-(D_c-1)*sum((self.a./self.b(1:D_gamma)).*...
-                (self.b(1:D_gamma) - bb)), 'kx', 'Parent', sp10);
-            axis(sp10, 'tight');
         end
         
         function plot_params(self)
@@ -656,7 +633,7 @@ classdef ModelParams < matlab.mixin.Copyable
                 end
                 for d = 1:self.gridRF.nCells
                     addpoints(self.pParams.p_sigma{d}, ...
-                        self.EM_iter, self.Sigma_c(d, d));
+                        self.EM_iter, full(self.Sigma_c(d, d)));
                 end
                 axis(sb3, 'tight');
                 axis(sb3, 'fill');

@@ -26,9 +26,9 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(0, 16)  # vector of random meshes to load
+meshes = np.arange(0, 5)  # vector of random meshes to load
 porousMedium = 'nonOverlappingCircles'    #circles or randomField
-nElements = 128
+nElements = 256
 
 # Define physical parameters
 mu = 1  # viscosity
@@ -46,14 +46,15 @@ nExclusionsMin = 128
 nExclusionsMax = 513
 '''
 nExclusionsDist = 'logn'
-nExclusionParams = (5.5, 1.0)
+nExclusionParams = (11.0, 1.0)
 coordinateDistribution = 'gauss'
-coordinate_cov = [[0.2, 0.0], [0.0, 0.3]]
-c_params = [[.7, .3], np.array(coordinate_cov)]
+coordinate_cov = [[0.55, -0.45], [-0.45, 0.55]]
+coordinate_mu = [0.8, 0.8]
+c_params = [coordinate_mu, np.array(coordinate_cov)]
 radiiDistribution = 'logn'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
-margins = (0.01, 0.01, 0.01, 0.01)
-r_params = (-4.5, .7)
+margins = (0.008, 0.008, 0.008, 0.008)
+r_params = (-7.5, .5)
 
 
 # Flow boundary condition for velocity on domain boundary
@@ -62,34 +63,34 @@ u_y = '-1.2 + 2.0*x[0]'
 flowField = df.Expression((u_x, u_y), degree=2)
 
 
-folderbase = '/home/constantin'
+folderbase = '/home/constantin/cluster'
 foldername = folderbase + '/python/data/stokesEquation/meshSize=' + str(nElements)
 if porousMedium == 'randomField':
     foldername = foldername + '/randFieldDiscretization=' + str(nMeshPolygon) + '/cov=' + covarianceFunction +\
     '/params=' + str(randFieldParams) + '/l=' + str(lengthScale[0]) + '_' +\
     str(lengthScale[1]) + '/volfrac=' + str(volumeFraction)
 elif porousMedium == 'circles':
-    foldername = foldername + '/nCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) +\
+    foldername = foldername + '/nonOverlappingDisks' + str(nExclusionsMin) + '-' + str(nExclusionsMax) +\
                  '/coordDist=' + coordinateDistribution + '_margins=' + str(margins) + '/radiiDist=' +\
                  radiiDistribution + '_r_params=' + str(r_params)
 elif porousMedium == 'nonOverlappingCircles':
-    '''
-    foldername = foldername + '/nNonOverlapCircExcl=' + str(nExclusionsMin) + '-' + str(nExclusionsMax) +\
-        '/coordDist=' + coordinateDistribution + '_margins=' + str(margins) + '/radiiDist=' +\
-        radiiDistribution + '_r_params=' + str(r_params)
-    '''
+    foldername += '/nonOverlappingDisks/margins=' + str(margins[0]) + '_' + str(margins[1]) + '_' + str(margins[2]) +\
+        '_' + str(margins[3]) + '/N~' + nExclusionsDist
+
     if nExclusionsDist == 'uniform':
+        #outdated!!
         foldername = foldername + '/nNonOverlapCircExcl=' + str(nExclusionParams[0]) + '-' + str(nExclusionParams[1]) +\
             '/coordDist=' + coordinateDistribution
     elif nExclusionsDist == 'logn':
-        foldername = foldername + '/nNonOverlapCircExcl=logn' + str(nExclusionParams[0]) + '-' + str(nExclusionParams[1]) + \
-                     '/coordDist=' + coordinateDistribution
+        foldername += '/mu=' + str(nExclusionParams[0]) + '/sigma=' + str(nExclusionParams[1])
+    foldername += '/x~'
 
     if coordinateDistribution == 'gauss':
-        foldername += '_mu=' + str(c_params[0]) + 'cov=' + str(coordinate_cov)
+        foldername += coordinateDistribution + '/mu=' + str(coordinate_mu[0]) + '_' + str(coordinate_mu[1]) +\
+                      '/cov=' + str(coordinate_cov[0][0]) + '_' + str(coordinate_cov[0][1]) + '_' +\
+            str(coordinate_cov[1][1])
 
-    foldername += '_margins=' + str(margins) +\
-        '/radiiDist=' + radiiDistribution + '_r_params=' + str(r_params)
+    foldername += '/r~' + radiiDistribution + '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1])
 
 
 # Set external boundaries of domain
