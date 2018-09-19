@@ -243,7 +243,7 @@ for split_iter = 1:(nSplits + 1)
         %plot parameters
 %         rom.modelParams.plot_params();
         %plot modal lambda_c and corresponding -training- data reconstruction
-%         rom.plotCurrentState(0, transType, transLimits);
+        rom.plotCurrentState(0, transType, transLimits);
         %plot elbo vs. training iteration
         t_tot = toc(tic_tot)
 %         rom.modelParams.plotElbo(t_tot);

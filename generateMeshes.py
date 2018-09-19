@@ -253,36 +253,43 @@ elif mode == 'nonOverlappingCircles':
                 exclusionRadius = np.random.lognormal(r_params[0], r_params[1])
 
             # check for overlap with other disks
-            overlap = False
-            iter = 0
-            for x_circ in exclusionCenters:
-                dist = np.linalg.norm(x_circ - exclusionCenter)
-                if dist <= exclusionRadius + exclusionRadii[iter]:
-                    # disks overlap
-                    overlap = True
-                    break
-                iter += 1
 
-            # check for overlap with domain boundary
-            onBoundary = False
-            if (((exclusionCenter[0, 1] - exclusionRadius) < margins[0]) and margins[0] >= 0) or \
-                (((exclusionCenter[0, 0] + exclusionRadius) > (1 - margins[1])) and margins[1] >= 0) or \
-                (((exclusionCenter[0, 1] + exclusionRadius) > (1 - margins[2])) and margins[2] >= 0) or \
-                    (((exclusionCenter[0, 0] - exclusionRadius) < margins[3]) and margins[3] >= 0):
-                onBoundary = True
+            # old version, inefficient
+            # overlap = False
+            # iter = 0
+            # for x_circ in exclusionCenters:
+            #     dist = np.linalg.norm(x_circ - exclusionCenter)
+            #     if dist <= exclusionRadius + exclusionRadii[iter]:
+            #         # disks overlap
+            #         overlap = True
+            #         break
+            #     iter += 1
 
-            # check if disk is out of domain
-            outOfDomain = False
-            if (exclusionCenter[0, 1] + exclusionRadius) < 0 or \
-                (exclusionCenter[0, 0] - exclusionRadius) > 1 or \
-                (exclusionCenter[0, 1] - exclusionRadius) > 1 or \
-                    (exclusionCenter[0, 0] + exclusionRadius) < 0:
-                outOfDomain = True
+            overlap = np.any((exclusionRadius + exclusionRadii) >=
+                             np.linalg.norm(exclusionCenter - exclusionCenters, axis=1))
 
-            if (not overlap) and (not onBoundary) and (not outOfDomain):
-                exclusionCenters = np.append(exclusionCenters, exclusionCenter, axis=0)
-                exclusionRadii = np.append(exclusionRadii, exclusionRadius)
-                currentExclusions += 1
+            if not overlap:
+                # check for overlap with domain boundary
+                onBoundary = False
+                if (((exclusionCenter[0, 1] - exclusionRadius) < margins[0]) and margins[0] >= 0) or \
+                    (((exclusionCenter[0, 0] + exclusionRadius) > (1 - margins[1])) and margins[1] >= 0) or \
+                    (((exclusionCenter[0, 1] + exclusionRadius) > (1 - margins[2])) and margins[2] >= 0) or \
+                        (((exclusionCenter[0, 0] - exclusionRadius) < margins[3]) and margins[3] >= 0):
+                    onBoundary = True
+
+                if not onBoundary:
+                    # check if disk is out of domain
+                    outOfDomain = False
+                    if (exclusionCenter[0, 1] + exclusionRadius) < 0 or \
+                        (exclusionCenter[0, 0] - exclusionRadius) > 1 or \
+                        (exclusionCenter[0, 1] - exclusionRadius) > 1 or \
+                            (exclusionCenter[0, 0] + exclusionRadius) < 0:
+                        outOfDomain = True
+
+                    if not outOfDomain:
+                        exclusionCenters = np.append(exclusionCenters, exclusionCenter, axis=0)
+                        exclusionRadii = np.append(exclusionRadii, exclusionRadius)
+                        currentExclusions += 1
             t_elapsed = time.time() - t_start
         print('Non-overlapping disks drawn.')
 
