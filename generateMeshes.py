@@ -28,7 +28,7 @@ substractCorners = False     #Substracts circles from domain corners s.t. flow c
 radiiDist = 'logn'
 r_params = (-4.5, .15)
 coordinate_cov = [[0.55, -0.45], [-0.45, 0.55]]
-coordinate_mu = [.8, .8]
+coordinate_mu = [.6, .6]
 c_params = [coordinate_mu, np.array(coordinate_cov)]
 
 
@@ -210,11 +210,14 @@ elif mode == 'nonOverlappingCircles':
     if not os.path.exists(foldername):
         os.makedirs(foldername)
 
-    for i in range(0, nMeshes):
+    mesh_name_iter = 0
+    while mesh_name_iter < nMeshes:
         if nExclusionsDist == 'uniform':
             nExclusions = np.random.randint(nExclusionParams[0], nExclusionParams[1])
         elif nExclusionsDist == 'logn':
             nExclusions = np.random.lognormal(nExclusionParams[0], nExclusionParams[1])
+        nExclusions_upper_bound = 30000         # this is needed to avoid segfaults in mesh generation
+        nExclusions = min(nExclusions, nExclusions_upper_bound)
         print('nExclusions = ', nExclusions)
         exclusionCenters = np.empty([0, 2])
         exclusionRadii = np.empty([0, 1])
@@ -231,15 +234,10 @@ elif mode == 'nonOverlappingCircles':
         currentExclusions = 0
         t_start = time.time()
         t_elapsed = 0
-        t_lim = 600.0
-        print('Drawing non-overlapping disks...')
+        t_lim = 3600.0
+
         while currentExclusions < nExclusions and t_elapsed < t_lim:
             if coordinateDist == 'uniform':
-                '''
-                exclusionCenterX = np.random.rand(1, 1)
-                exclusionCenterY = np.random.rand(1, 1)
-                exclusionCenter = np.concatenate((exclusionCenterX, exclusionCenterY), axis=1)
-                '''
                 exclusionCenter = np.random.rand(1, 2)
             elif coordinateDist == 'gauss':
                 exclusionCenter = np.empty([1, 2])
@@ -292,22 +290,32 @@ elif mode == 'nonOverlappingCircles':
                         currentExclusions += 1
             t_elapsed = time.time() - t_start
         print('Non-overlapping disks drawn.')
+        print('real number of exclusions == ', exclusionRadii.size)
+        print('Smallest radius == ', np.amin(exclusionRadii))
 
         domain = pm.substractCircles(exclusionCenters, exclusionRadii)
 
         # Generate mesh - this step is expensive
         print('Disks substracted.')
-        mesh = pm.generateMesh(domain)
-        print('mesh generated.')
+        try:
+            mesh = pm.generateMesh(domain, nElements)
+            print('mesh generated.')
+            # save mesh in xml format for later use
+            # check how many meshes already exist and name the mesh accordingly (allows parallel mesh generation jobs)
+            mesh_name_iter = 0
+            while os.path.isfile(foldername + '/mesh' + str(mesh_name_iter) + '.xml'):
+                mesh_name_iter += 1
 
-        #save mesh in xml format for later use
-        filename = foldername + '/mesh' + str(i) + '.xml'
-        mesh_file = df.File(filename)
-        mesh_file << mesh
+            filename = foldername + '/mesh' + str(mesh_name_iter) + '.xml'
+            mesh_file = df.File(filename)
+            mesh_file << mesh
 
-        #save vertex coordinates and cell connectivity to mat file for easy read-in to matlab
-        sio.savemat(foldername + '/mesh' + str(i) + '.mat',
-                    {'x': mesh.coordinates(), 'cells': mesh.cells() + 1.0})
-        #save microstructural information, i.e. centers and radii of disks
-        sio.savemat(foldername + '/microstructureInformation' + str(i) + '.mat',
-                    {'diskCenters': exclusionCenters, 'diskRadii': exclusionRadii})
+            # save vertex coordinates and cell connectivity to mat file for easy read-in to matlab
+            sio.savemat(foldername + '/mesh' + str(mesh_name_iter) + '.mat',
+                        {'x': mesh.coordinates(), 'cells': mesh.cells() + 1.0})
+            # save microstructural information, i.e. centers and radii of disks
+            sio.savemat(foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat',
+                        {'diskCenters': exclusionCenters, 'diskRadii': exclusionRadii})
+        except:
+            print('Mesh generation failed. Trying again...')
+

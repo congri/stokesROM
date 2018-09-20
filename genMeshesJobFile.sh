@@ -1,25 +1,25 @@
 NMESHES=1024
-NELEMENTS=512
-NEX1=13.0    #number of exclusion parameters
-NEX2=1.0
-RPARAMSLO=-7.0
-RPARAMSHI=0.5
-MARGIN_LO=0.008
-MARGIN_R=0.008
-MARGIN_U=0.008
-MARGIN_LE=0.008
+NELEMENTS=256
+NEX1=4.6    #number of exclusion parameters
+NEX2=0.1
+RPARAMSLO=-5.53
+RPARAMSHI=0.3
+MARGIN_LO=0.007
+MARGIN_R=0.007
+MARGIN_U=0.007
+MARGIN_LE=0.007
 
 
 CORES=1
 
-
+DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 #Set up file paths
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
-JOBNAME="genMesh_nElements=${NELEMENTS}nParams1=${NEX1}nParams2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
-JOBDIR="/home/constantin/python/jobs/$JOBNAME"
+JOBNAME="genMesh_REALnElements=${NELEMENTS}nParams1=${NEX1}nParams2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
+JOBDIR="/home/constantin/python/jobs/${JOBNAME}_${DATESTR}"
 
 #Create job directory and copy source code
-rm -r $JOBDIR
+rm -rf $JOBDIR
 mkdir $JOBDIR
 cp -r $PROJECTDIR/* $JOBDIR
 #Change directory to job directory; completely independent from project directory
