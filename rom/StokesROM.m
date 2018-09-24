@@ -23,10 +23,10 @@ classdef StokesROM < handle
                     strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
                 dim_theta = numel(self.modelParams.theta_c);
                 nElc = size(self.trainingData.designMatrix{1}, 1);
-                dim_gamma = dim_theta/nElc;
                 
                 %Parameters that do not change when q(lambda_c) is fixed
                 if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
+                    dim_gamma = dim_theta/nElc;
                     a = self.modelParams.VRVM_a + .5*nElc;
                 else
                     a = self.modelParams.VRVM_a + .5;
