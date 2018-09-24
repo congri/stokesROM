@@ -14,6 +14,10 @@ classdef ModelParams < matlab.mixin.Copyable
         %grid of random field
         gridRF
         splitted_cells
+        %projection to sum components of theta_c corresponding to same cell
+        %size in 'sizeShared' model, where hyperparameters gamma are shared
+        %across cells of same size
+        sumTheta_c
         
         %Matrix summing up all values of a fine-scale vector belonging to
         %a certain macro-cell
@@ -49,6 +53,8 @@ classdef ModelParams < matlab.mixin.Copyable
         
         %% Model hyperparameters
         mode = 'local'  %separate theta_c's per macro-cell
+        %'VRVM', 'sharedVRVM' or 'sizeShared', where hyperparameters gamma are
+        %shared among cells of same size
         prior_theta_c = 'VRVM'
         gamma   %Gaussian precision of prior on theta_c
         VRVM_a = eps
@@ -102,7 +108,8 @@ classdef ModelParams < matlab.mixin.Copyable
             
             %only for a single cell here!!!
             %grid of random field
-            self.gridRF = RectangularMesh((1/2)*ones(1, 2));
+            lin_N_el = 2;    %only set this for initial RF discretization!!!
+            self.gridRF = RectangularMesh((1/lin_N_el)*ones(1, lin_N_el));
             self.cell_dictionary = 1:self.gridRF.nCells;
             
             %% Initialize coarse mesh object
@@ -173,6 +180,12 @@ classdef ModelParams < matlab.mixin.Copyable
             varDistParamsVecInit{1} = [self.variational_mu{1},...
                 -2*log(self.variational_sigma{1})];
             self.varDistParamsVec = repmat(varDistParamsVecInit, nData, 1);
+            
+            %Set sumTheta_c
+            if strcmp(self.prior_theta_c, 'sizeShared')
+                nFeatures = numel(self.theta_c)/self.gridRF.nCells;
+                self.sumTheta_c = repmat(eye(nFeatures), 1, self.gridRF.nCells);
+            end
         end
         
         function splitRFcells(self, splt_cells)
@@ -213,8 +226,8 @@ classdef ModelParams < matlab.mixin.Copyable
                     end
                     
                     %extend Sigma_theta_c
+                    nFeatures = size(self.Sigma_theta_c, 1)/nElc;
                     if(~isempty(self.Sigma_theta_c)&& strcmp(self.mode,'local'))
-                        nFeatures = size(self.Sigma_theta_c, 1)/nElc;
                         Sigma_theta_c_k = self.Sigma_theta_c(...
                             ((index - 1)*nFeatures + 1):(index*nFeatures),...
                             ((index - 1)*nFeatures + 1):(index*nFeatures));
@@ -239,6 +252,13 @@ classdef ModelParams < matlab.mixin.Copyable
                             [self.variational_sigma{n}, sigma_k*ones(1,4)];
                         self.varDistParamsVec{n} = [self.variational_mu{n},...
                             -2*log(self.variational_sigma{n})];
+                    end
+                    
+                    if strcmp(self.prior_theta_c, 'sizeShared')
+                        %extend sumTheta_c matrix
+                        lower = (index - 1)*nFeatures + 1;
+                        upper = index*nFeatures;
+                        self.sumTheta_c(:, lower:upper) = [];
                     end
                     
                     %Update cell index dictionary
