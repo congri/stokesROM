@@ -21,14 +21,15 @@ class FlowProblem:
         def inside(self, x, on_boundary):
             # SET FLOW BOUNDARIES HERE;
             # pressure boundaries are the complementary boundary in Stokes and need to be specified below for Darcy
-            return x[1] > 1.0 - df.DOLFIN_EPS or (x[1] < df.DOLFIN_EPS and x[0] > df.DOLFIN_EPS) or \
-                   x[0] > 1.0 - df.DOLFIN_EPS or (x[0] < df.DOLFIN_EPS and x[1] > df.DOLFIN_EPS)
+            return x[1] > 1.0 - df.DOLFIN_EPS or (x[1] < df.DOLFIN_EPS) or \
+                   x[0] > 1.0 - df.DOLFIN_EPS or (x[0] < df.DOLFIN_EPS)
     flowBoundary = FlowBoundary()
 
     class PressureBoundary(df.SubDomain):
         def inside(self, x, on_boundary):
-            # Set pressure boundaries here -- only for Darcy, where no exclusions are present.
+            # Set pressure boundaries here -- only for Darcy! For Stokes they are the complementary to flow boundaries
             # Therefore we can use 'on_boundary'
-            return (x[0] < df.DOLFIN_EPS and x[1] < df.DOLFIN_EPS)
+            return (x[0] < df.DOLFIN_EPS) and (x[1] < df.DOLFIN_EPS)
     pressureBoundary = PressureBoundary()
     # pressureBoundary = 'origin'
+

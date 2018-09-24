@@ -24,18 +24,18 @@ class StokesData(FlowProblem):
     viscosity = 1.0
 
     # general parameters
-    samples = np.arange(0, 17)  # list of random meshes to load
+    samples = np.arange(0, 2048)  # list of random meshes to load
     nElements = 256
 
     # microstructure parameters
     nExclusionsDist = 'logn'  # number of exclusions distribution
-    nExclusionParams = (11.0, 1.0)  # for logn: mu and sigma of logn dist.
-    coordDist = 'gauss'  # distribution of circ. exclusions in space
+    nExclusionParams = (7.2, 0.6)  # for logn: mu and sigma of logn dist.
+    coordDist = 'gauss_randmu'  # distribution of circ. exclusions in space
     coord_mu = [.8, .8]
     coord_cov = [[0.55, -0.45], [-0.45, 0.55]]  # covariance of spatial disk distribution
     radiiDist = 'logn'  # dist. of disk radii
-    rParams = (-6.0, 0.5)  # mu and sigma of disk radii distribution
-    margins = (0.008, 0.008, 0.008, 0.008)  # margins of exclusions to boundaries
+    rParams = (-5.53, 0.3)  # mu and sigma of disk radii distribution
+    margins = (0.002, 0.002, 0.002, 0.002)  # margins of exclusions to boundaries
     interiorBCtype = 'noslip'  # Boundary condition on exclusion boundary
 
     # data storage
@@ -49,7 +49,6 @@ class StokesData(FlowProblem):
     def __init__(self):
         # Constructor
         self.setFineDataPath()
-
         return
 
     def setFineDataPath(self):
@@ -65,6 +64,9 @@ class StokesData(FlowProblem):
             self.foldername += '/mu=' + str(self.coord_mu[0]) + '_' + str(self.coord_mu[1]) + '/cov=' \
                                + str(self.coord_cov[0][0]) + '_' + str(self.coord_cov[0][1]) \
                                + '_' + str(self.coord_cov[1][1])
+        elif self.coordDist == 'gauss_randmu':
+            self.foldername += '/mu=rand' + '/cov=' + str(self.coord_cov[0][0]) + '_' +\
+                               str(self.coord_cov[0][1]) + '_' + str(self.coord_cov[1][1]) + '/'
 
         self.foldername += '/r~' + self.radiiDist + '/mu=' + str(self.rParams[0]) + '/sigma=' + str(self.rParams[1])
         self.solutionfolder = self.foldername + '/p_bc=' + self.p_bc + '/u_x=' + self.u_x + '_u_y=' + self.u_y
@@ -106,6 +108,8 @@ class StokesData(FlowProblem):
         # get normal vectors
         n = df.FacetNormal(mesh)
         a = self.viscosity * df.inner(df.grad(u), df.grad(v)) * df.dx + df.div(v) * p * df.dx + q * df.div(u) * df.dx
+        # there might be a term grad(u) missing for the pressure boundary. Best to apply only flow bc's and shift
+        # the pressure field by a constant to match at 0
         L = df.inner(self.bodyForce, v) * df.dx + self.pressureField * df.inner(n, v) * df.ds
 
         # Form for use in constructing preconditioner matrix
@@ -132,7 +136,7 @@ class StokesData(FlowProblem):
             exit()
 
         # Create Krylov solver and AMG preconditioner
-        solver = df.KrylovSolver(krylov_method)
+        solver = df.KrylovSolver(krylov_method, "amg")
 
         # Associate operator (A) and preconditioner matrix (P)
         solver.set_operators(A, P)
@@ -208,14 +212,14 @@ class StokesData(FlowProblem):
             outerBC = self.getOuterBC(functionSpace)
             boundaryConditions = [interiorBC, outerBC]
             t = time.time()
-            try:
-                solution = self.solvePDE(functionSpace, mesh, boundaryConditions)
-                # self.saveSolution(solution, meshNumber)
-                self.saveSolution(solution, meshNumber, 'matlab')
-                elapsed_time = time.time() - t
-                print('Stokes PDE solved. Time: ', elapsed_time)
-            except:
-                print('Solver failed to converge. Passing to next mesh')
+            # try:
+            solution = self.solvePDE(functionSpace, mesh, boundaryConditions)
+            # self.saveSolution(solution, meshNumber)
+            self.saveSolution(solution, meshNumber, 'matlab')
+            elapsed_time = time.time() - t
+            print('Stokes PDE solved. Time: ', elapsed_time)
+            # except:
+            #     print('Solver failed to converge. Passing to next mesh')
         return
 
     def loadData(self, quantities):

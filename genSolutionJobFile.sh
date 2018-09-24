@@ -1,17 +1,17 @@
-NMESHESLO=0
-NMESHESUP=1023
-NELEMENTS=128
-NEXMIN=2048
-NEXMAX=2040
-RPARAMSLO=-4.6
-RPARAMSHI=0.15
-MARGIN_LO=-1
-MARGIN_R=0.02
-MARGIN_U=-1
-MARGIN_LE=0.02
+NMESHESLO=9
+NMESHESHI=2048
+NELEMENTS=256
+NPARAMS1=8.35
+NPARAMS2=0.6
+RPARAMSLO=-5.53
+RPARAMSHI=0.3
+MARGIN_LO=0.003
+MARGIN_R=0.003
+MARGIN_U=0.003
+MARGIN_LE=0.003
 
 
-CORES=4
+CORES=16
 
 
 #Set up file paths
@@ -20,7 +20,7 @@ JOBNAME="genSolution_nElements=${NELEMENTS}nExMin=${NEXMIN}nExMax=${NEXMAX}margi
 JOBDIR="/home/constantin/python/jobs/$JOBNAME"
 
 #Create job directory and copy source code
-rm -r $JOBDIR
+rm -rf $JOBDIR
 mkdir $JOBDIR
 cp -r $PROJECTDIR/* $JOBDIR
 #Change directory to job directory; completely independent from project directory
@@ -39,18 +39,18 @@ printf "#PBS -N $JOBNAME
 #Switch to job directory
 cd $JOBDIR
 #Set parameters
-sed -i \"29s/.*/meshes = np.arange($NMESHESLO, $NMESHESUP)  # vector of random meshes to load/\" ./genStokesData.py
-sed -i \"31s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./genStokesData.py
-sed -i \"44s/.*/nExclusionsMin = $NEXMIN/\" ./genStokesData.py
-sed -i \"45s/.*/nExclusionsMax = $NEXMAX/\" ./genStokesData.py
-sed -i \"49s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./genStokesData.py
-sed -i \"50s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./genStokesData.py
+sed -i \"27s/.*/    samples = np.arange(${NMESHESLO}, ${NMESHESHI})/\" ./stokesdata.py
+sed -i \"28s/.*/    nElements = ${NELEMENTS}/\" ./stokesdata.py
+sed -i \"32s/.*/    nExclusionParams = (${NPARAMS1}, ${NPARAMS2})/\" ./stokesdata.py
+sed -i \"37s/.*/    rParams = (${RPARAMSLO}, ${RPARAMSHI})/\" ./stokesdata.py
+sed -i \"38s/.*/    margins = (${MARGIN_LO}, ${MARGIN_R}, ${MARGIN_U}, ${MARGIN_LE})/\" ./stokesdata.py
+
 
 
 
 #Activate fenics environment and run python
-source activate fenics
-/home/constantin/anaconda3/envs/fenics/bin/python3.6 ./genStokesData.py
+source activate fenics2
+/home/constantin/anaconda3/envs/fenics2/bin/python3.6 ./genSolutionScript.py
 
 
 " >> job_file.sh

@@ -20,7 +20,7 @@ foldername1 = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nEle
 #Parameters only for 'circles' mode
 nExclusionsDist='logn'
 nExclusionParams = (5.6, .6)
-coordinateDist = 'gauss'
+coordinateDist = 'gauss_randmu'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 # negative margin means no margin
 margins = (0.01, .01, .01, .01)
@@ -28,8 +28,7 @@ substractCorners = False     #Substracts circles from domain corners s.t. flow c
 radiiDist = 'logn'
 r_params = (-4.5, .15)
 coordinate_cov = [[0.55, -0.45], [-0.45, 0.55]]
-coordinate_mu = [.6, .6]
-c_params = [coordinate_mu, np.array(coordinate_cov)]
+coordinate_mu = [.8, .8]
 
 
 #parameters only for 'randomField' mode
@@ -205,6 +204,10 @@ elif mode == 'nonOverlappingCircles':
         foldername += '/mu=' + str(coordinate_mu[0]) + '_' + str(coordinate_mu[1]) + '/cov=' + \
                       str(coordinate_cov[0][0]) + '_' + str(coordinate_cov[0][1]) + '_' + str(coordinate_cov[1][1]) +\
                       '/'
+    elif coordinateDist == 'gauss_randmu':
+        foldername += '/mu=rand' + '/cov=' + \
+                      str(coordinate_cov[0][0]) + '_' + str(coordinate_cov[0][1]) + '_' + str(coordinate_cov[1][1]) + \
+                      '/'
 
     foldername += '/r~' + radiiDist + '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1])
     if not os.path.exists(foldername):
@@ -235,11 +238,13 @@ elif mode == 'nonOverlappingCircles':
         t_start = time.time()
         t_elapsed = 0
         t_lim = 3600.0
+        if coordinateDist == 'gauss_randmu':
+            coordinate_mu = np.random.rand(2)
 
         while currentExclusions < nExclusions and t_elapsed < t_lim:
             if coordinateDist == 'uniform':
                 exclusionCenter = np.random.rand(1, 2)
-            elif coordinateDist == 'gauss':
+            elif coordinateDist == 'gauss' or coordinateDist == 'gauss_randmu':
                 exclusionCenter = np.empty([1, 2])
                 exclusionCenter[0] = np.random.multivariate_normal(coordinate_mu, coordinate_cov)
 

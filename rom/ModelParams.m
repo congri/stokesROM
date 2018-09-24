@@ -82,7 +82,7 @@ classdef ModelParams < matlab.mixin.Copyable
         %% Training parameters
         EM_iter       = 0    %current total number of iterations
         EM_iter_split = 0    %current number of iterations after last split
-        max_EM_epochs = 30   %maximum number of epochs
+        max_EM_epochs = 100   %maximum number of epochs
         
         %% Settings
         computeElbo = true
@@ -785,6 +785,9 @@ classdef ModelParams < matlab.mixin.Copyable
             self.pCellScores.sp1.YTick = [];
             self.pCellScores.sp1.Title.String = 'Elbo cell score';
             
+            if numel(self.active_cells) ~= size(self.rf2fem, 2)
+                self.active_cells = nan*ones(1, size(self.rf2fem, 2));
+            end
             imagesc(reshape(self.rf2fem*log(self.active_cells'),...
                 numel(self.coarseGridX), numel(self.coarseGridY))',...
                 'Parent', self.pCellScores.sp2);
@@ -793,6 +796,9 @@ classdef ModelParams < matlab.mixin.Copyable
             self.pCellScores.sp2.YTick = [];
             self.pCellScores.sp2.Title.String = 'active cells';
             
+            if numel(self.active_cells_S) ~= size(self.rf2fem, 2)
+                self.active_cells_S = nan*ones(1, size(self.rf2fem, 2));
+            end
             imagesc(reshape(self.rf2fem*log(self.active_cells_S'),...
                 numel(self.coarseGridX), numel(self.coarseGridY))',...
                 'Parent', self.pCellScores.sp3);

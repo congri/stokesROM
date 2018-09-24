@@ -1,13 +1,13 @@
 NMESHES=1024
 NELEMENTS=256
-NEX1=4.6    #number of exclusion parameters
-NEX2=0.1
+NEX1=7.2    #number of exclusion parameters
+NEX2=0.6
 RPARAMSLO=-5.53
 RPARAMSHI=0.3
-MARGIN_LO=0.007
-MARGIN_R=0.007
-MARGIN_U=0.007
-MARGIN_LE=0.007
+MARGIN_LO=0.002
+MARGIN_R=0.002
+MARGIN_U=0.002
+MARGIN_LE=0.002
 
 
 CORES=1
@@ -15,7 +15,7 @@ CORES=1
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 #Set up file paths
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
-JOBNAME="genMesh_REALnElements=${NELEMENTS}nParams1=${NEX1}nParams2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
+JOBNAME="genMesh_randmu_nElements=${NELEMENTS}nParams1=${NEX1}nParams2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
 JOBDIR="/home/constantin/python/jobs/${JOBNAME}_${DATESTR}"
 
 #Create job directory and copy source code

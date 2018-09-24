@@ -241,14 +241,14 @@ for split_iter = 1:(nSplits + 1)
         disp('Plotting...')
         t_plt = tic;
         %plot parameters
-%         rom.modelParams.plot_params();
+        rom.modelParams.plot_params();
         %plot modal lambda_c and corresponding -training- data reconstruction
         rom.plotCurrentState(0, transType, transLimits);
         %plot elbo vs. training iteration
         t_tot = toc(tic_tot)
-%         rom.modelParams.plotElbo(t_tot);
+        rom.modelParams.plotElbo(t_tot);
         %Plot adaptive refinement cell scores
-%         rom.modelParams.plotCellScores();
+        rom.modelParams.plotCellScores();
         disp('...plotting done. Plotting time:')
         t_plt = toc(t_plt)
         
