@@ -1,22 +1,25 @@
-NMESHESLO=9
-NMESHESHI=2048
-NELEMENTS=256
-NPARAMS1=8.35
-NPARAMS2=0.6
-RPARAMSLO=-5.53
-RPARAMSHI=0.3
-MARGIN_LO=0.003
-MARGIN_R=0.003
-MARGIN_U=0.003
-MARGIN_LE=0.003
+# Script that generates and submits a job file to solve Stokes flow given a mesh with random non-overlapping circular exclusions
+CORES=4
 
+NMESHESLO=0
+NMESHESUP=2048
 
-CORES=16
+MARG_LO=0.008
+MARG_R=0.008
+MARG_U=0.008
+MARG_LE=0.008
 
+NEXCLUSIONPARAM1=9.0
+NEXCLUSIONPARAM2=1.0
+
+RPARAM1=-5.5
+RPARAM2=0.5
 
 #Set up file paths
+DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
-JOBNAME="genSolution_nElements=${NELEMENTS}nExMin=${NEXMIN}nExMax=${NEXMAX}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
+# Set JOBNAME by hand for every job!
+JOBNAME="solv_${DATESTR}"
 JOBDIR="/home/constantin/python/jobs/$JOBNAME"
 
 #Create job directory and copy source code
@@ -39,18 +42,17 @@ printf "#PBS -N $JOBNAME
 #Switch to job directory
 cd $JOBDIR
 #Set parameters
-sed -i \"27s/.*/    samples = np.arange(${NMESHESLO}, ${NMESHESHI})/\" ./stokesdata.py
-sed -i \"28s/.*/    nElements = ${NELEMENTS}/\" ./stokesdata.py
-sed -i \"32s/.*/    nExclusionParams = (${NPARAMS1}, ${NPARAMS2})/\" ./stokesdata.py
-sed -i \"37s/.*/    rParams = (${RPARAMSLO}, ${RPARAMSHI})/\" ./stokesdata.py
-sed -i \"38s/.*/    margins = (${MARGIN_LO}, ${MARGIN_R}, ${MARGIN_U}, ${MARGIN_LE})/\" ./stokesdata.py
+sed -i \"24s/.*/meshes = np.arange(${NMESHESLO}, ${NMESHESUP})/\" ./genSolution_cluster.py
+sed -i \"33s/.*/nExclusionParams = (${NEXCLUSIONPARAM1}, ${NEXCLUSIONPARAM2})/\" ./genSolution_cluster.py
+sed -i \"40s/.*/r_params = (${RPARAM1}, ${RPARAM2})/\" ./genSolution_cluster.py
+sed -i \"39s/.*/margins = (${MARG_LO}, ${MARG_R}, ${MARG_U}, ${MARG_LE})/\" ./genSolution_cluster.py
 
 
 
 
 #Activate fenics environment and run python
-source activate fenics2
-/home/constantin/anaconda3/envs/fenics2/bin/python3.6 ./genSolutionScript.py
+source activate fenics3
+/home/constantin/anaconda3/envs/fenics3/bin/python3.6 ./genSolution_cluster.py
 
 
 " >> job_file.sh

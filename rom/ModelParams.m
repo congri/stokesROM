@@ -49,7 +49,7 @@ classdef ModelParams < matlab.mixin.Copyable
         
         %% Model hyperparameters
         mode = 'local'  %separate theta_c's per macro-cell
-        prior_theta_c = 'sharedVRVM'
+        prior_theta_c = 'VRVM'
         gamma   %Gaussian precision of prior on theta_c
         VRVM_a = eps
         VRVM_b = eps
@@ -489,8 +489,9 @@ classdef ModelParams < matlab.mixin.Copyable
             ee = self.VRVM_e;
             ff = self.VRVM_f;
             D_theta_c = numel(self.theta_c);
+            nFeatures = D_theta_c/D_c;
             if strcmp(self.prior_theta_c, 'sharedVRVM')
-                D_gamma = D_theta_c/D_c; %for shared RVM only!
+                D_gamma = nFeatures; %for shared RVM only!
             else
                 D_gamma = D_theta_c;
             end
@@ -500,12 +501,13 @@ classdef ModelParams < matlab.mixin.Copyable
             sum_logdet_lambda_c = sum(sum(log(Sigma_lambda_c)));
             
             try
-                if strcmp(self.prior_theta_c, 'sharedVRVM')
+                if(strcmp(self.prior_theta_c, 'sharedVRVM') || ...
+                        strcmp(self.prior_theta_c, 'VRVM'))
                     logdet_Sigma_theta_ck = zeros(D_c, 1);
                     for k = 1:D_c
                         logdet_Sigma_theta_ck(k) = logdet(self.Sigma_theta_c(...
-                            ((k-1)*D_gamma + 1):(k*D_gamma),...
-                            ((k - 1)*D_gamma + 1):(k*D_gamma)), 'chol');
+                            ((k-1)*nFeatures + 1):(k*nFeatures),...
+                            ((k - 1)*nFeatures + 1):(k*nFeatures)), 'chol');
                     end
                     logdet_Sigma_theta_c = sum(logdet_Sigma_theta_ck);
                 else
