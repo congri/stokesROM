@@ -1,8 +1,7 @@
-function [e_v, h_v, P, F] = voidNearestSurfaceExclusion(diskCenters, diskRadii,...
-    gridRF, distance)
+function [e_p, h_p] = particleNearestSurfaceExclusion(diskCenters, diskRadii,...
+    gridRF, distance, ref_distance)
 %Mean chord length for non-overlapping polydisp. spheres
 %according to Torquato 6.50, 6.51
-%For pore size functions P and F see chapter 6.2.6 and references therein
 
 meanRadii = zeros(gridRF.nCells, 1);
 meanSqRadii = zeros(gridRF.nCells, 1);
@@ -31,16 +30,17 @@ a_0 = (1 + exclfrac.*(S - 1))./(porefrac.^2);
 a_1 = 1./porefrac;
 
 x = distance./(2*meanRadii);
-F = exp(-4*exclfrac.*S.*(a_0.*x.^2 + a_1.*x));
-e_v = porefrac.*F;
-if any(~isfinite(e_v))
+X = ref_distance./(2*meanRadii);
+e_p = porefrac.*exp(-4*exclfrac.*S.*(a_0.*(x.^2 - X.^2) + a_1.*(x - X)));
+if any(~isfinite(e_p))
     %warning('Non-finite value in voidNearestSurfaceExclusion')
-    e_v(~isfinite(e_v)) = 1;
+    e_p(~isfinite(e_p)) = 1;
 end
-h_v = 2*((exclfrac.*S)./(meanRadii)).*(2*a_0.*x + a_1).*e_v;
-P = 2*((exclfrac.*S)./(meanRadii)).*(2*a_0.*x + a_1).*F;
-if any(~isfinite(h_v))
+if nargout > 1
+    h_p = 2*((exclfrac.*S)./(meanRadii)).*(2*a_0.*x + a_1).*e_p;
+end
+if any(~isfinite(h_p))
     %warning('Non-finite value in voidNearestSurfaceExclusion')
-    h_v(~isfinite(h_v)) = 0;
+    h_p(~isfinite(h_p)) = 0;
 end
 
