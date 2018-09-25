@@ -432,6 +432,19 @@ classdef StokesData < handle
                 end
                 
                 phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, gridRF, 1.0);
+                dMat{n} = [dMat{n}, phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '1.0_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_1.0_moment',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = momentPerVolume(mData{n}.diskCenters,...
                     mData{n}.diskRadii, gridRF, 1.5);
                 dMat{n} = [dMat{n}, phi(:)];
                 if n == 1
@@ -467,10 +480,40 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
-                %square pore fraction
+                %pore fraction powers (Archie's law, DEM, see Torquato 18.24)
+                dMat{n} = [dMat{n}, phi(:).^1.5];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^1.5',...
+                        'delimiter', '', '-append');
+                end
+                
                 dMat{n} = [dMat{n}, phi(:).^2];
                 if n == 1
-                    dlmwrite('./data/features', 'squarePoreFraction',...
+                    dlmwrite('./data/features', 'PoreFraction^2',...
+                        'delimiter', '', '-append');
+                end
+                
+                dMat{n} = [dMat{n}, phi(:).^2.5];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^2.5',...
+                        'delimiter', '', '-append');
+                end
+                
+                dMat{n} = [dMat{n}, phi(:).^3];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^3',...
+                        'delimiter', '', '-append');
+                end
+                
+                dMat{n} = [dMat{n}, phi(:).^3.5];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^3.5',...
+                        'delimiter', '', '-append');
+                end
+                
+                dMat{n} = [dMat{n}, phi(:).^4];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^4',...
                         'delimiter', '', '-append');
                 end
                 
@@ -478,6 +521,34 @@ classdef StokesData < handle
                 dMat{n} = [dMat{n}, exp(phi(:))];
                 if n == 1
                     dlmwrite('./data/features', 'expPoreFraction',...
+                        'delimiter', '', '-append');
+                end
+                
+                %Self-consistent approximation (fully ins. spheres)
+                dMat{n} = [dMat{n}, 2*phi(:) - 1];
+                if n == 1
+                    dlmwrite('./data/features', 'SCA',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log self-consistent approximation (fully ins. spheres)
+                dMat{n} = [dMat{n}, log(abs(2*phi(:) - 1) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_SCA',...
+                        'delimiter', '', '-append');
+                end
+                
+                %Maxwell approximation
+                dMat{n} = [dMat{n}, phi(:)./(2 - phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'maxwellApproximation',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log Maxwell approximation
+                dMat{n} = [dMat{n}, log(phi(:)./(2 - phi(:)) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_maxwellApproximation',...
                         'delimiter', '', '-append');
                 end
                 
@@ -497,6 +568,13 @@ classdef StokesData < handle
                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logInterfaceArea',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log interface area^1.5
+                dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^1.5];
+                if n == 1
+                    dlmwrite('./data/features', 'abs(logInterfaceArea)^1.5',...
                         'delimiter', '', '-append');
                 end
                 
@@ -589,6 +667,27 @@ classdef StokesData < handle
                 dMat{n} = [dMat{n}, sqrt(phi(:))];
                 if n == 1
                     dlmwrite('./data/features', 'sqrtInterfaceArea',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/3)
+                dMat{n} = [dMat{n}, phi(:).^(1/3)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/3)',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/4)
+                dMat{n} = [dMat{n}, phi(:).^(1/4)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/4)',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/5)
+                dMat{n} = [dMat{n}, phi(:).^(1/5)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/5)',...
                         'delimiter', '', '-append');
                 end
                 
@@ -738,20 +837,6 @@ classdef StokesData < handle
                 
                 %chord length density
                 phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .04);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'chordLengthDens04',...
-                        'delimiter', '', '-append');
-                end
-                %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'logChordLengthDens04',...
-                        'delimiter', '', '-append');
-                end
-                
-                phi = chordLengthDensity(mData{n}.diskCenters,...
                     mData{n}.diskRadii, gridRF, .02);
                 dMat{n} = [dMat{n}, phi(:)];
                 if n == 1
@@ -793,54 +878,106 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, gridRF, .0025);
+                dMat{n} = [dMat{n}, phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'chordLengthDens0025',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens0025',...
+                        'delimiter', '', '-append');
+                end
+                
                 %nearest surface functions
-                [e_v, h_v] = voidNearestSurfaceExclusion(...
-                    mData{n}.diskCenters, mData{n}.diskRadii, gridRF, .08);
-                dMat{n} = [dMat{n}, e_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'e_v08',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, h_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'h_v08',...
-                        'delimiter', '', '-append');
-                end
-                %log
-                dMat{n} =...
-                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_e_v08',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_h_v08',...
-                        'delimiter', '', '-append');
-                end
+%                 [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
+%                     voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .08);
+%                 dMat{n} = [dMat{n}, e_v(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'e_v08',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, h_v(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'h_v08',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, poreSizeDens(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'poreSizeProbDens08',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'cumPoreSizeProbDens08',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %log
+%                 dMat{n} =...
+%                     [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
+%                     log(poreSizeDens(:) + delta_log),...
+%                     log(cumPoreSizeDens(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_e_v08',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_h_v08',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_poreSizeProbDens08',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_cumPoreSizeProbDens08',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
+%                     voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .04);
+%                 dMat{n} = [dMat{n}, e_v(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'e_v04',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, h_v(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'h_v04',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, poreSizeDens(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'poreSizeProbDens04',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'cumPoreSizeProbDens04',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %log
+%                 dMat{n} =...
+%                     [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
+%                     log(poreSizeDens(:) + delta_log),...
+%                     log(cumPoreSizeDens(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_e_v04',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_h_v04',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_poreSizeProbDens04',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_cumPoreSizeProbDens04',...
+%                         'delimiter', '', '-append');
+%                 end
                 
-                [e_v, h_v] = voidNearestSurfaceExclusion(...
-                    mData{n}.diskCenters, mData{n}.diskRadii, gridRF, .04);
-                dMat{n} = [dMat{n}, e_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'e_v04',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, h_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'h_v04',...
-                        'delimiter', '', '-append');
-                end
-                
-                %log
-                dMat{n} =...
-                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_e_v04',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_h_v04',...
-                        'delimiter', '', '-append');
-                end
-                
-                [e_v, h_v] = voidNearestSurfaceExclusion(...
-                    mData{n}.diskCenters, mData{n}.diskRadii, gridRF, .02);
+                [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
+                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, gridRF, .02);
                 dMat{n} = [dMat{n}, e_v(:)];
                 if n == 1
                     dlmwrite('./data/features', 'e_v02',...
@@ -851,18 +988,37 @@ classdef StokesData < handle
                     dlmwrite('./data/features', 'h_v02',...
                         'delimiter', '', '-append');
                 end
+                dMat{n} = [dMat{n}, poreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreSizeProbDens02',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'cumPoreSizeProbDens02',...
+                        'delimiter', '', '-append');
+                end
+                
+                
                 %log
                 dMat{n} =...
-                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:) + delta_log)];
+                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
+                    log(poreSizeDens(:) + delta_log),...
+                    log(cumPoreSizeDens(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_e_v02',...
                         'delimiter', '', '-append');
                     dlmwrite('./data/features', 'log_h_v02',...
                         'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_poreSizeProbDens02',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_cumPoreSizeProbDens02',...
+                        'delimiter', '', '-append');
                 end
                 
-                [e_v, h_v] = voidNearestSurfaceExclusion(...
-                    mData{n}.diskCenters, mData{n}.diskRadii, gridRF, .01);
+                [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
+                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, gridRF, .01);
                 dMat{n} = [dMat{n}, e_v(:)];
                 if n == 1
                     dlmwrite('./data/features', 'e_v01',...
@@ -873,18 +1029,37 @@ classdef StokesData < handle
                     dlmwrite('./data/features', 'h_v01',...
                         'delimiter', '', '-append');
                 end
+                dMat{n} = [dMat{n}, poreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreSizeProbDens01',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'cumPoreSizeProbDens01',...
+                        'delimiter', '', '-append');
+                end
+                
+                
                 %log
                 dMat{n} =...
-                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:) + delta_log)];
+                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
+                    log(poreSizeDens(:) + delta_log),...
+                    log(cumPoreSizeDens(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_e_v01',...
                         'delimiter', '', '-append');
                     dlmwrite('./data/features', 'log_h_v01',...
                         'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_poreSizeProbDens01',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_cumPoreSizeProbDens01',...
+                        'delimiter', '', '-append');
                 end
                 
-                [e_v, h_v] = voidNearestSurfaceExclusion(...
-                    mData{n}.diskCenters, mData{n}.diskRadii, gridRF, .005);
+                [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
+                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, gridRF, .005);
                 dMat{n} = [dMat{n}, e_v(:)];
                 if n == 1
                     dlmwrite('./data/features', 'e_v005',...
@@ -895,13 +1070,165 @@ classdef StokesData < handle
                     dlmwrite('./data/features', 'h_v005',...
                         'delimiter', '', '-append');
                 end
+                dMat{n} = [dMat{n}, poreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreSizeProbDens005',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'cumPoreSizeProbDens005',...
+                        'delimiter', '', '-append');
+                end
+                
+                
                 %log
                 dMat{n} =...
-                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:) + delta_log)];
+                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
+                    log(poreSizeDens(:) + delta_log),...
+                    log(cumPoreSizeDens(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'log_e_v005',...
                         'delimiter', '', '-append');
                     dlmwrite('./data/features', 'log_h_v005',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_poreSizeProbDens005',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_cumPoreSizeProbDens005',...
+                        'delimiter', '', '-append');
+                end
+                
+                [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
+                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, gridRF, .0025);
+                dMat{n} = [dMat{n}, e_v(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'e_v0025',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, h_v(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'h_v0025',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, poreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreSizeProbDens0025',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'cumPoreSizeProbDens0025',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %log
+                dMat{n} =...
+                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
+                    log(poreSizeDens(:) + delta_log),...
+                    log(cumPoreSizeDens(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_e_v0025',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_h_v0025',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_poreSizeProbDens0025',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features','log_cumPoreSizeProbDens0025',...
+                        'delimiter', '', '-append');
+                end
+                
+                [e_p, h_p] = particleNearestSurfaceExclusion(...
+                    mData{n}.diskCenters, mData{n}.diskRadii, gridRF, .02, .01);
+                dMat{n} = [dMat{n}, e_p(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'e_p0201',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, h_p(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'h_p0201',...
+                        'delimiter', '', '-append');
+                end
+                              
+                %log
+                dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
+                    log(h_p(:)+delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_e_p0201',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_h_p0201',...
+                        'delimiter', '', '-append');
+                end
+                
+                [e_p, h_p] = particleNearestSurfaceExclusion(...
+                    mData{n}.diskCenters, mData{n}.diskRadii, gridRF, .01,.005);
+                dMat{n} = [dMat{n}, e_p(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'e_p01005',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, h_p(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'h_p01005',...
+                        'delimiter', '', '-append');
+                end
+                              
+                %log
+                dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
+                    log(h_p(:)+delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_e_p01005',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_h_p01005',...
+                        'delimiter', '', '-append');
+                end
+                
+                [e_p, h_p] = particleNearestSurfaceExclusion(...
+                    mData{n}.diskCenters, mData{n}.diskRadii,gridRF,.005,.0025);
+                dMat{n} = [dMat{n}, e_p(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'e_p0050025',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, h_p(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'h_p0050025',...
+                        'delimiter', '', '-append');
+                end
+                              
+                %log
+                dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
+                    log(h_p(:)+delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_e_p0050025',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_h_p0050025',...
+                        'delimiter', '', '-append');
+                end
+                
+                [e_p, h_p] = particleNearestSurfaceExclusion(...
+                    mData{n}.diskCenters, mData{n}.diskRadii, gridRF, ...
+                    .0025,.00125);
+                dMat{n} = [dMat{n}, e_p(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'e_p002500125',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, h_p(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'h_p002500125',...
+                        'delimiter', '', '-append');
+                end
+                              
+                %log
+                dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
+                    log(h_p(:)+delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_e_p0050025',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_h_p0050025',...
                         'delimiter', '', '-append');
                 end
                 

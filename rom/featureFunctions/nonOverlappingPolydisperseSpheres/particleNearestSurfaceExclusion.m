@@ -1,7 +1,8 @@
 function [e_p, h_p] = particleNearestSurfaceExclusion(diskCenters, diskRadii,...
     gridRF, distance, ref_distance)
 %Mean chord length for non-overlapping polydisp. spheres
-%according to Torquato 6.50, 6.51
+%according to Torquato 6.46, 6.47
+% ref_distance should be smaller than distance
 
 meanRadii = zeros(gridRF.nCells, 1);
 meanSqRadii = zeros(gridRF.nCells, 1);

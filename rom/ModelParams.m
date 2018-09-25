@@ -49,7 +49,7 @@ classdef ModelParams < matlab.mixin.Copyable
         
         %% Model hyperparameters
         mode = 'local'  %separate theta_c's per macro-cell
-        prior_theta_c = 'VRVM'
+        prior_theta_c = 'sharedVRVM'
         gamma   %Gaussian precision of prior on theta_c
         VRVM_a = eps
         VRVM_b = eps
@@ -82,7 +82,7 @@ classdef ModelParams < matlab.mixin.Copyable
         %% Training parameters
         EM_iter       = 0    %current total number of iterations
         EM_iter_split = 0    %current number of iterations after last split
-        max_EM_epochs = 100   %maximum number of epochs
+        max_EM_epochs = 20   %maximum number of epochs
         
         %% Settings
         computeElbo = true
@@ -102,7 +102,7 @@ classdef ModelParams < matlab.mixin.Copyable
             
             %only for a single cell here!!!
             %grid of random field
-            self.gridRF = RectangularMesh((1/2)*ones(1, 2));
+            self.gridRF = RectangularMesh((1/4)*ones(1, 4));
             self.cell_dictionary = 1:self.gridRF.nCells;
             
             %% Initialize coarse mesh object
@@ -358,7 +358,9 @@ classdef ModelParams < matlab.mixin.Copyable
                 curr_Sigma_c = full(diag(self.Sigma_c))
                 curr_gamma = self.gamma;
             end
-            curr_gamma = [curr_gamma(:), (1:numel(curr_gamma))']
+            %curr_gamma = [curr_gamma(:), (1:numel(curr_gamma))']
+            activeFeatures =...
+                [find(curr_gamma < 20), curr_gamma(find(curr_gamma < 20))]
             
         end
         
@@ -665,9 +667,10 @@ classdef ModelParams < matlab.mixin.Copyable
                         self.pParams.p_gamma{d} = animatedline('color',...
                             colors(mod(d, 6) + 1, :), 'Parent', sb5);
                     end
-                    sb3.XLabel.String = 'iter';
+                    sb5.XLabel.String = 'iter';
                     sb5.YLabel.String = '$\gamma$';
                     sb5.YScale = 'log';
+                    sb5.YLim(2) = 1e3;
                 end
                 for d = 1:numel(gam)
                     addpoints(...

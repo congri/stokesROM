@@ -37,10 +37,16 @@ if any(~isfinite(e_v))
     %warning('Non-finite value in voidNearestSurfaceExclusion')
     e_v(~isfinite(e_v)) = 1;
 end
+if any(~isfinite(F))
+    F(~isfinite(F)) = 1;
+end
 h_v = 2*((exclfrac.*S)./(meanRadii)).*(2*a_0.*x + a_1).*e_v;
 P = 2*((exclfrac.*S)./(meanRadii)).*(2*a_0.*x + a_1).*F;
 if any(~isfinite(h_v))
     %warning('Non-finite value in voidNearestSurfaceExclusion')
     h_v(~isfinite(h_v)) = 0;
+end
+if any(~isfinite(P))
+    P(~isfinite(P)) = 0;
 end
 
