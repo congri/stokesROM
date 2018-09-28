@@ -51,13 +51,13 @@ classdef ModelParams < matlab.mixin.Copyable
         mode = 'local'  %separate theta_c's per macro-cell
         prior_theta_c = 'sharedVRVM'
         gamma   %Gaussian precision of prior on theta_c
-        VRVM_a = eps
-        VRVM_b = eps
+        VRVM_a = 1e-6
+        VRVM_b = 1e-6
         VRVM_c = 1e-6
-        VRVM_d = eps
-        VRVM_e = eps
-        VRVM_f = eps
-        VRVM_iter = 100 %iterations with fixed q(lambda_c)
+        VRVM_d = 1e-6
+        VRVM_e = 1e-6
+        VRVM_f = 1e-6
+        VRVM_iter = 150 %iterations with fixed q(lambda_c)
         
         %current parameters of variational distributions
         a
@@ -82,7 +82,7 @@ classdef ModelParams < matlab.mixin.Copyable
         %% Training parameters
         EM_iter       = 0    %current total number of iterations
         EM_iter_split = 0    %current number of iterations after last split
-        max_EM_epochs = 20   %maximum number of epochs
+        max_EM_epochs = 50   %maximum number of epochs
         
         %% Settings
         computeElbo = true
@@ -102,7 +102,7 @@ classdef ModelParams < matlab.mixin.Copyable
             
             %only for a single cell here!!!
             %grid of random field
-            self.gridRF = RectangularMesh((1/4)*ones(1, 4));
+            self.gridRF = RectangularMesh((1/2)*ones(1, 2));
             self.cell_dictionary = 1:self.gridRF.nCells;
             
             %% Initialize coarse mesh object
@@ -165,7 +165,7 @@ classdef ModelParams < matlab.mixin.Copyable
             self.variational_mu{1} = -8.5*ones(1, self.gridRF.nCells);
             self.variational_mu = repmat(self.variational_mu, nData, 1);
             
-            self.variational_sigma{1} = 1e-4*ones(1, self.gridRF.nCells);
+            self.variational_sigma{1} = .25e-1*ones(1, self.gridRF.nCells);
             self.variational_sigma = repmat(self.variational_sigma, nData, 1);
             
             %Bring variational distribution params in form for
@@ -542,42 +542,73 @@ classdef ModelParams < matlab.mixin.Copyable
                 D_c*(cc*log(dd) + log(gamma(self.c)) - log(gamma(cc))) +...
                 D_gamma*(aa*log(bb) + log(gamma(self.a)) - log(gamma(aa)));
             
-            sp1 = subplot(2, 3, 1, 'Parent', fig);
+%             sp1 = subplot(2, 3, 1, 'Parent', fig);
+%             hold(sp1, 'on')
+%             sp1.Title.String = 'constants';
+%             plot(self.EM_iter, constants, 'kx', 'Parent', sp1);
+%             axis(sp1, 'tight');
+%             
+%             sp2 = subplot(2, 3, 2, 'Parent', fig);
+%             hold(sp2, 'on')
+%             sp2.Title.String = '$\frac{1}{2}\sum \log |\Sigma_{\lambda_c}|$';
+%             plot(self.EM_iter, .5*sum_logdet_lambda_c, 'kx', 'Parent', sp2);
+%             axis(sp2, 'tight');
+%             
+%             sp3 = subplot(2, 3, 3, 'Parent', fig);
+%             hold(sp3, 'on')
+%             sp3.Title.String = '$\frac{1}{2}\log |\Sigma_{\theta_c}|$';
+%             plot(self.EM_iter, .5*logdet_Sigma_theta_c, 'kx', 'Parent', sp3);
+%             axis(sp3, 'tight');
+%             
+%             sp4 = subplot(2, 3, 4, 'Parent', fig);
+%             hold(sp4, 'on')
+%             sp4.Title.String = '$-e \sum \log f$';
+%             plot(self.EM_iter, - self.e*sum(log(self.f)), 'kx', 'Parent', sp4);
+%             axis(sp4, 'tight');
+%             
+%             sp5 = subplot(2, 3, 5, 'Parent', fig);
+%             hold(sp5, 'on')
+%             sp5.Title.String = '$-c\sum \log(d)$';
+%             plot(self.EM_iter, -self.c*sum(log(self.d)), 'kx', 'Parent', sp5);
+%             axis(sp5, 'tight');
+%             
+%             sp6 = subplot(2, 3, 6, 'Parent', fig);
+%             hold(sp6, 'on')
+%             sp6.Title.String = '$-a\sum \log b$';
+%             plot(self.EM_iter,-self.a*sum(log(self.b(1:D_gamma))),'kx',...
+%                 'Parent', sp6);
+%             axis(sp6, 'tight');
+
+            sp1 = subplot(1, 3, 1, 'Parent', fig);
             hold(sp1, 'on')
-            sp1.Title.String = 'constants';
-            plot(self.EM_iter, constants, 'kx', 'Parent', sp1);
+            map = colormap(sp1, 'lines');
+            sp1.Title.String = '$-\frac{1}{2}\sum_n\log \sigma_{\lambda_c}^2$';
+            sum_sigma = sum(log(Sigma_lambda_c), 2);
+            for i = 1:numel(sum_sigma)
+                plot(self.EM_iter, -.5*sum_sigma(i), 'x', ...
+                    'Color', map(i, :), 'Parent', sp1);
+            end
             axis(sp1, 'tight');
             
-            sp2 = subplot(2, 3, 2, 'Parent', fig);
+            sp2 = subplot(1, 3, 2, 'Parent', fig);
             hold(sp2, 'on')
-            sp2.Title.String = '$\frac{1}{2}\sum \log |\Sigma_{\lambda_c}|$';
-            plot(self.EM_iter, .5*sum_logdet_lambda_c, 'kx', 'Parent', sp2);
+            map = colormap(sp2, 'lines');
+            sp2.Title.String = '$c\log d$';
+            for i = 1:numel(self.d)
+                plot(self.EM_iter, self.c*log(self.d(i)), 'x',...
+                    'Color', map(i, :), 'Parent', sp2);
+            end
             axis(sp2, 'tight');
             
-            sp3 = subplot(2, 3, 3, 'Parent', fig);
+            sp3 = subplot(1, 3, 3, 'Parent', fig);
             hold(sp3, 'on')
-            sp3.Title.String = '$\frac{1}{2}\log |\Sigma_{\theta_c}|$';
-            plot(self.EM_iter, .5*logdet_Sigma_theta_c, 'kx', 'Parent', sp3);
+            map = colormap(sp3, 'lines');
+            sp3.Title.String = '$-\log |\Sigma_{\theta_c}^{(k)}|$';
+            for i = 1:numel(logdet_Sigma_theta_ck)
+                plot(self.EM_iter, -.5*logdet_Sigma_theta_ck(i),'x', 'Color',...
+                    map(i, :), 'Parent', sp3);
+            end
             axis(sp3, 'tight');
-            
-            sp4 = subplot(2, 3, 4, 'Parent', fig);
-            hold(sp4, 'on')
-            sp4.Title.String = '$-e \sum \log f$';
-            plot(self.EM_iter, - self.e*sum(log(self.f)), 'kx', 'Parent', sp4);
-            axis(sp4, 'tight');
-            
-            sp5 = subplot(2, 3, 5, 'Parent', fig);
-            hold(sp5, 'on')
-            sp5.Title.String = '$-c\sum \log(d)$';
-            plot(self.EM_iter, -self.c*sum(log(self.d)), 'kx', 'Parent', sp5);
-            axis(sp5, 'tight');
-            
-            sp6 = subplot(2, 3, 6, 'Parent', fig);
-            hold(sp6, 'on')
-            sp6.Title.String = '$-a\sum \log b$';
-            plot(self.EM_iter,-self.a*sum(log(self.b(1:D_gamma))),'kx',...
-                'Parent', sp6);
-            axis(sp6, 'tight');
             drawnow;
             
         end
@@ -782,7 +813,7 @@ classdef ModelParams < matlab.mixin.Copyable
             self.pCellScores.sp6.YLabel.String = 'active cell score with S';
 
             
-            imagesc(reshape(self.rf2fem*(-self.cell_score_full),...
+            imagesc(reshape(self.rf2fem*(-self.cell_score),...
                 numel(self.coarseGridX), numel(self.coarseGridY))',...
                 'Parent', self.pCellScores.sp1);
             self.pCellScores.sp1.GridLineStyle = 'none';
@@ -814,22 +845,22 @@ classdef ModelParams < matlab.mixin.Copyable
             self.pCellScores.sp3.Title.String = '$\log p_{cf}$';
             
             
-            if(numel(self.cell_score_full) ~=...
+            if(numel(self.cell_score) ~=...
                     numel(self.pCellScores.p_cell_score))
                 map = colormap(self.pCellScores.sp4, 'lines');
                 for k = (numel(self.pCellScores.p_cell_score) + 1):...
-                        numel(self.cell_score_full)
+                        numel(self.cell_score)
                     self.pCellScores.p_cell_score{k} = ...
                         animatedline('Parent', self.pCellScores.sp4);
-                    self.pCellScores.p_cell_score{k}.LineWidth = 2;
+                    self.pCellScores.p_cell_score{k}.LineWidth = .5;
                     self.pCellScores.p_cell_score{k}.Marker = 'x';
-                    self.pCellScores.p_cell_score{k}.MarkerSize = 10;
+                    self.pCellScores.p_cell_score{k}.MarkerSize = 6;
                     self.pCellScores.p_cell_score{k}.Color = map(k, :);
                 end
             end
             for k = 1:numel(self.cell_score_full)
                 addpoints(self.pCellScores.p_cell_score{k}, self.EM_iter,...
-                    -self.cell_score_full(k));
+                    -self.cell_score(k));
             end
             axis(self.pCellScores.sp4, 'tight');
             axis(self.pCellScores.sp4, 'fill');
@@ -842,9 +873,9 @@ classdef ModelParams < matlab.mixin.Copyable
                         numel(self.active_cells)
                     self.pCellScores.p_active_cells{k} = ...
                         animatedline('Parent', self.pCellScores.sp5);
-                    self.pCellScores.p_active_cells{k}.LineWidth = 2;
+                    self.pCellScores.p_active_cells{k}.LineWidth = .5;
                     self.pCellScores.p_active_cells{k}.Marker = 'x';
-                    self.pCellScores.p_active_cells{k}.MarkerSize = 10;
+                    self.pCellScores.p_active_cells{k}.MarkerSize = 6;
                     self.pCellScores.p_active_cells{k}.Color = map(k, :);
                 end
                 
@@ -863,9 +894,9 @@ classdef ModelParams < matlab.mixin.Copyable
                         numel(self.active_cells_S)
                     self.pCellScores.p_active_cells_S{k} =...
                         animatedline('Parent', self.pCellScores.sp6);
-                    self.pCellScores.p_active_cells_S{k}.LineWidth = 2;
+                    self.pCellScores.p_active_cells_S{k}.LineWidth = .5;
                     self.pCellScores.p_active_cells_S{k}.Marker = 'x';
-                    self.pCellScores.p_active_cells_S{k}.MarkerSize = 10;
+                    self.pCellScores.p_active_cells_S{k}.MarkerSize = 6;
                     self.pCellScores.p_active_cells_S{k}.Color = map(k, :);
                 end
             end

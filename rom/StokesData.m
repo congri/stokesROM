@@ -837,20 +837,6 @@ classdef StokesData < handle
                 
                 %chord length density
                 phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .02);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'chordLengthDens02',...
-                        'delimiter', '', '-append');
-                end
-                %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'logChordLengthDens02',...
-                        'delimiter', '', '-append');
-                end
-                
-                phi = chordLengthDensity(mData{n}.diskCenters,...
                     mData{n}.diskRadii, gridRF, .01);
                 dMat{n} = [dMat{n}, phi(:)];
                 if n == 1
@@ -889,6 +875,20 @@ classdef StokesData < handle
                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logChordLengthDens0025',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, gridRF, .00125);
+                dMat{n} = [dMat{n}, phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'chordLengthDens00125',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens00125',...
                         'delimiter', '', '-append');
                 end
                 

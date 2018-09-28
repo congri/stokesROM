@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 128;
+nTrain = 16;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -68,7 +68,7 @@ rom.trainingData.shiftData(interp, 'p'); %shifts p to 0 at origin
 rom.trainingData.vtx2Cell(rom.modelParams);
 
 sw0_mu = 1e-3;
-sw0_sigma = 1e-6;
+sw0_sigma = 3e-4;
 sw_decay = .995; %decay factor per iteration
 nSplits = 20;
 tic_tot = tic;
@@ -241,9 +241,9 @@ for split_iter = 1:(nSplits + 1)
         disp('Plotting...')
         t_plt = tic;
         %plot parameters
-        rom.modelParams.plot_params();
+%         rom.modelParams.plot_params();
         %plot modal lambda_c and corresponding -training- data reconstruction
-        rom.plotCurrentState(0, transType, transLimits);
+%         rom.plotCurrentState(0, transType, transLimits);
         %plot elbo vs. training iteration
         t_tot = toc(tic_tot)
         rom.modelParams.plotElbo(t_tot);
@@ -283,7 +283,7 @@ for split_iter = 1:(nSplits + 1)
     
     if split_iter < (nSplits + 1)
         disp('splitting cell...')
-        refinement_objective = 'full_elbo_score';
+        refinement_objective = 'reduced_elbo_score';
         if strcmp(refinement_objective, 'active_cells_S')
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S;
