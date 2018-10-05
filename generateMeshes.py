@@ -20,10 +20,11 @@ foldername1 = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nEle
 #Parameters only for 'circles' mode
 nExclusionsDist='logn'
 nExclusionParams = (5.6, .6)
-coordinateDist = 'gauss_randmu'
+coordinateDist = 'gauss'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 # negative margin means no margin
 margins = (0.01, .01, .01, .01)
+origin_margin = .005
 substractCorners = False     #Substracts circles from domain corners s.t. flow cannot pass
 radiiDist = 'logn'
 r_params = (-4.5, .15)
@@ -277,7 +278,8 @@ elif mode == 'nonOverlappingCircles':
                 if (((exclusionCenter[0, 1] - exclusionRadius) < margins[0]) and margins[0] >= 0) or \
                     (((exclusionCenter[0, 0] + exclusionRadius) > (1 - margins[1])) and margins[1] >= 0) or \
                     (((exclusionCenter[0, 1] + exclusionRadius) > (1 - margins[2])) and margins[2] >= 0) or \
-                        (((exclusionCenter[0, 0] - exclusionRadius) < margins[3]) and margins[3] >= 0):
+                        (((exclusionCenter[0, 0] - exclusionRadius) < margins[3]) and margins[3] >= 0) or \
+                        ((np.linalg.norm(exclusionCenter) - exclusionRadius) < origin_margin):
                     onBoundary = True
 
                 if not onBoundary:

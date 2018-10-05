@@ -765,8 +765,9 @@ classdef StokesROM < handle
                     splt(i).BoxStyle = 'full';
 %                     splt(i).ZLim = [-2e4, 4e3];
                     cbp_true = colorbar('Parent', fig);
-                    caxis = [min(testData.P{i + pltstart}), ...
+                    splt(i).CLim = [min(testData.P{i + pltstart}), ...
                         max(testData.P{i + pltstart})];
+                    splt(i).View = [-140, 20];
                     
                     %predictive mean
                     hold on;

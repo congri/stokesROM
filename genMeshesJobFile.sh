@@ -1,13 +1,13 @@
-NMESHES=1024
+NMESHES=2048
 NELEMENTS=256
-NEX1=7.2    #number of exclusion parameters
+NEX1=8.35    #number of exclusion parameters
 NEX2=0.6
 RPARAMSLO=-5.53
 RPARAMSHI=0.3
-MARGIN_LO=0.002
-MARGIN_R=0.002
-MARGIN_U=0.002
-MARGIN_LE=0.002
+MARGIN_LO=0.003
+MARGIN_R=0.003
+MARGIN_U=0.003
+MARGIN_LE=0.003
 
 
 CORES=1
@@ -15,7 +15,7 @@ CORES=1
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 #Set up file paths
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
-JOBNAME="genMesh_randmu_nElements=${NELEMENTS}nParams1=${NEX1}nParams2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
+JOBNAME="genMesh_nElements=${NELEMENTS}nParams1=${NEX1}nParams2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
 JOBDIR="/home/constantin/python/jobs/${JOBNAME}_${DATESTR}"
 
 #Create job directory and copy source code
@@ -29,7 +29,7 @@ rm job_file.sh
 
 #write job file
 printf "#PBS -N $JOBNAME
-#PBS -l nodes=1:ppn=$CORES,walltime=240:00:00
+#PBS -l walltime=1000:00:00
 #PBS -o $CWD
 #PBS -e $CWD
 #PBS -m abe
@@ -42,7 +42,7 @@ sed -i \"15s/.*/nMeshes = $NMESHES/\" ./generateMeshes.py
 sed -i \"16s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./generateMeshes.py
 sed -i \"22s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./generateMeshes.py
 sed -i \"26s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./generateMeshes.py
-sed -i \"29s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./generateMeshes.py
+sed -i \"30s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./generateMeshes.py
 
 
 

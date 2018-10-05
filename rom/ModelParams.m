@@ -25,6 +25,8 @@ classdef ModelParams < matlab.mixin.Copyable
         cell_score_full   %includes also terms of p_cf to elbo cell score
         active_cells
         active_cells_S
+        sigma_cf_score    %refine where sqrt(S) of p_cf is maximal
+        inv_sigma_cf_score%refine where inv(sqrt(S)) is maximal
         
         %p_cf
         W_cf
@@ -82,7 +84,7 @@ classdef ModelParams < matlab.mixin.Copyable
         %% Training parameters
         EM_iter       = 0    %current total number of iterations
         EM_iter_split = 0    %current number of iterations after last split
-        max_EM_epochs = 50   %maximum number of epochs
+        max_EM_epochs = 300   %maximum number of epochs
         
         %% Settings
         computeElbo = true
@@ -102,7 +104,7 @@ classdef ModelParams < matlab.mixin.Copyable
             
             %only for a single cell here!!!
             %grid of random field
-            self.gridRF = RectangularMesh((1/2)*ones(1, 2));
+            self.gridRF = RectangularMesh((1/4)*ones(1, 4));
             self.cell_dictionary = 1:self.gridRF.nCells;
             
             %% Initialize coarse mesh object
@@ -396,6 +398,18 @@ classdef ModelParams < matlab.mixin.Copyable
                 save(filename, 'cell_score_full', '-ascii', '-append');
             end
             
+            if contains(params, 'sigma_cf_score')
+                filename = './data/sigma_cf_score';
+                sigma_cf_score = self.sigma_cf_score';
+                save(filename, 'sigma_cf_score', '-ascii', '-append');
+            end
+            
+            if contains(params, 'inv_sigma_cf_score')
+                filename = './data/inv_sigma_cf_score';
+                inv_sigma_cf_score = self.inv_sigma_cf_score';
+                save(filename, 'inv_sigma_cf_score', '-ascii', '-append');
+            end
+            
             %Optimal params
             %W matrices
             if any(params == 'W')
@@ -537,6 +551,10 @@ classdef ModelParams < matlab.mixin.Copyable
             self.cell_score_full = self.cell_score +...
                 self.sum_in_macrocell*f_contribution;
             
+            self.sigma_cf_score = self.sum_in_macrocell*sqrt(self.sigma_cf.s0);
+            self.inv_sigma_cf_score =...
+                self.sum_in_macrocell*sqrt(1./self.sigma_cf.s0);
+            
             constants = -.5*N*N_dof*log(2*pi) + .5*N*D_c + .5*D_theta_c + ...
                 N_dof*(ee*log(ff) + log(gamma(self.e)) - log(gamma(ee))) +...
                 D_c*(cc*log(dd) + log(gamma(self.c)) - log(gamma(cc))) +...
@@ -583,12 +601,15 @@ classdef ModelParams < matlab.mixin.Copyable
             hold(sp1, 'on')
             map = colormap(sp1, 'lines');
             sp1.Title.String = '$-\frac{1}{2}\sum_n\log \sigma_{\lambda_c}^2$';
-            sum_sigma = sum(log(Sigma_lambda_c), 2);
+            sum_sigma = .5*sum(log(Sigma_lambda_c), 2);
             for i = 1:numel(sum_sigma)
-                plot(self.EM_iter, -.5*sum_sigma(i), 'x', ...
+                plot(self.EM_iter, -sum_sigma(i), 'x', ...
                     'Color', map(i, :), 'Parent', sp1);
             end
             axis(sp1, 'tight');
+            filename = './data/05sum_sigma';
+            sum_sigma = sum_sigma';
+            save(filename, 'sum_sigma', '-ascii', '-append');
             
             sp2 = subplot(1, 3, 2, 'Parent', fig);
             hold(sp2, 'on')
@@ -599,6 +620,9 @@ classdef ModelParams < matlab.mixin.Copyable
                     'Color', map(i, :), 'Parent', sp2);
             end
             axis(sp2, 'tight');
+            minus_c_log_d = -self.c*log(self.d(:))';
+            filename = './data/minus_c_log_d';
+            save(filename, 'minus_c_log_d', '-ascii', '-append');
             
             sp3 = subplot(1, 3, 3, 'Parent', fig);
             hold(sp3, 'on')
@@ -609,6 +633,9 @@ classdef ModelParams < matlab.mixin.Copyable
                     map(i, :), 'Parent', sp3);
             end
             axis(sp3, 'tight');
+            half_log_det_sigma_theta_ck = .5*logdet_Sigma_theta_ck(:)';
+            filename = './data/05log_det_sigma_theta_ck';
+            save(filename, 'half_log_det_sigma_theta_ck', '-ascii', '-append');
             drawnow;
             
         end

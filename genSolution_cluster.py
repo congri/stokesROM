@@ -33,7 +33,7 @@ nExclusionsDist = 'logn'
 nExclusionParams = (7.2, 0.6)
 coordinateDistribution = 'gauss'
 coordinate_cov = [[0.55, -0.45], [-0.45, 0.55]]
-coordinate_mu = [0.8, 0.8]
+coordinate_mu = [0.2, 0.2]
 radiiDistribution = 'logn'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 margins = (0.002, 0.002, 0.002, 0.002)

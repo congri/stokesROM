@@ -68,9 +68,9 @@ rom.trainingData.shiftData(interp, 'p'); %shifts p to 0 at origin
 rom.trainingData.vtx2Cell(rom.modelParams);
 
 sw0_mu = 1e-3;
-sw0_sigma = 3e-4;
+sw0_sigma = 1e-4;
 sw_decay = .995; %decay factor per iteration
-nSplits = 20;
+nSplits = 0;
 tic_tot = tic;
 for split_iter = 1:(nSplits + 1)
     
@@ -243,12 +243,12 @@ for split_iter = 1:(nSplits + 1)
         %plot parameters
 %         rom.modelParams.plot_params();
         %plot modal lambda_c and corresponding -training- data reconstruction
-%         rom.plotCurrentState(0, transType, transLimits);
+        rom.plotCurrentState(0, transType, transLimits);
         %plot elbo vs. training iteration
         t_tot = toc(tic_tot)
-        rom.modelParams.plotElbo(t_tot);
+%         rom.modelParams.plotElbo(t_tot);
         %Plot adaptive refinement cell scores
-        rom.modelParams.plotCellScores();
+%         rom.modelParams.plotCellScores();
         disp('...plotting done. Plotting time:')
         t_plt = toc(t_plt)
         
@@ -260,6 +260,8 @@ for split_iter = 1:(nSplits + 1)
         rom.modelParams.write2file('elbo');
         rom.modelParams.write2file('cell_score');
         rom.modelParams.write2file('cell_score_full');
+        rom.modelParams.write2file('sigma_cf_score');
+        rom.modelParams.write2file('inv_sigma_cf_score');
         if ~mod(rom.modelParams.EM_iter, 10)
             tic
             modelParams = copy(rom.modelParams);
@@ -283,7 +285,7 @@ for split_iter = 1:(nSplits + 1)
     
     if split_iter < (nSplits + 1)
         disp('splitting cell...')
-        refinement_objective = 'reduced_elbo_score';
+        refinement_objective = 'inv_sigma_cf';
         if strcmp(refinement_objective, 'active_cells_S')
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S;
@@ -298,6 +300,10 @@ for split_iter = 1:(nSplits + 1)
             [~, cell_index_pde] = max(rom.modelParams.active_cells);
         elseif strcmp(refinement_objective, 'full_elbo_score')
             [~, cell_index_pde] = min(rom.modelParams.cell_score_full);
+        elseif strcmp(refinement_objective, 'sigma_cf')
+            [~, cell_index_pde] = max(rom.modelParams.sigma_cf_score);
+        elseif strcmp(refinement_objective, 'inv_sigma_cf')
+            [~, cell_index_pde] = max(rom.modelParams.inv_sigma_cf_score);
         elseif strcmp(refinement_objective, 'reduced_elbo_score')
             [~, cell_index_pde] = min(rom.modelParams.cell_score);
         elseif strcmp(refinement_objective, 'random')

@@ -4,15 +4,36 @@ clear;
 addpath('./mesh')
 addpath('./FEM')
 addpath('~/matlab/toolboxes/gif_v1.0/gif')
-fig = figure('units','normalized','outerposition',[0 0 .55 1]);
+fig = figure('units','normalized','outerposition',[0.2 0.2 .115 .25]);
+fig.ToolBar = 'none';
 sp1 = subplot(1, 1, 1, 'Parent', fig);
-filename = 'reduced_elbo_refine';
+sp1.Position(1) = .015;
+sp1.Position(2) = -.01;
+sp1.Position(4) = .9;
+sp1.Position(3) = .95;
+fig.Position(4) = .22;
+refinement_mode = 'cell_score';
+filename = strcat(refinement_mode, '_refine');
+seconds_per_frame = .05;
+iter_increment = 10;
+plot_split_only = true;
+if plot_split_only
+    seconds_per_frame = 2;
+    filename = strcat(filename, '_split_only');
+end
 
 
 %% Load data, set constants
-score = dlmread('./data/cell_score');
+if strcmp(refinement_mode, 'random')
+    score_temp = dlmread('./data/cell_score');
+    score = rand(size(score_temp));
+    score(score_temp == 0) = 0;
+else
+    score = dlmread(strcat('./data/', refinement_mode));
+end
 coarseGridX = (1/16)*ones(1, 16);
 coarseGridY = (1/16)*ones(1, 16);
+load('./data/modelParams.mat');
 
 %% Find first rf2fem
 curr_score = score(1, :);
@@ -26,17 +47,66 @@ else
 end
 cell_dictionary = 1:gridRF.nCells;
 rf2fem = gridRF.map2fine(coarseGridX, coarseGridY);
+%% Plot first frame
+next_score = score(1, :);
+next_score = next_score(next_score ~= 0);
+if(strcmp(refinement_mode, 'cell_score') || ...
+        strcmp(refinement_mode, 'cell_score_full'))
+    next_score = -next_score;
+end
+imagesc(reshape(rf2fem*(next_score'), numel(coarseGridX),...
+    numel(coarseGridY))', 'Parent', sp1);
+sp1.GridLineStyle = 'none';
+sp1.XTick = [];
+sp1.YTick = [];
+sp1.Title.String = 'Elbo cell score';
+sp1.YDir = 'normal';
+gif(strcat(filename, '.gif'), 'DelayTime', seconds_per_frame, 'frame', fig);
+axis tight
+drawnow
 
-for iter = 2:size(score, 1)
+if plot_split_only
+    plt_iter = false;
+else
+    plt_iter = true;
+end
+
+curr_split = 1;
+for iter = 2:iter_increment:size(score, 1)
     %loop over all iterations
     curr_score = score(iter - 1, :);
     curr_score = curr_score(curr_score ~= 0);
-    next_score = score(iter, :);
+    next_score = score(iter + iter_increment - 1, :);
     next_score = next_score(next_score ~= 0);
     
+    %% Plot
+    if(strcmp(refinement_mode, 'cell_score') || ...
+            strcmp(refinement_mode, 'cell_score_full'))
+        curr_score = - curr_score;
+    end
+    if plt_iter
+        imagesc(reshape(rf2fem*(curr_score'), numel(coarseGridX),...
+            numel(coarseGridY))', 'Parent', sp1);
+        sp1.GridLineStyle = 'none';
+        sp1.XTick = [];
+        sp1.YTick = [];
+        sp1.Title.String = 'Elbo cell score';
+        sp1.YDir = 'normal';
+        gif
+        drawnow
+        if plot_split_only
+            plt_iter = false;
+        end
+    end
+    
+    
     if numel(curr_score) ~= numel(next_score)
-        [~, cell_index_pde] = min(curr_score)
+        [~, cell_index_pde] = max(curr_score)
         splt_cll = find(cell_dictionary == cell_index_pde)
+        if splt_cll ~= modelParams.splitted_cells(curr_split)
+            warning('splitted cell not identical with objective function')
+            splt_cll = modelParams.splitted_cells(curr_split);
+        end
         gridRF.split_cell(gridRF.cells{splt_cll});
         rf2fem = gridRF.map2fine(coarseGridX, coarseGridY);
         
@@ -51,20 +121,8 @@ for iter = 2:size(score, 1)
             cell_dictionary = [cell_dictionary, (cell_dictionary(end) + 1):...
                 (cell_dictionary(end) + 4)];
         end
+        curr_split = curr_split + 1;
+        plt_iter = true;
     end
-    
-    %% Plot
-    imagesc(reshape(rf2fem*(-next_score'), numel(coarseGridX),...
-        numel(coarseGridY))', 'Parent', sp1);
-    sp1.GridLineStyle = 'none';
-    sp1.XTick = [];
-    sp1.YTick = [];
-    sp1.Title.String = 'Elbo cell score';
-    if iter == 2
-        %create gif
-        gif(strcat(filename, '.gif'), 'DelayTime', .02, 'frame', fig);
-    else
-        gif
-    end
-    drawnow
+
 end
