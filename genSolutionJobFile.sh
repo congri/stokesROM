@@ -1,7 +1,5 @@
 # Script that generates and submits a job file to solve Stokes flow given a mesh with random non-overlapping circular exclusions
-CORES=16
-
-NMESHESLO=0
+NMESHESLO=63
 NMESHESUP=2048
 
 MARG_LO=0.003
@@ -19,7 +17,7 @@ RPARAM2=0.3
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
 # Set JOBNAME by hand for every job!
-JOBNAME="solv_${DATESTR}"
+JOBNAME="solvGP_${DATESTR}"
 JOBDIR="/home/constantin/python/jobs/$JOBNAME"
 
 #Create job directory and copy source code
@@ -33,9 +31,9 @@ rm job_file.sh
 
 #write job file
 printf "#PBS -N $JOBNAME
-#PBS -l nodes=1:ppn=$CORES,walltime=240:00:00
-#PBS -o $CWD
-#PBS -e $CWD
+#PBS -l walltime=240:00:00
+#PBS -o /home/constantin/OEfiles
+#PBS -e /home/constantin/OEfiles
 #PBS -m abe
 #PBS -M mailscluster@gmail.com
 
@@ -44,8 +42,8 @@ cd $JOBDIR
 #Set parameters
 sed -i \"24s/.*/meshes = np.arange(${NMESHESLO}, ${NMESHESUP})/\" ./genSolution_cluster.py
 sed -i \"33s/.*/nExclusionParams = (${NEXCLUSIONPARAM1}, ${NEXCLUSIONPARAM2})/\" ./genSolution_cluster.py
-sed -i \"40s/.*/r_params = (${RPARAM1}, ${RPARAM2})/\" ./genSolution_cluster.py
-sed -i \"39s/.*/margins = (${MARG_LO}, ${MARG_R}, ${MARG_U}, ${MARG_LE})/\" ./genSolution_cluster.py
+sed -i \"48s/.*/r_params = (${RPARAM1}, ${RPARAM2})/\" ./genSolution_cluster.py
+sed -i \"47s/.*/margins = (${MARG_LO}, ${MARG_R}, ${MARG_U}, ${MARG_LE})/\" ./genSolution_cluster.py
 
 
 
@@ -59,9 +57,9 @@ source activate fenics3
 
 chmod +x job_file.sh
 #directly submit job file
-qsub job_file.sh
+#qsub job_file.sh
 #execute job_file.sh in shell
-#./job_file.sh
+./job_file.sh
 
 
 

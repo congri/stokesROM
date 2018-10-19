@@ -30,13 +30,21 @@ mu = 1  # viscosity
 
 # For circular exclusions
 nExclusionsDist = 'logn'
-nExclusionParams = (7.2, 0.6)
-coordinateDistribution = 'gauss'
+nExclusionParams = (8.35, 0.6)
+coordinateDistribution = 'GP'
+
+# for coordinateDistribution == 'gauss'
 coordinate_cov = [[0.55, -0.45], [-0.45, 0.55]]
-coordinate_mu = [0.2, 0.2]
+coordinate_mu = [0.5, 0.5]
+
+# for coordinateDistribution == 'GP'
+covFun = 'squaredExponential'
+cov_l = 0.1
+sig_scale = 1.5
+
 radiiDistribution = 'logn'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
-margins = (0.002, 0.002, 0.002, 0.002)
+margins = (0.003, 0.003, 0.003, 0.003)
 r_params = (-5.53, .3)
 
 # Flow boundary condition for velocity on domain boundary
@@ -55,11 +63,13 @@ if porousMedium == 'nonOverlappingCircles':
     else:
         raise Exception('Invalid number of exclusions distribution')
 
-    foldername += '/x~'
+    foldername += '/x~' + coordinateDistribution
     if coordinateDistribution == 'gauss':
-        foldername += coordinateDistribution + '/mu=' + str(coordinate_mu[0]) + '_' + str(coordinate_mu[1]) + \
+        foldername += '/mu=' + str(coordinate_mu[0]) + '_' + str(coordinate_mu[1]) + \
                       '/cov=' + str(coordinate_cov[0][0]) + '_' + str(coordinate_cov[0][1]) + '_' + \
                       str(coordinate_cov[1][1])
+    elif coordinateDistribution == 'GP':
+        foldername += '/cov=' + covFun + '/l=' + str(cov_l) + '/sig_scale=' + str(sig_scale) + '/'
     else:
         raise Exception('Invalid coordinates distribution')
 

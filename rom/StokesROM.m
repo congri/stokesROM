@@ -55,7 +55,8 @@ classdef StokesROM < handle
                 %initialization
                 if(numel(self.modelParams.gamma) ~= dim_theta)
                     warning('resizing theta precision parameter gamma')
-                    self.modelParams.gamma = 1e0*ones(dim_theta, 1);
+                    %set up initial value for gamma here for the time being
+                    self.modelParams.gamma = 1e-4*ones(dim_theta, 1);
                 end
                 gam = self.modelParams.gamma;
                 tau_theta = diag(gam);    %precision of q(theta_c)

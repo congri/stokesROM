@@ -9,18 +9,18 @@ MARG1=0.003
 MARG2=0.003
 MARG3=0.003
 MARG4=0.003
-XMU="0.8_0.8"
+XMU="0.5_0.5"
 XCOV="0.55_-0.45_0.55"
 
 GRADIENTSAMPLESSTART=1
 GRADIENTSAMPLESEND=1
-STOCHOPTTIME=60    
+STOCHOPTTIME=30    
 
-NTRAIN=128
+NTRAIN=64
 NTESTSTART=0
 NTESTEND=1023
 
-MAXEMITER=60
+MAXEMITER=1000
 
 NCORES=16
 if [ $NTRAIN -lt $NCORES ]; then
@@ -29,11 +29,11 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="refinement_inv_sigma_cf"
+NAMEBASE="split1_4_2x2"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"
-JOBDIR="/home/constantin/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~gauss/mu=${XMU}/cov=${XCOV}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/split/autosplit/${JOBNAME}"
+JOBDIR="/home/constantin/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~gauss/mu=${XMU}/cov=${XCOV}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/split/predef_split/${JOBNAME}"
 
 #Create job directory and copy source code
 mkdir -p "${JOBDIR}"

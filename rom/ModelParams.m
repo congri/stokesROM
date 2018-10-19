@@ -53,13 +53,13 @@ classdef ModelParams < matlab.mixin.Copyable
         mode = 'local'  %separate theta_c's per macro-cell
         prior_theta_c = 'sharedVRVM'
         gamma   %Gaussian precision of prior on theta_c
-        VRVM_a = 1e-6
-        VRVM_b = 1e-6
-        VRVM_c = 1e-6
-        VRVM_d = 1e-6
-        VRVM_e = 1e-6
-        VRVM_f = 1e-6
-        VRVM_iter = 150 %iterations with fixed q(lambda_c)
+        VRVM_a = eps
+        VRVM_b = eps
+        VRVM_c = eps
+        VRVM_d = eps
+        VRVM_e = eps
+        VRVM_f = eps
+        VRVM_iter = 200 %iterations with fixed q(lambda_c)
         
         %current parameters of variational distributions
         a
@@ -84,7 +84,7 @@ classdef ModelParams < matlab.mixin.Copyable
         %% Training parameters
         EM_iter       = 0    %current total number of iterations
         EM_iter_split = 0    %current number of iterations after last split
-        max_EM_epochs = 300   %maximum number of epochs
+        max_EM_epochs = 1000   %maximum number of epochs
         
         %% Settings
         computeElbo = true
@@ -151,12 +151,13 @@ classdef ModelParams < matlab.mixin.Copyable
             self.sigma_cf.s0 = ones(nSX*nSY, 1);  %variance field of p_cf
             
             %Initialize hyperparameters
+            %this is not working as theta_c is initialized only later
             if strcmp(self.prior_theta_c, 'RVM')
                 self.gamma = 1e-4*ones(size(self.theta_c));
             elseif strcmp(self.prior_theta_c, 'VRVM')
-                self.gamma = 1e-6*ones(size(self.theta_c));
+                self.gamma = 1e4*ones(size(self.theta_c));
             elseif strcmp(self.prior_theta_c, 'sharedVRVM')
-                self.gamma = 1e-2*ones(size(self.theta_c));
+                self.gamma = 1e-4*ones(size(self.theta_c));
             elseif strcmp(self.prior_theta_c, 'none')
                 self.gamma = NaN;
             else
@@ -345,9 +346,9 @@ classdef ModelParams < matlab.mixin.Copyable
             
             if strcmp(self.mode, 'local')
                 disp('theta_c: row = feature, column = macro-cell:')
-                curr_theta_c = reshape(self.theta_c,...
-                    numel(self.theta_c)/self.gridRF.nCells,...
-                    self.gridRF.nCells)
+%                 curr_theta_c = reshape(self.theta_c,...
+%                     numel(self.theta_c)/self.gridRF.nCells,...
+%                     self.gridRF.nCells)
                 curr_Sigma_c = full(diag(self.Sigma_c))
                 if strcmp(self.prior_theta_c, 'sharedVRVM')
                     curr_gamma = self.gamma(1:...
@@ -356,7 +357,7 @@ classdef ModelParams < matlab.mixin.Copyable
                     curr_gamma = self.gamma;
                 end
             else
-                curr_theta_c = self.theta_c
+%                 curr_theta_c = self.theta_c
                 curr_Sigma_c = full(diag(self.Sigma_c))
                 curr_gamma = self.gamma;
             end
@@ -380,31 +381,31 @@ classdef ModelParams < matlab.mixin.Copyable
                 mkdir('./data/');
             end
             
-            if contains(params, 'elbo')
+            if strcmp(params, 'elbo')
                 filename = './data/elbo';
                 elbo = self.elbo;
                 save(filename, 'elbo', '-ascii', '-append');
             end
             
-            if contains(params, 'cell_score')
+            if strcmp(params, 'cell_score')
                 filename = './data/cell_score';
                 cell_score = self.cell_score';
                 save(filename, 'cell_score', '-ascii', '-append');
             end
             
-            if contains(params, 'cell_score_full')
+            if strcmp(params, 'cell_score_full')
                 filename = './data/cell_score_full';
                 cell_score_full = self.cell_score_full';
                 save(filename, 'cell_score_full', '-ascii', '-append');
             end
             
-            if contains(params, 'sigma_cf_score')
+            if strcmp(params, 'sigma_cf_score')
                 filename = './data/sigma_cf_score';
                 sigma_cf_score = self.sigma_cf_score';
                 save(filename, 'sigma_cf_score', '-ascii', '-append');
             end
             
-            if contains(params, 'inv_sigma_cf_score')
+            if strcmp(params, 'inv_sigma_cf_score')
                 filename = './data/inv_sigma_cf_score';
                 inv_sigma_cf_score = self.inv_sigma_cf_score';
                 save(filename, 'inv_sigma_cf_score', '-ascii', '-append');
@@ -422,35 +423,35 @@ classdef ModelParams < matlab.mixin.Copyable
             end
             
             %gamma
-            if contains(params, 'thetaPriorHyperparam')
+            if strcmp(params, 'thetaPriorHyperparam')
                 filename = './data/thetaPriorHyperparam';
                 thetaPriorHyperparam = self.gamma';
                 save(filename, 'thetaPriorHyperparam', '-ascii', '-append');
             end
             
             %theta_c
-            if contains(params, 'theta_c')
+            if strcmp(params, 'theta_c')
                 filename = './data/theta_c';
                 tc = self.theta_c';
                 save(filename, 'tc', '-ascii', '-append');
             end
             
             %Sigma_theta_c (variance of posterior on theta_c)
-            if contains(params, 'sigma_theta_c')
+            if strcmp(params, 'sigma_theta_c')
                 filename = './data/Sigma_theta_c.mat';
                 Sigma_theta_c = self.Sigma_theta_c;
                 save(filename, 'Sigma_theta_c');
             end
             
             %sigma
-            if contains(params, 'sigma_c')
+            if strcmp(params, 'sigma_c')
                 filename = './data/sigma_c';
                 sc = full(diag(self.Sigma_c))';
                 save(filename, 'sc', '-ascii', '-append');
             end
             
             %S
-            if contains(params, 'sigma_cf')
+            if strcmp(params, 'sigma_cf')
                 filename = './data/sigma_cf';
                 scf = self.sigma_cf.s0';
                 onlyFinal = true;
@@ -462,7 +463,7 @@ classdef ModelParams < matlab.mixin.Copyable
             end
             
             %Parameters of variational distributions on transformed lambda_c
-            if contains(params, 'vardist')
+            if strcmp(params, 'vardist')
                 varmu = self.variational_mu;
                 varsigma = self.variational_sigma;
                 save('./data/vardistparams.mat', 'varmu', 'varsigma');
@@ -597,46 +598,46 @@ classdef ModelParams < matlab.mixin.Copyable
 %                 'Parent', sp6);
 %             axis(sp6, 'tight');
 
-            sp1 = subplot(1, 3, 1, 'Parent', fig);
-            hold(sp1, 'on')
-            map = colormap(sp1, 'lines');
-            sp1.Title.String = '$-\frac{1}{2}\sum_n\log \sigma_{\lambda_c}^2$';
-            sum_sigma = .5*sum(log(Sigma_lambda_c), 2);
-            for i = 1:numel(sum_sigma)
-                plot(self.EM_iter, -sum_sigma(i), 'x', ...
-                    'Color', map(i, :), 'Parent', sp1);
-            end
-            axis(sp1, 'tight');
-            filename = './data/05sum_sigma';
-            sum_sigma = sum_sigma';
-            save(filename, 'sum_sigma', '-ascii', '-append');
-            
-            sp2 = subplot(1, 3, 2, 'Parent', fig);
-            hold(sp2, 'on')
-            map = colormap(sp2, 'lines');
-            sp2.Title.String = '$c\log d$';
-            for i = 1:numel(self.d)
-                plot(self.EM_iter, self.c*log(self.d(i)), 'x',...
-                    'Color', map(i, :), 'Parent', sp2);
-            end
-            axis(sp2, 'tight');
-            minus_c_log_d = -self.c*log(self.d(:))';
-            filename = './data/minus_c_log_d';
-            save(filename, 'minus_c_log_d', '-ascii', '-append');
-            
-            sp3 = subplot(1, 3, 3, 'Parent', fig);
-            hold(sp3, 'on')
-            map = colormap(sp3, 'lines');
-            sp3.Title.String = '$-\log |\Sigma_{\theta_c}^{(k)}|$';
-            for i = 1:numel(logdet_Sigma_theta_ck)
-                plot(self.EM_iter, -.5*logdet_Sigma_theta_ck(i),'x', 'Color',...
-                    map(i, :), 'Parent', sp3);
-            end
-            axis(sp3, 'tight');
-            half_log_det_sigma_theta_ck = .5*logdet_Sigma_theta_ck(:)';
-            filename = './data/05log_det_sigma_theta_ck';
-            save(filename, 'half_log_det_sigma_theta_ck', '-ascii', '-append');
-            drawnow;
+%             sp1 = subplot(1, 3, 1, 'Parent', fig);
+%             hold(sp1, 'on')
+%             map = colormap(sp1, 'lines');
+%             sp1.Title.String = '$-\frac{1}{2}\sum_n\log \sigma_{\lambda_c}^2$';
+%             sum_sigma = .5*sum(log(Sigma_lambda_c), 2);
+%             for i = 1:numel(sum_sigma)
+%                 plot(self.EM_iter, -sum_sigma(i), 'x', ...
+%                     'Color', map(i, :), 'Parent', sp1);
+%             end
+%             axis(sp1, 'tight');
+%             filename = './data/05sum_sigma';
+%             sum_sigma = sum_sigma';
+%             save(filename, 'sum_sigma', '-ascii', '-append');
+%             
+%             sp2 = subplot(1, 3, 2, 'Parent', fig);
+%             hold(sp2, 'on')
+%             map = colormap(sp2, 'lines');
+%             sp2.Title.String = '$c\log d$';
+%             for i = 1:numel(self.d)
+%                 plot(self.EM_iter, self.c*log(self.d(i)), 'x',...
+%                     'Color', map(i, :), 'Parent', sp2);
+%             end
+%             axis(sp2, 'tight');
+%             minus_c_log_d = -self.c*log(self.d(:))';
+%             filename = './data/minus_c_log_d';
+%             save(filename, 'minus_c_log_d', '-ascii', '-append');
+%             
+%             sp3 = subplot(1, 3, 3, 'Parent', fig);
+%             hold(sp3, 'on')
+%             map = colormap(sp3, 'lines');
+%             sp3.Title.String = '$-\log |\Sigma_{\theta_c}^{(k)}|$';
+%             for i = 1:numel(logdet_Sigma_theta_ck)
+%                 plot(self.EM_iter, -.5*logdet_Sigma_theta_ck(i),'x', 'Color',...
+%                     map(i, :), 'Parent', sp3);
+%             end
+%             axis(sp3, 'tight');
+%             half_log_det_sigma_theta_ck = .5*logdet_Sigma_theta_ck(:)';
+%             filename = './data/05log_det_sigma_theta_ck';
+%             save(filename, 'half_log_det_sigma_theta_ck', '-ascii', '-append');
+%             drawnow;
             
         end
         
@@ -655,24 +656,24 @@ classdef ModelParams < matlab.mixin.Copyable
                     nSX = nSX + 1; nSY = nSY + 1;
                 end
                 
-                sb1 = subplot(3, 2, 1, 'Parent', self.pParams.figParams);
-                if(~isfield(self.pParams, 'p_theta') ||...
-                        numel(self.theta_c) ~= numel(self.pParams.p_theta))
-                    %random colors
+%                 sb1 = subplot(3, 2, 1, 'Parent', self.pParams.figParams);
+%                 if(~isfield(self.pParams, 'p_theta') ||...
+%                         numel(self.theta_c) ~= numel(self.pParams.p_theta))
+%                     %random colors
                     colors = [1 0 0; 0 1 0; 0 0 1; 1 0 1; 0 1 1; 0 0 0];
-                    for d = 1:numel(self.theta_c)
-                        self.pParams.p_theta{d} = animatedline('color',...
-                            colors(mod(d, 6) + 1, :), 'Parent', sb1);
-                    end
-                    sb1.XLabel.String = 'iter';
-                    sb1.YLabel.String = '$\theta_c$';
-                end
-                for d = 1:numel(self.theta_c)
-                    addpoints(...
-                        self.pParams.p_theta{d}, self.EM_iter, self.theta_c(d));
-                end
-                axis(sb1, 'tight');
-                axis(sb1, 'fill');
+%                     for d = 1:numel(self.theta_c)
+%                         self.pParams.p_theta{d} = animatedline('color',...
+%                             colors(mod(d, 6) + 1, :), 'Parent', sb1);
+%                     end
+%                     sb1.XLabel.String = 'iter';
+%                     sb1.YLabel.String = '$\theta_c$';
+%                 end
+%                 for d = 1:numel(self.theta_c)
+%                     addpoints(...
+%                         self.pParams.p_theta{d}, self.EM_iter, self.theta_c(d));
+%                 end
+%                 axis(sb1, 'tight');
+%                 axis(sb1, 'fill');
                 
                 sb2 = subplot(3, 2, 2, 'Parent', self.pParams.figParams);
                 bar(self.theta_c, 'linewidth', 1, 'Parent', sb2)
@@ -734,6 +735,7 @@ classdef ModelParams < matlab.mixin.Copyable
                     addpoints(...
                         self.pParams.p_gamma{d}, self.EM_iter, self.gamma(d));
                 end
+                sp5.YTick = logspace(1e-3, 1e10, 14);
                 axis(sb5, 'tight');
                 axis(sb5, 'fill');
                 
@@ -846,6 +848,7 @@ classdef ModelParams < matlab.mixin.Copyable
             self.pCellScores.sp1.GridLineStyle = 'none';
             self.pCellScores.sp1.XTick = [];
             self.pCellScores.sp1.YTick = [];
+            self.pCellScores.sp1.YDir = 'normal';
             self.pCellScores.sp1.Title.String = 'Elbo cell score';
             
             if numel(self.active_cells) ~= size(self.rf2fem, 2)
@@ -857,6 +860,7 @@ classdef ModelParams < matlab.mixin.Copyable
             self.pCellScores.sp2.GridLineStyle = 'none';
             self.pCellScores.sp2.XTick = [];
             self.pCellScores.sp2.YTick = [];
+            self.pCellScores.sp2.YDir = 'normal';
             self.pCellScores.sp2.Title.String = 'active cells';
             
             if numel(self.active_cells_S) ~= size(self.rf2fem, 2)
@@ -869,6 +873,7 @@ classdef ModelParams < matlab.mixin.Copyable
             self.pCellScores.sp2.GridLineStyle = 'none';
             self.pCellScores.sp3.XTick = [];
             self.pCellScores.sp3.YTick = [];
+            self.pCellScores.sp3.YDir = 'normal';
             self.pCellScores.sp3.Title.String = '$\log p_{cf}$';
             
             

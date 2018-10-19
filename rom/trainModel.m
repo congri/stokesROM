@@ -220,8 +220,8 @@ for split_iter = 1:(nSplits + 1)
             rom.trainingData.X_interp{1}, figElboTest);
         elbo = rom.modelParams.elbo
         
-%         if ~mod(rom.modelParams.EM_iter_split - 1, 20)
-        if false
+        if ~mod(rom.modelParams.EM_iter_split - 1, 5)
+%         if false
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S
             filename = './data/activeCells_S';
@@ -285,34 +285,51 @@ for split_iter = 1:(nSplits + 1)
     
     if split_iter < (nSplits + 1)
         disp('splitting cell...')
-        refinement_objective = 'inv_sigma_cf';
+        refinement_objective = 'active_cells_S';
         if strcmp(refinement_objective, 'active_cells_S')
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S;
             filename = './data/activeCells_S';
             save(filename, 'activeCells_S', '-ascii', '-append');
-            [~, cell_index_pde] = max(rom.modelParams.active_cells_S);
+            [~, cell_indices_pde] =...
+                sort(rom.modelParams.active_cells_S, 'descend');
         elseif strcmp(refinement_objective, 'active_cells')
             rom.modelParams.active_cells = rom.findMeshRefinement(false)';
             activeCells = rom.modelParams.active_cells;
             filename = './data/activeCells';
             save(filename, 'activeCells', '-ascii', '-append');
-            [~, cell_index_pde] = max(rom.modelParams.active_cells);
+            [~, cell_indices_pde] =...
+                sort(rom.modelParams.active_cells, 'descend');
         elseif strcmp(refinement_objective, 'full_elbo_score')
-            [~, cell_index_pde] = min(rom.modelParams.cell_score_full);
+            [~, cell_indices_pde] = sort(rom.modelParams.cell_score_full);
         elseif strcmp(refinement_objective, 'sigma_cf')
-            [~, cell_index_pde] = max(rom.modelParams.sigma_cf_score);
+            [~, cell_indices_pde] =...
+                sort(rom.modelParams.sigma_cf_score, 'descend');
         elseif strcmp(refinement_objective, 'inv_sigma_cf')
-            [~, cell_index_pde] = max(rom.modelParams.inv_sigma_cf_score);
+            [~, cell_indices_pde] =...
+                sort(rom.modelParams.inv_sigma_cf_score, 'descend');
         elseif strcmp(refinement_objective, 'reduced_elbo_score')
-            [~, cell_index_pde] = min(rom.modelParams.cell_score);
+            [~, cell_indices_pde] = sort(rom.modelParams.cell_score);
         elseif strcmp(refinement_objective, 'random')
-            cell_index_pde = randi(numel(rom.modelParams.cell_score));
+            cell_indices_pde = randperm(numel(rom.modelParams.cell_score));
         end
         
-        cell_index = find(rom.modelParams.cell_dictionary == cell_index_pde)
-        rom.modelParams.splitRFcells([cell_index]);
-        disp('...cell splitted.')
+        splitable = false;
+        split_attempt = 1;
+        while ~splitable
+            cell_index = find(rom.modelParams.cell_dictionary ==...
+                cell_indices_pde(split_attempt))
+            if rom.modelParams.coarseMesh.AEl(...
+                    cell_indices_pde(split_attempt)) <=...
+                    .25*rom.modelParams.gridRF.cells{cell_index}.surface
+                rom.modelParams.splitRFcells([cell_index]);
+                splitable = true;
+                disp('...cell splitted.')
+            else
+                warning('Cell not splitable. Trying to split second choice...')
+            end
+            split_attempt = split_attempt + 1;
+        end
     end
 end
 

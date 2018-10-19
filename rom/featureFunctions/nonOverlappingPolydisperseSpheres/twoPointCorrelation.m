@@ -45,8 +45,8 @@ for cll = gridRF.cells
             mcerr_twoPtCorr = sqrt((twoPtCorr(n) - twoPtCorr(n)^2)/nSamples);
             %Error limits are hard-coded here
             t_elapsed_conv = toc(t_conv);
-            if ((mcerr_twoPtCorr/twoPtCorr(n) < 0.05 && nSamples > 50) ||...
-                    t_elapsed_conv > 10)
+            if ((mcerr_twoPtCorr/twoPtCorr(n) < 0.001 && nSamples > 5000) ||...
+                    t_elapsed_conv > 5)
                 converged = true;
             end
             nSamples = nSamples + 1;

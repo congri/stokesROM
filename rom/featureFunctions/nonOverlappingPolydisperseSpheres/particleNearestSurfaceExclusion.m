@@ -1,5 +1,5 @@
-function [e_p, h_p] = particleNearestSurfaceExclusion(diskCenters, diskRadii,...
-    gridRF, distance, ref_distance)
+function [e_p, h_p, opt_d, opt_h_p] = particleNearestSurfaceExclusion(...
+    diskCenters, diskRadii, gridRF, distance, ref_distance)
 %Mean chord length for non-overlapping polydisp. spheres
 %according to Torquato 6.46, 6.47
 % ref_distance should be smaller than distance
@@ -32,7 +32,7 @@ a_1 = 1./porefrac;
 
 x = distance./(2*meanRadii);
 X = ref_distance./(2*meanRadii);
-e_p = porefrac.*exp(-4*exclfrac.*S.*(a_0.*(x.^2 - X.^2) + a_1.*(x - X)));
+e_p = exp(-4*exclfrac.*S.*(a_0.*(x.^2 - X.^2) + a_1.*(x - X)));
 if any(~isfinite(e_p))
     %warning('Non-finite value in voidNearestSurfaceExclusion')
     e_p(~isfinite(e_p)) = 1;
@@ -44,4 +44,23 @@ if any(~isfinite(h_p))
     %warning('Non-finite value in voidNearestSurfaceExclusion')
     h_p(~isfinite(h_p)) = 0;
 end
+
+if nargout > 2
+    %maximum of h_p, ignore const. prefactors!
+    xx = @(d) d./(2*meanRadii);
+    e_p_fun =...
+        @(d) exp(-4*exclfrac.*S.*(a_0.*(xx(d).^2 - X.^2) + a_1.*(xx(d) - X)));
+    neg_h_p = @(d) -(2*a_0.*xx(d)+a_1).*e_p_fun(d);
+
+    opt_d = zeros(gridRF.nCells, 1);
+    opt_h_p = opt_d;
+    pick = opt_d;
+    for k = 1:gridRF.nCells
+        pick = 0*pick;
+        pick(k) = 1;
+        fun = @(d) pick'*neg_h_p(d);
+        [opt_d(k), opt_h_p(k)] = fminsearch(fun, .01);
+    end
+end
+
 

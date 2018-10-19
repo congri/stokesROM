@@ -1,4 +1,4 @@
-NMESHES=2048
+NMESHES=2500
 NELEMENTS=256
 NEX1=8.35    #number of exclusion parameters
 NEX2=0.6
@@ -30,19 +30,19 @@ rm job_file.sh
 #write job file
 printf "#PBS -N $JOBNAME
 #PBS -l walltime=1000:00:00
-#PBS -o $CWD
-#PBS -e $CWD
+#PBS -o /home/constantin/OEfiles
+#PBS -e /home/constantin/OEfiles
 #PBS -m abe
 #PBS -M mailscluster@gmail.com
 
 #Switch to job directory
 cd $JOBDIR
 #Set parameters
-sed -i \"15s/.*/nMeshes = $NMESHES/\" ./generateMeshes.py
-sed -i \"16s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./generateMeshes.py
-sed -i \"22s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./generateMeshes.py
-sed -i \"26s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./generateMeshes.py
-sed -i \"30s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./generateMeshes.py
+sed -i \"17s/.*/nMeshes = $NMESHES/\" ./generateMeshes.py
+sed -i \"18s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./generateMeshes.py
+sed -i \"24s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./generateMeshes.py
+sed -i \"28s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./generateMeshes.py
+sed -i \"32s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./generateMeshes.py
 
 
 
