@@ -2,6 +2,8 @@
 % a warped Gaussian process
 clear;
 
+mode = 'engineered';    %engineered or GP
+
 lengthScale = .1;
 covarianceFunction = 'squaredExponential';
 sigmoid_scale = 1.5;         %sigmoid warping length scale param
@@ -9,7 +11,7 @@ nBochnerSamples = 5000;
 nExclusionParams = [8.35, .6];
 margins = [.003, .003, .003, .003];
 rParams = [-5.53, 0.3];
-nMeshes = 79:2500;
+nMeshes = 0:2500;
 t_max = 3600;                 %in seconds
 plt = false;
 
@@ -19,13 +21,24 @@ if plt
 end
 
 %% Set up save path
-savepath = '~/cluster/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
-savepath = strcat(savepath, num2str(margins(1)), '_', num2str(margins(2)),...
-    '_', num2str(margins(3)), '_', num2str(margins(4)), '/N~logn/mu=', ...
-    num2str(nExclusionParams(1)), '/sigma=', num2str(nExclusionParams(2)), ...
-    '/x~GP/cov=', covarianceFunction, '/l=', num2str(lengthScale),...
-    '/sig_scale=', num2str(sigmoid_scale), '/r~logn/mu=', num2str(rParams(1)), ...
-    '/sigma=', num2str(rParams(2)));
+if strcmp(mode, 'GP')
+    savepath = '~/cluster/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
+    savepath = strcat(savepath, num2str(margins(1)), '_', num2str(margins(2)),...
+        '_', num2str(margins(3)), '_', num2str(margins(4)), '/N~logn/mu=', ...
+        num2str(nExclusionParams(1)), '/sigma=', num2str(nExclusionParams(2)), ...
+        '/x~GP/cov=', covarianceFunction, '/l=', num2str(lengthScale),...
+        '/sig_scale=', num2str(sigmoid_scale), '/r~logn/mu=', num2str(rParams(1)), ...
+        '/sigma=', num2str(rParams(2)));
+elseif strcmp(mode, 'engineered')
+    savepath = '~/cluster/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
+    savepath = strcat(savepath, num2str(margins(1)), '_', num2str(margins(2)),...
+        '_', num2str(margins(3)), '_', num2str(margins(4)), '/N~logn/mu=', ...
+        num2str(nExclusionParams(1)), '/sigma=', num2str(nExclusionParams(2)), ...
+        '/x~engineered','/r~logn/mu=', num2str(rParams(1)), ...
+        '/sigma=', num2str(rParams(2)));
+else
+    error('unknown mode');
+end
 
 if ~exist(savepath, 'dir')
     mkdir(savepath);
@@ -33,8 +46,14 @@ end
 
 mesh_iter = 1;
 for n = nMeshes
-    sampleFun = genBochnerSamples(lengthScale,1,nBochnerSamples,covarianceFunction);
-    sampleFun = @(x) sigmf(sampleFun(x), [sigmoid_scale, 0]);
+    if strcmp(mode, 'GP')
+        rejectionFun = genBochnerSamples(lengthScale,1,nBochnerSamples,covarianceFunction);
+        rejectionFun = @(x) sigmf(rejectionFun(x), [sigmoid_scale, 0]);
+    elseif strcmp(mode, 'engineered')
+        rejectionFun = @(x) engineeredRejectionFun(x);
+    else
+        error('unknown mode')
+    end
     
     nExclusions = round(lognrnd(nExclusionParams(1), nExclusionParams(2)))
     diskCenters = zeros(nExclusions, 2);
@@ -48,7 +67,7 @@ for n = nMeshes
         diskRadius = lognrnd(rParams(1), rParams(2));
         
         %accept/reject
-        if(rand <= sampleFun(diskCenter'))
+        if(rand <= rejectionFun(diskCenter'))
             %check if new circle overlaps with another circle
             
             overlap = false;
@@ -95,15 +114,17 @@ for n = nMeshes
         hold on;
         
         if mesh_iter < nCols
-            subplot(2, nCols, mesh_iter, 'Parent', f);
-            [xx, yy] = meshgrid(linspace(0, 1, 101));
-            x = [xx(:) yy(:)]';
-            zz = reshape(sampleFun(x), 101, 101);
-            sf = surf(xx, yy, zz);
-            xticks([]);
-            yticks([]);
-            view(2);
-            sf.LineStyle = 'none';
+            if strcmp(mode, 'GP')
+                subplot(2, nCols, mesh_iter, 'Parent', f);
+                [xx, yy] = meshgrid(linspace(0, 1, 101));
+                x = [xx(:) yy(:)]';
+                zz = reshape(rejectionFun(x), 101, 101);
+                sf = surf(xx, yy, zz);
+                xticks([]);
+                yticks([]);
+                view(2);
+                sf.LineStyle = 'none';
+            end
             
             subplot(2, nCols, mesh_iter + nCols, 'Parent', f);
             p = plot(diskCenters(:, 1), diskCenters(:, 2), 'ko');
@@ -115,6 +136,29 @@ for n = nMeshes
     end
     mesh_iter = mesh_iter + 1;
 end
+
+
+function [r] = engineeredRejectionFun(x)
+    %[.0 .0]-[.25 .25] cell is empty
+    if(x(1) <= .25 && x(2) <= .25)
+        r = 0;
+    elseif(x(1) > .25 && x(1) <= .5 && x(2) <= .25)
+        r = 4*x(1) - 1;
+    elseif(x(2) > .25 && x(2) <= .5 && x(1) <= .25)
+        r = 4*x(2) - 1;
+    elseif(x(1) > .25 && x(1) <= .5 && x(2) > .25 && x(2) <= .5)
+        r = -3 + 8*x(1) + 8*x(2) - 16*x(1)*x(2);
+    elseif(x(1) > .5 || x(2) > .5)
+        r = 1;
+    else
+        r = 0;
+    end
+
+end
+
+
+
+
 
 
 

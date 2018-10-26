@@ -108,9 +108,8 @@ class StokesData(FlowProblem):
         # get normal vectors
         n = df.FacetNormal(mesh)
         a = self.viscosity * df.inner(df.grad(u), df.grad(v)) * df.dx + df.div(v) * p * df.dx + q * df.div(u) * df.dx
-        # there might be a term grad(u) missing for the pressure boundary. Best to apply only flow bc's and shift
-        # the pressure field by a constant to match at 0
-        L = df.inner(self.bodyForce, v) * df.dx + self.pressureField * df.inner(n, v) * df.ds
+        # L = df.inner(self.bodyForce, v) * df.dx + self.pressureField * df.inner(n, v) * df.ds
+        L = df.inner(self.bodyForce, v) * df.dx + df.inner(df.dot(self.stressField, n), v) * df.ds
 
         # Form for use in constructing preconditioner matrix
         b = df.inner(df.grad(u), df.grad(v)) * df.dx + p * q * df.dx
@@ -137,6 +136,9 @@ class StokesData(FlowProblem):
 
         # Create Krylov solver and AMG preconditioner
         solver = df.KrylovSolver(krylov_method, "amg")
+        solver.parameters["relative_tolerance"] = 1e-12
+        solver.parameters["absolute_tolerance"] = 1e-12
+        # solver.parameters["monitor_convergence"] = True
 
         # Associate operator (A) and preconditioner matrix (P)
         solver.set_operators(A, P)

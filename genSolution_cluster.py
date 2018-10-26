@@ -87,8 +87,19 @@ class DomainBoundary(df.SubDomain):
 domainBoundary = DomainBoundary()
 
 for meshNumber in meshes:
-    # load mesh from file
-    print('Loading mesh...')
+    # set up file names
+    meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
+    solutionfolder = foldername + '/p_bc=0.0' + '/u_x=' + u_x + '_u_y=' + u_y
+    if not os.path.exists(solutionfolder):
+        os.makedirs(solutionfolder)
+    solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
+    while (not os.path.isfile(meshfile)) or os.path.isfile(solutionfile):
+        print('Mesh ', str(meshNumber), ' does not exist or solution already computed. Passing to next mesh...')
+        meshNumber += 1
+        meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
+        solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
+
+    print('Loading mesh ', str(meshNumber), '...')
     mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
     print('mesh loaded.')
 
@@ -150,6 +161,7 @@ for meshNumber in meshes:
     print('Solving PDE...')
     t = time.time()
     U = df.Function(W)
+
     try:
         solver.solve(U.vector(), bb)
         elapsed_time = time.time() - t
@@ -159,16 +171,10 @@ for meshNumber in meshes:
         # Get sub-functions
         u, p = U.split()
 
-        # Save solution to mat file for easy read-in in matlab
-        solutionfolder = foldername + '/p_bc=0.0' + '/u_x=' + u_x + '_u_y=' + u_y
-        if not os.path.exists(solutionfolder):
-            os.makedirs(solutionfolder)
-
-        sio.savemat(solutionfolder + '/solution' + str(meshNumber) + '.mat',
-                    {'u': np.reshape(u.compute_vertex_values(), (2, -1)), 'p': p.compute_vertex_values(),
-                     'x': mesh.coordinates()})
+        sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)), 'p': p.compute_vertex_values(),
+                                   'x': mesh.coordinates()})
 
     except:
-        print('Solver failed to converge. Passing to next mesh')
+        print('Solver failed to converge. Passing to next mesh...')
 
 

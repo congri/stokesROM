@@ -8,12 +8,16 @@ class FlowProblem:
     # boundary conditions, specified as dolfin expressions
     # Flow boundary condition for velocity on domain boundary (avoid spaces for proper file path)
     # should be of the form u = (a_x + a_xy y, a_y + a_xy x)
-    u_x = '0.0-2.0*x[1]'
-    u_y = '1.0-2.0*x[0]'
+    # do not forget the sign!!
+    a_x = '+0.0'
+    a_y = '+0.0'
+    a_xy = '-2000.0'
+    u_x = a_x + a_xy + '*x[1]'
+    u_y = a_y + a_xy + '*x[0]'
     flowField = df.Expression((u_x, u_y), degree=2)
     # Pressure boundary condition field
-    p_bc = '0.0'
-    pressureField = df.Expression(p_bc, degree=2)
+    p_bc = a_x + '*x[0]' + a_y + '*x[1]' + a_xy + '*x[0]*x[1]'
+    stressField = df.Expression(((p_bc, a_xy), (a_xy, p_bc)), degree=2)
 
     bodyForce = df.Constant((0.0, 0.0))  # right hand side; how is this treated in Darcy?
 
@@ -21,8 +25,12 @@ class FlowProblem:
         def inside(self, x, on_boundary):
             # SET FLOW BOUNDARIES HERE;
             # pressure boundaries are the complementary boundary in Stokes and need to be specified below for Darcy
-            return x[1] > 1.0 - df.DOLFIN_EPS or (x[1] < df.DOLFIN_EPS) or \
-                   x[0] > 1.0 - df.DOLFIN_EPS or (x[0] < df.DOLFIN_EPS)
+            out = (x[1] > 1.0 - df.DOLFIN_EPS or (x[1] < df.DOLFIN_EPS) or
+                   x[0] > 1.0 - df.DOLFIN_EPS or (x[0] < df.DOLFIN_EPS))
+
+            if x[0] < df.DOLFIN_EPS and x[1] < df.DOLFIN_EPS:
+                out = False
+            return out
     flowBoundary = FlowBoundary()
 
     class PressureBoundary(df.SubDomain):

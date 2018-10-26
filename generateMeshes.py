@@ -22,7 +22,7 @@ foldername1 = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nEle
 #Parameters only for 'circles' mode
 nExclusionsDist='logn'
 nExclusionParams = (8.35, .6)
-coordinateDist = 'GP'
+coordinateDist = 'engineered'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 # negative margin means no margin
 margins = (0.003, .003, .003, .003)
@@ -218,6 +218,9 @@ elif mode == 'nonOverlappingCircles':
                       '/'
     elif coordinateDist == 'GP':
         foldername += '/cov=' + covFun + '/l=' + str(cov_l) + '/sig_scale=' + str(sig_scale) + '/'
+
+    elif coordinateDist == 'engineered':
+        foldername += '/'
 
     foldername += 'r~' + radiiDist + '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1])
     if not os.path.exists(foldername):

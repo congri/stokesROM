@@ -1,6 +1,6 @@
 # Script that generates and submits a job file to solve Stokes flow given a mesh with random non-overlapping circular exclusions
-NMESHESLO=63
-NMESHESUP=2048
+NMESHESLO=0
+NMESHESUP=2500
 
 MARG_LO=0.003
 MARG_R=0.003

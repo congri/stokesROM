@@ -1,6 +1,6 @@
 function [twoPtCorr] = twoPointCorrelation(diskCenters, diskRadii, gridRF,...
     phase, distance)
-%Computes the pore fraction of microstructures with disk exclusions
+%Computes the 2-pt. correlation of microstructures with disk exclusions
 %pores == voids where fluid can flow
 %   diskCenters:         clear
 %   diskRadii:           clear

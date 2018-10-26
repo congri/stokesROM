@@ -735,6 +735,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
+                %Hagen-Poiseuille?
                 %square log mean distance
                 dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
                 if n == 1
@@ -742,7 +743,6 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
-                %flow through thin plates
                 %log^3 mean distance
                 dMat{n} = [dMat{n}, log(phi(:) + delta_log).^3];
                 if n == 1
@@ -750,13 +750,6 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
-                %Hagen-Poiseuille?
-                %log^4 mean distance
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^4];
-                if n == 1
-                    dlmwrite('./data/features', 'log^4MeanDist',...
-                        'delimiter', '', '-append');
-                end
                 
                 %mean distance between disk centers
                 phi = diskDistance(mData{n}.diskCenters,...
@@ -779,6 +772,13 @@ classdef StokesData < handle
                 
                 %log min distance
                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMinDistCenter',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log min distance squared. Hagen-Poiseuille?
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
                 if n == 1
                     dlmwrite('./data/features', 'logMinDistCenter',...
                         'delimiter', '', '-append');
