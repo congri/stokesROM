@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 16;
+nTrain = 32;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -67,10 +67,15 @@ rom.trainingData.shiftData(interp, 'p'); %shifts p to 0 at origin
 
 rom.trainingData.vtx2Cell(rom.modelParams);
 
-sw0_mu = 1e-3;
-sw0_sigma = 1e-4;
+sw0_mu = 5e-4;
+sw0_sigma = 5e-5;
 sw_decay = .995; %decay factor per iteration
-nSplits = 0;
+split_schedule = [];
+if isempty(split_schedule)
+    nSplits = 4;
+else
+    nSplits = numel(split_schedule);
+end
 tic_tot = tic;
 for split_iter = 1:(nSplits + 1)
     
@@ -78,7 +83,7 @@ for split_iter = 1:(nSplits + 1)
     %delete design matrices so that they can be recomputed
     rom.trainingData.designMatrix = cell(1, nTrain);
     rom.trainingData.evaluateFeatures(rom.modelParams.gridRF);
-    
+
     if strcmp(rom.modelParams.normalization, 'rescale')
         rom.trainingData.rescaleDesignMatrix;
     end
@@ -246,9 +251,9 @@ for split_iter = 1:(nSplits + 1)
         rom.plotCurrentState(0, transType, transLimits);
         %plot elbo vs. training iteration
         t_tot = toc(tic_tot)
-%         rom.modelParams.plotElbo(t_tot);
+        rom.modelParams.plotElbo(t_tot);
         %Plot adaptive refinement cell scores
-%         rom.modelParams.plotCellScores();
+        rom.modelParams.plotCellScores();
         disp('...plotting done. Plotting time:')
         t_plt = toc(t_plt)
         
@@ -285,7 +290,7 @@ for split_iter = 1:(nSplits + 1)
     
     if split_iter < (nSplits + 1)
         disp('splitting cell...')
-        refinement_objective = 'active_cells_S';
+        refinement_objective = 'random';
         if strcmp(refinement_objective, 'active_cells_S')
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S;
@@ -316,19 +321,24 @@ for split_iter = 1:(nSplits + 1)
         
         splitable = false;
         split_attempt = 1;
-        while ~splitable
-            cell_index = find(rom.modelParams.cell_dictionary ==...
-                cell_indices_pde(split_attempt))
-            if rom.modelParams.coarseMesh.AEl(...
-                    cell_indices_pde(split_attempt)) <=...
-                    .25*rom.modelParams.gridRF.cells{cell_index}.surface
-                rom.modelParams.splitRFcells([cell_index]);
-                splitable = true;
-                disp('...cell splitted.')
-            else
-                warning('Cell not splitable. Trying to split second choice...')
+        if isempty(split_schedule)
+            while ~splitable
+                cell_index = find(rom.modelParams.cell_dictionary ==...
+                    cell_indices_pde(split_attempt))
+                if rom.modelParams.coarseMesh.AEl(...
+                        cell_indices_pde(split_attempt)) <=...
+                        .25*rom.modelParams.gridRF.cells{cell_index}.surface
+                    rom.modelParams.splitRFcells([cell_index]);
+                    splitable = true;
+                    disp('...cell splitted.')
+                else
+                    warning('Cell not splitable. Trying to split second choice...')
+                end
+                split_attempt = split_attempt + 1;
             end
-            split_attempt = split_attempt + 1;
+        else
+            rom.modelParams.splitRFcells([split_schedule(split_iter)]);
+            disp('...cell splitted.')
         end
     end
 end

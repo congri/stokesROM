@@ -2,18 +2,18 @@
 % a warped Gaussian process
 clear;
 
-mode = 'engineered';    %engineered or GP
+mode = 'tiles';    %engineered or GP
 
 lengthScale = .1;
 covarianceFunction = 'squaredExponential';
 sigmoid_scale = 1.5;         %sigmoid warping length scale param
 nBochnerSamples = 5000;
-nExclusionParams = [8.35, .6];
+nExclusionParams = [8.1, .6];
 margins = [.003, .003, .003, .003];
 rParams = [-5.53, 0.3];
 nMeshes = 0:2500;
 t_max = 3600;                 %in seconds
-plt = false;
+plt = true;
 
 addpath('~/cluster/matlab/projects/rom/genConductivity');
 if plt
@@ -36,6 +36,13 @@ elseif strcmp(mode, 'engineered')
         num2str(nExclusionParams(1)), '/sigma=', num2str(nExclusionParams(2)), ...
         '/x~engineered','/r~logn/mu=', num2str(rParams(1)), ...
         '/sigma=', num2str(rParams(2)));
+elseif strcmp(mode, 'tiles')
+    savepath = '~/cluster/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
+    savepath = strcat(savepath, num2str(margins(1)), '_', num2str(margins(2)),...
+        '_', num2str(margins(3)), '_', num2str(margins(4)), '/N~logn/mu=', ...
+        num2str(nExclusionParams(1)), '/sigma=', num2str(nExclusionParams(2)), ...
+        '/x~tiles','/r~logn/mu=', num2str(rParams(1)), ...
+        '/sigma=', num2str(rParams(2)));
 else
     error('unknown mode');
 end
@@ -51,6 +58,9 @@ for n = nMeshes
         rejectionFun = @(x) sigmf(rejectionFun(x), [sigmoid_scale, 0]);
     elseif strcmp(mode, 'engineered')
         rejectionFun = @(x) engineeredRejectionFun(x);
+    elseif strcmp(mode, 'tiles')
+        rejections = get_rejections(8);
+        rejectionFun = @(x) tilesRejectionFun(x, rejections);
     else
         error('unknown mode')
     end
@@ -155,6 +165,45 @@ function [r] = engineeredRejectionFun(x)
     end
 
 end
+
+
+function [r] = tilesRejectionFun(x, rejections)
+    %[.0 .0]-[.25 .25] cell is empty
+    N = sqrt(numel(rejections));
+    [xx, yy] = meshgrid(linspace(0, 1, N + 1));
+    xxl = xx(1:N, 1:N);
+    yyl = yy(1:N, 1:N);
+    xxu = xx(1:N, 2:(N + 1));
+    yyu = yy(2:(N + 1), 1:N);
+    l = [xxl(:), yyl(:)];
+    u = [xxu(:), yyu(:)];
+
+    cell = find((x(1) >= l(:, 1)).*(x(2) >= l(:, 2)).*(x(1) < u(:, 1)).*(x(2) < u(:, 2)));
+    r = rejections(cell);
+end
+
+
+function [r] = get_rejections(N)
+    %[.0 .0]-[.25 .25] cell is empty
+    %N is the linear cell number i.e. 8 for an 8x8 mesh
+    [xx, yy] = meshgrid(linspace(0, 1, N + 1));
+    xxu = xx(1:N, 2:(N + 1));
+    yyu = yy(2:(N + 1), 1:N);
+    u = [xxu(:), yyu(:)];
+    
+    r = .5*ones(64, 1);
+    
+    for i = 1:64
+        if(u(i, 1) <= .5 && u(i, 2) <= .5)
+            %lower left square
+            r(i) = rand;
+        end
+    end
+end
+
+
+
+
 
 
 

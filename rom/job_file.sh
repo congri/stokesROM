@@ -18,4 +18,4 @@ sed -i "9s/.*/        margins = [-1, -1, -1, -1]/" ./StokesData.m
 
 
 #Run Matlab
-/home/matlab/R2017a/bin/matlab -nodesktop -nodisplay -nosplash -r "trainModel ; quit;" | tee /home/constantin/spooledOutput/03-09-19-17-096932727_stokesTrain_nTrain=
+/home/matlab/R2017a/bin/matlab -nodesktop -nodisplay -nosplash -r "trainModel ; quit;" | tee /home/constantin/spooledOutput/03-09-19-17-096932727_stokesTrain_nTrain=hello

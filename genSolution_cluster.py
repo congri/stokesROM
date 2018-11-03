@@ -31,7 +31,7 @@ mu = 1  # viscosity
 # For circular exclusions
 nExclusionsDist = 'logn'
 nExclusionParams = (8.35, 0.6)
-coordinateDistribution = 'GP'
+coordinateDistribution = 'tiles'
 
 # for coordinateDistribution == 'gauss'
 coordinate_cov = [[0.55, -0.45], [-0.45, 0.55]]
@@ -48,8 +48,8 @@ margins = (0.003, 0.003, 0.003, 0.003)
 r_params = (-5.53, .3)
 
 # Flow boundary condition for velocity on domain boundary
-u_x = '0.0-2.0*x[1]'
-u_y = '1.0-2.0*x[0]'
+u_x = '1.0'
+u_y = '0.0'
 flowField = df.Expression((u_x, u_y), degree=2)
 
 foldername = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nElements)
@@ -70,6 +70,8 @@ if porousMedium == 'nonOverlappingCircles':
                       str(coordinate_cov[1][1])
     elif coordinateDistribution == 'GP':
         foldername += '/cov=' + covFun + '/l=' + str(cov_l) + '/sig_scale=' + str(sig_scale) + '/'
+    elif coordinateDistribution == 'engineered' or coordinateDistribution == 'tiles':
+        pass
     else:
         raise Exception('Invalid coordinates distribution')
 
@@ -95,6 +97,8 @@ for meshNumber in meshes:
     solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
     while (not os.path.isfile(meshfile)) or os.path.isfile(solutionfile):
         print('Mesh ', str(meshNumber), ' does not exist or solution already computed. Passing to next mesh...')
+        print('mesh path == ', meshfile)
+        print('solution path == ', solutionfile)
         meshNumber += 1
         meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
         solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'

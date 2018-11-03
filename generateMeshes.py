@@ -219,7 +219,7 @@ elif mode == 'nonOverlappingCircles':
     elif coordinateDist == 'GP':
         foldername += '/cov=' + covFun + '/l=' + str(cov_l) + '/sig_scale=' + str(sig_scale) + '/'
 
-    elif coordinateDist == 'engineered':
+    elif coordinateDist == 'engineered' or coordinateDist == 'tiles':
         foldername += '/'
 
     foldername += 'r~' + radiiDist + '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1])

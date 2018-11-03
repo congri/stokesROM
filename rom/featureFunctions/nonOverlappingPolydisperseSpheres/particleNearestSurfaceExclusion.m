@@ -20,18 +20,22 @@ for cll = gridRF.cells
         n = n + 1;
     end
 end
+meanRadii(~isfinite(meanRadii)) = 0;
+meanSqRadii(~isfinite(meanSqRadii)) = 0;
 
 porefrac = A./A0;
 porefrac(porefrac <= 0) = eps;  %can happen if circles lie on boundary
 
 exclfrac = 1 - porefrac;
 
-S = (meanRadii.^2)./meanSqRadii;
+S = (meanRadii.^2)./(meanSqRadii + eps);
 a_0 = (1 + exclfrac.*(S - 1))./(porefrac.^2);
 a_1 = 1./porefrac;
 
 x = distance./(2*meanRadii);
+x(~isfinite(x)) = 0;
 X = ref_distance./(2*meanRadii);
+X(~isfinite(X)) = 0;
 e_p = exp(-4*exclfrac.*S.*(a_0.*(x.^2 - X.^2) + a_1.*(x - X)));
 if any(~isfinite(e_p))
     %warning('Non-finite value in voidNearestSurfaceExclusion')
@@ -47,7 +51,8 @@ end
 
 if nargout > 2
     %maximum of h_p, ignore const. prefactors!
-    xx = @(d) d./(2*meanRadii);
+    % + eps in denominator for numerical stability
+    xx = @(d) d./(2*meanRadii + eps);
     e_p_fun =...
         @(d) exp(-4*exclfrac.*S.*(a_0.*(xx(d).^2 - X.^2) + a_1.*(xx(d) - X)));
     neg_h_p = @(d) -(2*a_0.*xx(d)+a_1).*e_p_fun(d);
@@ -61,6 +66,9 @@ if nargout > 2
         fun = @(d) pick'*neg_h_p(d);
         [opt_d(k), opt_h_p(k)] = fminsearch(fun, .01);
     end
+    exception_cells = opt_d > sqrt(A0);
+    opt_d(exception_cells) = sqrt(A0(exception_cells));
+    opt_h_p(exception_cells) = 0;
 end
 
 

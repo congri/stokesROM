@@ -7,7 +7,7 @@ MARG_R=0.003
 MARG_U=0.003
 MARG_LE=0.003
 
-NEXCLUSIONPARAM1=8.35
+NEXCLUSIONPARAM1=8.1
 NEXCLUSIONPARAM2=0.6
 
 RPARAM1=-5.53
@@ -17,7 +17,7 @@ RPARAM2=0.3
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
 # Set JOBNAME by hand for every job!
-JOBNAME="solvGP_${DATESTR}"
+JOBNAME="solv_engin_${DATESTR}"
 JOBDIR="/home/constantin/python/jobs/$JOBNAME"
 
 #Create job directory and copy source code
