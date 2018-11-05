@@ -8,7 +8,7 @@ classdef StokesData < handle
         numberDist = 'logn';
         margins = [0.003, 0.003, 0.003, 0.003]    %[l., u.] margin for imp. phase
         r_params = [-5.53, .3]    %[lo., up.] bound on random blob radius
-        coordDist = 'GP'
+        coordDist = 'engineered'
         coordDist_mu = '0.5_0.5'   %only for gauss
         coordDist_cov = 'squaredExponential'
         radiiDist = 'logn'
@@ -36,7 +36,7 @@ classdef StokesData < handle
         microstructData
         %Flow boundary conditions; C++ string
         p_bc = '0.0';
-        u_bc = {'u_x=0.0-2.0*x[1]', 'u_y=1.0-2.0*x[0]'}
+        u_bc = {'u_x=1.0', 'u_y=0.0'}
         %Design matrix
         designMatrix
     end
@@ -56,8 +56,7 @@ classdef StokesData < handle
             if isempty(self.pathname)
 %                 self.pathname = strcat('/home/constantin/python/',...
 %                     'data/stokesEquation/');
-                self.pathname = strcat('/home/constantin/nas/constantin/',...
-                    'data/stokesData/');
+                self.pathname = strcat('/home/constantin/python/data/stokesEquation/');
                 
                 if strcmp(self.coordDist, 'GP')
                     self.pathname = char(strcat(self.pathname, 'meshSize=',...

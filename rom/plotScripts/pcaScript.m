@@ -4,7 +4,7 @@ clear;
 addpath('./mesh')
 addpath('./FEM')
 
-data = StokesData(0:1012);
+data = StokesData(0:88);
 data.readData('xp');
 
 params = ModelParams(data.u_bc, data.p_bc);
