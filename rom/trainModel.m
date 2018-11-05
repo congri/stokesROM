@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 32;
+nTrain = 48;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -67,10 +67,10 @@ rom.trainingData.shiftData(interp, 'p'); %shifts p to 0 at origin
 
 rom.trainingData.vtx2Cell(rom.modelParams);
 
-sw0_mu = 5e-4;
-sw0_sigma = 5e-5;
+sw0_mu = 3e-4;
+sw0_sigma = 3e-5;
 sw_decay = .995; %decay factor per iteration
-split_schedule = [];
+split_schedule = [1 8];
 if isempty(split_schedule)
     nSplits = 4;
 else
@@ -290,7 +290,7 @@ for split_iter = 1:(nSplits + 1)
     
     if split_iter < (nSplits + 1)
         disp('splitting cell...')
-        refinement_objective = 'random';
+        refinement_objective = 'reduced_elbo_score';
         if strcmp(refinement_objective, 'active_cells_S')
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S;

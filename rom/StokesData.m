@@ -142,7 +142,6 @@ classdef StokesData < handle
             
             cellIndex = 1;
             for n = self.samples
-                n
                 foldername = char(strcat(self.pathname, 'p_bc=', self.p_bc,...
                     '/', self.u_bc{1}, '_', self.u_bc{2}));
                 filename = char(strcat(foldername, '/solution',...
@@ -458,6 +457,7 @@ classdef StokesData < handle
             delta_log = 1;
             %feature name file is written for every data sample. This is 
             %unnecessary overhead
+            parPoolInit(self.nSamples);
             parfor n = 1:numel(self.samples)
                 %constant 1
                 dMat{n} = [dMat{n}, ones(gridRF.nCells, 1)];

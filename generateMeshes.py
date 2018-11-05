@@ -14,22 +14,22 @@ import time
 # Global parameters
 mode = 'nonOverlappingCircles'
 load_microstructures = True         #if microstructural data has been generated elsewhere
-nMeshes = 2048
+nMeshes = 2500
 nElements = 256  # PDE discretization
 foldername1 = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nElements)
 
 
 #Parameters only for 'circles' mode
 nExclusionsDist='logn'
-nExclusionParams = (8.35, .6)
-coordinateDist = 'engineered'
+nExclusionParams = (8.1, 0.6)
+coordinateDist = 'tiles'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 # negative margin means no margin
-margins = (0.003, .003, .003, .003)
+margins = (0.003, 0.003, 0.003, 0.003)
 origin_margin = .005
 substractCorners = False     #Substracts circles from domain corners s.t. flow cannot pass
 radiiDist = 'logn'
-r_params = (-5.53, .3)
+r_params = (-5.53, 0.3)
 # for x~gauss
 coordinate_cov = [[0.55, -0.45], [-0.45, 0.55]]
 coordinate_mu = [.8, .8]

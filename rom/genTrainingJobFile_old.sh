@@ -26,7 +26,7 @@ NTRAIN=64
 NTESTSTART=0
 NTESTEND=1023
 
-MAXEMEPOCHS=400
+MAXEMITER=400
 
 NCORES=16
 if [ $NTRAIN -lt $NCORES ]; then
@@ -35,10 +35,10 @@ fi
 echo N_cores=
 echo $NCORES
 
-NAMEBASE="engineered_split_schedule_1_8"
+NAMEBASE="engineered_split_random"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
-JOBNAME="${DATESTR}_nTrain=${NTRAIN}_${NAMEBASE}"
+JOBNAME="${NAMEBASE}/${DATESTR}_nTrain=${NTRAIN}"
 JOBDIR="/home/constantin/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~${COORDDIST}/"
 if [ "$COORDDIST" = "GP" ]; then
 JOBDIR="${JOBDIR}cov=${X1}/l=${X2}/sig_scale=${X3}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/${BCX}_${BCY}/${JOBNAME}"
@@ -63,17 +63,12 @@ CWD=$(printf "%q\n" "$(pwd)")
 rm ./job_file.sh
 
 #construct job file string
-echo "#!/bin/bash" >> ./job_file.sh
-echo "#SBATCH --job-name=${JOBNAME}" >> ./job_file.sh
-echo "#SBATCH --partition batch_SNB,batch_SKL" >> ./job_file.sh
-echo "#SBATCH --nodes 1-1" >> ./job_file.sh
-echo "#SBATCH --cpus-per-task=${NCORES}" >> ./job_file.sh
-echo "#SBATCH --output=/home/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
-echo "#SBATCH --error=/home/constantin/OEfiles/${JOBNAME}.%j.err" >> ./job_file.sh
-echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
-echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
-echo "#SBATCH --time=240:00:00" >> ./job_file.sh
-
+echo "#PBS -N $JOBNAME" >> ./job_file.sh
+echo "#PBS -l nodes=1:ppn=$NCORES,walltime=240:00:00" >> ./job_file.sh
+echo "#PBS -o /home/constantin/OEfiles" >> ./job_file.sh
+echo "#PBS -e /home/constantin/OEfiles" >> ./job_file.sh
+echo "#PBS -m abe" >> ./job_file.sh
+echo "#PBS -M mailscluster@gmail.com" >> ./job_file.sh
 echo "" >> ./job_file.sh
 echo "#Switch to job directory" >> ./job_file.sh
 echo "cd \"$JOBDIR\"" >> ./job_file.sh
@@ -95,10 +90,10 @@ echo "sed -i \"39s/.*/        u_bc = {'${BCX}', '${BCY}'}/\" ./StokesData.m" >> 
 echo "sed -i \"17s/.*/maxCompTime = ${STOCHOPTTIME};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
 echo "sed -i \"18s/.*/nSamplesStart = ${GRADIENTSAMPLESSTART};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
 echo "sed -i \"19s/.*/nSamplesEnd = ${GRADIENTSAMPLESEND};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
-echo "sed -i \"87s/.*/        max_EM_epochs = ${MAXEMEPOCHS}/\" ./ModelParams.m" >> ./job_file.sh
+echo "sed -i \"87s/.*/        max_EM_epochs = ${MAXEMITER}/\" ./ModelParams.m" >> ./job_file.sh
 echo "sed -i \"11s/.*/testSamples = ${NTESTSTART}:${NTESTEND};/\" ./predictionScript.m" >> ./job_file.sh
 echo "#Run Matlab" >> ./job_file.sh
-echo "/home/programs/matlab/bin/matlab -nodesktop -nodisplay -nosplash -r \"trainModel ; quit;\"" >> ./job_file.sh
+echo "/home/matlab/R2017a/bin/matlab -nodesktop -nodisplay -nosplash -r \"trainModel ; quit;\"" >> ./job_file.sh
 echo "sed -i \"9s/.*/        margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}]/\" ./StokesData.m" >> ./job_file.sh
 echo "sed -i \"9s/.*/        margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}]/\" ./StokesData.m" >> ./job_file.sh
 echo "sed -i \"9s/.*/        margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}]/\" ./StokesData.m" >> ./job_file.sh
@@ -107,7 +102,7 @@ echo "sed -i \"9s/.*/        margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}]/
 
 chmod +x job_file.sh
 #directly submit job file
-sbatch job_file.sh
+qsub job_file.sh
 #./job_file.sh	#to test in shell
 
 

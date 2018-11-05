@@ -27,37 +27,34 @@ cd $JOBDIR
 CWD=$(printf "%q\n" "$(pwd)")
 rm job_file.sh
 
-#write job file
-printf "#PBS -N $JOBNAME
-#PBS -l walltime=1000:00:00
-#PBS -o /home/constantin/OEfiles
-#PBS -e /home/constantin/OEfiles
-#PBS -m abe
-#PBS -M mailscluster@gmail.com
 
-#Switch to job directory
-cd $JOBDIR
-#Set parameters
-sed -i \"17s/.*/nMeshes = $NMESHES/\" ./generateMeshes.py
-sed -i \"18s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./generateMeshes.py
-sed -i \"24s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./generateMeshes.py
-sed -i \"28s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./generateMeshes.py
-sed -i \"32s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./generateMeshes.py
+#construct job file
+echo "#!/bin/bash" >> ./job_file.sh
+echo "#SBATCH --job-name=${JOBNAME}" >> ./job_file.sh
+echo "#SBATCH --partition batch_SNB,batch_SKL" >> ./job_file.sh
+echo "#SBATCH --output=/home/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
+echo "#SBATCH --error=/home/constantin/OEfiles/${JOBNAME}.%j.err" >> ./job_file.sh
+echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
+echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
+echo "#SBATCH --time=1000:00:00" >> ./job_file.sh
 
+echo "sed -i \"17s/.*/nMeshes = $NMESHES/\" ./generateMeshes.py" >> ./job_file.sh
+echo "sed -i \"18s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./generateMeshes.py" >> ./job_file.sh
+echo "sed -i \"24s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./generateMeshes.py" >> ./job_file.sh
+echo "sed -i \"28s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./generateMeshes.py" >> ./job_file.sh
+echo "sed -i \"32s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./generateMeshes.py" >> ./job_file.sh
 
 
 #Activate fenics environment and run python
-source activate fenics
-/home/constantin/anaconda3/envs/fenics/bin/python3.6 ./generateMeshes.py
+echo "source activate fenics" >> ./job_file.sh 
+echo "/home/constantin/anaconda3/envs/fenics/bin/python3.6 ./generateMeshes.py" >> ./job_file.sh
 
-
-" >> job_file.sh
 
 chmod +x job_file.sh
 #directly submit job file
-qsub job_file.sh
+#qsub job_file.sh
 #execute job_file.sh in shell
-#./job_file.sh
+./job_file.sh
 
 
 
