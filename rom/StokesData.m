@@ -54,8 +54,10 @@ classdef StokesData < handle
         
         function setPathName(self)
             if isempty(self.pathname)
-                self.pathname = strcat('/home/constantin/python/',...
-                    'data/stokesEquation/');
+%                 self.pathname = strcat('/home/constantin/python/',...
+%                     'data/stokesEquation/');
+                self.pathname = strcat('/home/constantin/nas/constantin/',...
+                    'data/stokesData/');
                 
                 if strcmp(self.coordDist, 'GP')
                     self.pathname = char(strcat(self.pathname, 'meshSize=',...
@@ -136,10 +138,12 @@ classdef StokesData < handle
             %                  'c' for cell-to-vertex map
             %                  'm' for microstructural data
             
+            disp('Reading data from disk...')
             self.setPathName;
             
             cellIndex = 1;
             for n = self.samples
+                n
                 foldername = char(strcat(self.pathname, 'p_bc=', self.p_bc,...
                     '/', self.u_bc{1}, '_', self.u_bc{2}));
                 filename = char(strcat(foldername, '/solution',...
@@ -178,9 +182,10 @@ classdef StokesData < handle
                 end
             end
             
+            disp('... data loaded to workspace.')
             %This is hard-coded here s.t. it is not forgotten in predictions
             %and computing variance of the data
-            self.removeSpikes('p', 4);
+            % self.removeSpikes('p', 4);
         end
         
         function shiftData(self, interp, quantity, point, value)
