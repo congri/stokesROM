@@ -4,31 +4,10 @@ to any PDE here!"""
 import numpy as np
 import mshr
 import dolfin as df
-from skimage import measure
 import time
 
-#Methods
+# Methods
 
-def findPolygones(image, isovalue, showImg=False):
-    """Finds the vertices of polygones encircling solid phase blobs"""
-
-    print('Finding polygones with marching squares...')
-    contours = measure.find_contours(image, isovalue,
-                                     positive_orientation='high', fully_connected='low')
-    print('done.')
-
-    #  Show image with polygones
-    if showImg:
-        import matplotlib.pyplot as plt
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.imshow(image >= isovalue, cmap=plt.cm.inferno)
-        for i in range(0, len(contours)):
-            contour = contours[i]
-            plt.plot(contour[:, 1], contour[:, 0])
-        plt.show()
-
-    return contours
 
 def generateMesh(domain, discretization=128):
     """Generates a finite element mesh using mshr"""

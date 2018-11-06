@@ -1,6 +1,6 @@
 NMESHES=2500
 NELEMENTS=256
-NEX1=8.35    #number of exclusion parameters
+NEX1=8.1    #number of exclusion parameters
 NEX2=0.6
 RPARAMSLO=-5.53
 RPARAMSHI=0.3
@@ -38,21 +38,21 @@ echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
 echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
 echo "#SBATCH --time=1000:00:00" >> ./job_file.sh
 
-echo "sed -i \"17s/.*/nMeshes = $NMESHES/\" ./generateMeshes.py" >> ./job_file.sh
-echo "sed -i \"18s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./generateMeshes.py" >> ./job_file.sh
-echo "sed -i \"24s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./generateMeshes.py" >> ./job_file.sh
-echo "sed -i \"28s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./generateMeshes.py" >> ./job_file.sh
-echo "sed -i \"32s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./generateMeshes.py" >> ./job_file.sh
+echo "sed -i \"12s/.*/nMeshes = $NMESHES/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"13s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"19s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./genMesh_clsuter.py" >> ./job_file.sh
+echo "sed -i \"23s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"27s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./genMesh_cluster.py" >> ./job_file.sh
 
 
 #Activate fenics environment and run python
-echo "source activate fenics" >> ./job_file.sh 
-echo "/home/constantin/anaconda3/envs/fenics/bin/python3.6 ./generateMeshes.py" >> ./job_file.sh
+echo "conda activate mshr" >> ./job_file.sh 
+echo "python ./genMesh_cluster.py" >> ./job_file.sh
 
 
 chmod +x job_file.sh
 #directly submit job file
-#qsub job_file.sh
+#sbatch job_file.sh
 #execute job_file.sh in shell
 ./job_file.sh
 
