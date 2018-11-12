@@ -84,7 +84,7 @@ classdef ModelParams < matlab.mixin.Copyable
         %% Training parameters
         EM_iter       = 0    %current total number of iterations
         EM_iter_split = 0    %current number of iterations after last split
-        max_EM_epochs = 20   %maximum number of epochs
+        max_EM_epochs = 200   %maximum number of epochs
         
         %% Settings
         computeElbo = true
@@ -561,83 +561,83 @@ classdef ModelParams < matlab.mixin.Copyable
                 D_c*(cc*log(dd) + log(gamma(self.c)) - log(gamma(cc))) +...
                 D_gamma*(aa*log(bb) + log(gamma(self.a)) - log(gamma(aa)));
             
-            sp1 = subplot(2, 3, 1, 'Parent', fig);
-            hold(sp1, 'on')
-            sp1.Title.String = 'constants';
-            plot(self.EM_iter, constants, 'kx', 'Parent', sp1);
-            axis(sp1, 'tight');
-            
-            sp2 = subplot(2, 3, 2, 'Parent', fig);
-            hold(sp2, 'on')
-            sp2.Title.String = '$\frac{1}{2}\sum \log |\Sigma_{\lambda_c}|$';
-            plot(self.EM_iter, .5*sum_logdet_lambda_c, 'kx', 'Parent', sp2);
-            axis(sp2, 'tight');
-            
-            sp3 = subplot(2, 3, 3, 'Parent', fig);
-            hold(sp3, 'on')
-            sp3.Title.String = '$\frac{1}{2}\log |\Sigma_{\theta_c}|$';
-            plot(self.EM_iter, .5*logdet_Sigma_theta_c, 'kx', 'Parent', sp3);
-            axis(sp3, 'tight');
-            
-            sp4 = subplot(2, 3, 4, 'Parent', fig);
-            hold(sp4, 'on')
-            sp4.Title.String = '$-e \sum \log f$';
-            plot(self.EM_iter, - self.e*sum(log(self.f)), 'kx', 'Parent', sp4);
-            axis(sp4, 'tight');
-            
-            sp5 = subplot(2, 3, 5, 'Parent', fig);
-            hold(sp5, 'on')
-            sp5.Title.String = '$-c\sum \log(d)$';
-            plot(self.EM_iter, -self.c*sum(log(self.d)), 'kx', 'Parent', sp5);
-            axis(sp5, 'tight');
-            
-            sp6 = subplot(2, 3, 6, 'Parent', fig);
-            hold(sp6, 'on')
-            sp6.Title.String = '$-a\sum \log b$';
-            plot(self.EM_iter,-self.a*sum(log(self.b(1:D_gamma))),'kx',...
-                'Parent', sp6);
-            axis(sp6, 'tight');
-
-            sp1 = subplot(1, 3, 1, 'Parent', fig);
-            hold(sp1, 'on')
-            map = colormap(sp1, 'lines');
-            sp1.Title.String = '$-\frac{1}{2}\sum_n\log \sigma_{\lambda_c}^2$';
-            sum_sigma = .5*sum(log(Sigma_lambda_c), 2);
-            for i = 1:numel(sum_sigma)
-                plot(self.EM_iter, -sum_sigma(i), 'x', ...
-                    'Color', map(i, :), 'Parent', sp1);
-            end
-            axis(sp1, 'tight');
-            filename = './data/05sum_sigma';
-            sum_sigma = sum_sigma';
-            save(filename, 'sum_sigma', '-ascii', '-append');
-            
-            sp2 = subplot(1, 3, 2, 'Parent', fig);
-            hold(sp2, 'on')
-            map = colormap(sp2, 'lines');
-            sp2.Title.String = '$c\log d$';
-            for i = 1:numel(self.d)
-                plot(self.EM_iter, self.c*log(self.d(i)), 'x',...
-                    'Color', map(i, :), 'Parent', sp2);
-            end
-            axis(sp2, 'tight');
-            minus_c_log_d = -self.c*log(self.d(:))';
-            filename = './data/minus_c_log_d';
-            save(filename, 'minus_c_log_d', '-ascii', '-append');
-            
-            sp3 = subplot(1, 3, 3, 'Parent', fig);
-            hold(sp3, 'on')
-            map = colormap(sp3, 'lines');
-            sp3.Title.String = '$-\log |\Sigma_{\theta_c}^{(k)}|$';
-            for i = 1:numel(logdet_Sigma_theta_ck)
-                plot(self.EM_iter, -.5*logdet_Sigma_theta_ck(i),'x', 'Color',...
-                    map(i, :), 'Parent', sp3);
-            end
-            axis(sp3, 'tight');
-            half_log_det_sigma_theta_ck = .5*logdet_Sigma_theta_ck(:)';
-            filename = './data/05log_det_sigma_theta_ck';
-            save(filename, 'half_log_det_sigma_theta_ck', '-ascii', '-append');
-            drawnow;
+%             sp1 = subplot(2, 3, 1, 'Parent', fig);
+%             hold(sp1, 'on')
+%             sp1.Title.String = 'constants';
+%             plot(self.EM_iter, constants, 'kx', 'Parent', sp1);
+%             axis(sp1, 'tight');
+%             
+%             sp2 = subplot(2, 3, 2, 'Parent', fig);
+%             hold(sp2, 'on')
+%             sp2.Title.String = '$\frac{1}{2}\sum \log |\Sigma_{\lambda_c}|$';
+%             plot(self.EM_iter, .5*sum_logdet_lambda_c, 'kx', 'Parent', sp2);
+%             axis(sp2, 'tight');
+%             
+%             sp3 = subplot(2, 3, 3, 'Parent', fig);
+%             hold(sp3, 'on')
+%             sp3.Title.String = '$\frac{1}{2}\log |\Sigma_{\theta_c}|$';
+%             plot(self.EM_iter, .5*logdet_Sigma_theta_c, 'kx', 'Parent', sp3);
+%             axis(sp3, 'tight');
+%             
+%             sp4 = subplot(2, 3, 4, 'Parent', fig);
+%             hold(sp4, 'on')
+%             sp4.Title.String = '$-e \sum \log f$';
+%             plot(self.EM_iter, - self.e*sum(log(self.f)), 'kx', 'Parent', sp4);
+%             axis(sp4, 'tight');
+%             
+%             sp5 = subplot(2, 3, 5, 'Parent', fig);
+%             hold(sp5, 'on')
+%             sp5.Title.String = '$-c\sum \log(d)$';
+%             plot(self.EM_iter, -self.c*sum(log(self.d)), 'kx', 'Parent', sp5);
+%             axis(sp5, 'tight');
+%             
+%             sp6 = subplot(2, 3, 6, 'Parent', fig);
+%             hold(sp6, 'on')
+%             sp6.Title.String = '$-a\sum \log b$';
+%             plot(self.EM_iter,-self.a*sum(log(self.b(1:D_gamma))),'kx',...
+%                 'Parent', sp6);
+%             axis(sp6, 'tight');
+% 
+%             sp1 = subplot(1, 3, 1, 'Parent', fig);
+%             hold(sp1, 'on')
+%             map = colormap(sp1, 'lines');
+%             sp1.Title.String = '$-\frac{1}{2}\sum_n\log \sigma_{\lambda_c}^2$';
+%             sum_sigma = .5*sum(log(Sigma_lambda_c), 2);
+%             for i = 1:numel(sum_sigma)
+%                 plot(self.EM_iter, -sum_sigma(i), 'x', ...
+%                     'Color', map(i, :), 'Parent', sp1);
+%             end
+%             axis(sp1, 'tight');
+%             filename = './data/05sum_sigma';
+%             sum_sigma = sum_sigma';
+%             save(filename, 'sum_sigma', '-ascii', '-append');
+%             
+%             sp2 = subplot(1, 3, 2, 'Parent', fig);
+%             hold(sp2, 'on')
+%             map = colormap(sp2, 'lines');
+%             sp2.Title.String = '$c\log d$';
+%             for i = 1:numel(self.d)
+%                 plot(self.EM_iter, self.c*log(self.d(i)), 'x',...
+%                     'Color', map(i, :), 'Parent', sp2);
+%             end
+%             axis(sp2, 'tight');
+%             minus_c_log_d = -self.c*log(self.d(:))';
+%             filename = './data/minus_c_log_d';
+%             save(filename, 'minus_c_log_d', '-ascii', '-append');
+%             
+%             sp3 = subplot(1, 3, 3, 'Parent', fig);
+%             hold(sp3, 'on')
+%             map = colormap(sp3, 'lines');
+%             sp3.Title.String = '$-\log |\Sigma_{\theta_c}^{(k)}|$';
+%             for i = 1:numel(logdet_Sigma_theta_ck)
+%                 plot(self.EM_iter, -.5*logdet_Sigma_theta_ck(i),'x', 'Color',...
+%                     map(i, :), 'Parent', sp3);
+%             end
+%             axis(sp3, 'tight');
+%             half_log_det_sigma_theta_ck = .5*logdet_Sigma_theta_ck(:)';
+%             filename = './data/05log_det_sigma_theta_ck';
+%             save(filename, 'half_log_det_sigma_theta_ck', '-ascii', '-append');
+%             drawnow;
             
         end
         

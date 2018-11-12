@@ -1,9 +1,9 @@
 NMESHES=2500
 NELEMENTS=256
-NEX1=8.1    #number of exclusion parameters
-NEX2=0.6
-RPARAMSLO=-5.53
-RPARAMSHI=0.3
+NEX1=8.7    #number of exclusion parameters
+NEX2=0.1
+RPARAMSLO=-5.23
+RPARAMSHI=0.5
 MARGIN_LO=0.003
 MARGIN_R=0.003
 MARGIN_U=0.003
@@ -17,16 +17,16 @@ DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
 JOBNAME="genMesh_nElements=${NELEMENTS}nParams1=${NEX1}nParams2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
 JOBDIR="/home/constantin/python/jobs/${JOBNAME}_${DATESTR}"
+JOBSCRIPT="${JOBDIR}/genMesh_cluster.py"
 
 #Create job directory and copy source code
 rm -rf $JOBDIR
 mkdir $JOBDIR
-cp -r $PROJECTDIR/* $JOBDIR
+MESHGENSCRIPT="${PROJECTDIR}/genMesh_cluster.py"
+cp  $MESHGENSCRIPT $JOBSCRIPT
 #Change directory to job directory; completely independent from project directory
 cd $JOBDIR
 CWD=$(printf "%q\n" "$(pwd)")
-rm job_file.sh
-
 
 #construct job file
 echo "#!/bin/bash" >> ./job_file.sh
@@ -40,21 +40,23 @@ echo "#SBATCH --time=1000:00:00" >> ./job_file.sh
 
 echo "sed -i \"12s/.*/nMeshes = $NMESHES/\" ./genMesh_cluster.py" >> ./job_file.sh
 echo "sed -i \"13s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"19s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./genMesh_clsuter.py" >> ./job_file.sh
+echo "sed -i \"19s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./genMesh_cluster.py" >> ./job_file.sh
 echo "sed -i \"23s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./genMesh_cluster.py" >> ./job_file.sh
 echo "sed -i \"27s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./genMesh_cluster.py" >> ./job_file.sh
 
 
 #Activate fenics environment and run python
-echo "conda activate mshr" >> ./job_file.sh 
-echo "python ./genMesh_cluster.py" >> ./job_file.sh
+echo "source ~/.bashrc" >> ./job_file.sh
+echo "conda activate mshr_new" >> ./job_file.sh
+echo "ulimit -s 32000" >> ./job_file.sh 
+echo "python -u ./genMesh_cluster.py" >> ./job_file.sh
 
 
 chmod +x job_file.sh
 #directly submit job file
-#sbatch job_file.sh
+sbatch job_file.sh
 #execute job_file.sh in shell
-./job_file.sh
+#./job_file.sh
 
 
 

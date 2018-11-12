@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 48;
+nTrain = 16;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -70,7 +70,7 @@ rom.trainingData.vtx2Cell(rom.modelParams);
 sw0_mu = 3e-4;
 sw0_sigma = 3e-5;
 sw_decay = .995; %decay factor per iteration
-split_schedule = [1 8];
+split_schedule = [];
 if isempty(split_schedule)
     nSplits = 4;
 else
@@ -248,12 +248,12 @@ for split_iter = 1:(nSplits + 1)
         %plot parameters
 %         rom.modelParams.plot_params();
         %plot modal lambda_c and corresponding -training- data reconstruction
-        rom.plotCurrentState(0, transType, transLimits);
+%         rom.plotCurrentState(0, transType, transLimits);
         %plot elbo vs. training iteration
         t_tot = toc(tic_tot)
-        rom.modelParams.plotElbo(t_tot);
+%         rom.modelParams.plotElbo(t_tot);
         %Plot adaptive refinement cell scores
-        rom.modelParams.plotCellScores();
+%         rom.modelParams.plotCellScores();
         disp('...plotting done. Plotting time:')
         t_plt = toc(t_plt)
         
@@ -267,7 +267,7 @@ for split_iter = 1:(nSplits + 1)
         rom.modelParams.write2file('cell_score_full');
         rom.modelParams.write2file('sigma_cf_score');
         rom.modelParams.write2file('inv_sigma_cf_score');
-        if ~mod(rom.modelParams.EM_iter, 10)
+        if ~mod(rom.modelParams.EM_iter, 100)
             tic
             modelParams = copy(rom.modelParams);
             modelParams.pParams = [];
@@ -290,8 +290,8 @@ for split_iter = 1:(nSplits + 1)
     
     if split_iter < (nSplits + 1)
         disp('splitting cell...')
-        refinement_objective = 'reduced_elbo_score';
-        if strcmp(refinement_objective, 'active_cells_S')
+        refinement_objective = 'inv_sigma_cf';
+        if strcmp(refinement_objective, 'full_elbo_score')
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S;
             filename = './data/activeCells_S';

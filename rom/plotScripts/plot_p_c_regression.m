@@ -25,6 +25,7 @@ if strcmp(mode, 'local')
                 if minX ~=maxX, sb(k).XLim = [minX, maxX]; end
                 ylabel('$\left<\lambda_c \right>$');
                 xlabel('$\phi$');
+                axis tight;
                 k = k + 1;
             end
         end

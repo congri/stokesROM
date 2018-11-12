@@ -20,22 +20,15 @@ X3=1.5
 
 GRADIENTSAMPLESSTART=1
 GRADIENTSAMPLESEND=1
-STOCHOPTTIME=30    
+STOCHOPTTIME=120    
 
 NTRAIN=64
 NTESTSTART=0
 NTESTEND=1023
 
-MAXEMEPOCHS=400
+MAXEMEPOCHS=50
 
-NCORES=16
-if [ $NTRAIN -lt $NCORES ]; then
-NCORES=$NTRAIN
-fi
-echo N_cores=
-echo $NCORES
-
-NAMEBASE="engineered_split_schedule_1_8"
+NAMEBASE="engineered_split_full_inv_sigma_cf"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${DATESTR}_nTrain=${NTRAIN}_${NAMEBASE}"
@@ -67,7 +60,7 @@ echo "#!/bin/bash" >> ./job_file.sh
 echo "#SBATCH --job-name=${JOBNAME}" >> ./job_file.sh
 echo "#SBATCH --partition batch_SNB,batch_SKL" >> ./job_file.sh
 echo "#SBATCH --nodes 1-1" >> ./job_file.sh
-echo "#SBATCH --cpus-per-task=${NCORES}" >> ./job_file.sh
+echo "#SBATCH --exclusive" >> ./job_file.sh     #node is not shared with other jobs
 echo "#SBATCH --output=/home/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
 echo "#SBATCH --error=/home/constantin/OEfiles/${JOBNAME}.%j.err" >> ./job_file.sh
 echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
@@ -99,10 +92,6 @@ echo "sed -i \"87s/.*/        max_EM_epochs = ${MAXEMEPOCHS}/\" ./ModelParams.m"
 echo "sed -i \"11s/.*/testSamples = ${NTESTSTART}:${NTESTEND};/\" ./predictionScript.m" >> ./job_file.sh
 echo "#Run Matlab" >> ./job_file.sh
 echo "/home/programs/matlab/bin/matlab -nodesktop -nodisplay -nosplash -r \"trainModel ; quit;\"" >> ./job_file.sh
-echo "sed -i \"9s/.*/        margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}]/\" ./StokesData.m" >> ./job_file.sh
-echo "sed -i \"9s/.*/        margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}]/\" ./StokesData.m" >> ./job_file.sh
-echo "sed -i \"9s/.*/        margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}]/\" ./StokesData.m" >> ./job_file.sh
-echo "sed -i \"9s/.*/        margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}]/\" ./StokesData.m" >> ./job_file.sh
 
 
 chmod +x job_file.sh

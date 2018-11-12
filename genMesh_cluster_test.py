@@ -11,20 +11,20 @@ import mshr
 # Global parameters
 nMeshes = 2500
 nElements = 256  # PDE discretization
-foldername1 = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nElements)
+foldername1 = '/home/constantin/cluster/python/data/stokesEquation/meshSize=' + str(nElements)
 
 
 # Parameters only for 'circles' mode
 nExclusionsDist='logn'
-nExclusionParams = [8.1, 0.6]
-coordinateDist = 'GP'
+nExclusionParams = (8.1, 0.6)
+coordinateDist = 'tiles'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 # negative margin means no margin
-margins = [0.003, 0.003, 0.003, 0.003]
+margins = (0.003, 0.003, 0.003, 0.003)
 origin_margin = .005
 substractCorners = False     # Substracts circles from domain corners s.t. flow cannot pass
 radiiDist = 'logn'
-r_params = [-5.53, 0.3]
+r_params = (-5.53, 0.3)
 # for x~gauss
 coordinate_cov = [[0.55, -0.45], [-0.45, 0.55]]
 coordinate_mu = [.8, .8]
@@ -32,21 +32,6 @@ coordinate_mu = [.8, .8]
 covFun = 'squaredExponential'
 cov_l = 0.1
 sig_scale = 1.5
-
-
-# we need to remove '.0' for correct path names
-if nExclusionParams[0] % 1 == 0:
-    nExclusionParams[0] = int(nExclusionParams[0])
-if nExclusionParams[1] % 1 == 0:
-    nExclusionParams[1] = int(nExclusionParams[1])
-if r_params[0] % 1 == 0:
-    r_params[0] = int(r_params[0])
-if r_params[1] % 1 == 0:
-    r_params[1] = int(r_params[1])
-if cov_l % 1 == 0:
-    cov_l = int(cov_l)
-if sig_scale % 1 == 0:
-    sig_scale = int(sig_scale)
 
 
 print('Generating mesh with non-overlapping circular exclusions...')
@@ -75,7 +60,7 @@ if not os.path.exists(foldername):
 
 '''first copy 'microstructureInformation_nomesh' to 'microstructureInformation', to give signal that mesh is
 generated, so that no other job is taking the same microstructure to generate a mesh'''
-mesh_name_iter = 0
+mesh_name_iter = 450
 while mesh_name_iter < nMeshes:
 
     mesh_name_iter = 0
@@ -85,45 +70,46 @@ while mesh_name_iter < nMeshes:
     print('Generating mesh number ', mesh_name_iter)
 
     # copy microstructureInformation file, this is the signal that a job is already generating a mesh
-    copyfile(foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat',
-             foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat')
+    # copyfile(foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat',
+    #          foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat')
 
     print('Loading microstructural data...')
-    matfile = sio.loadmat(foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat')
+    matfile = sio.loadmat(foldername + '/microstructureInformation' + str(mesh_name_iter) + 't.mat')
     diskCenters = matfile['diskCenters']
     diskRadii = matfile['diskRadii']
     diskRadii = diskRadii.flatten()
     print('... microstructural data loaded.')
 
     # Generate domain object
-    print('Generating domain object...')
-    domain = mshr.Rectangle(df.Point(0.0, 0.0), df.Point(1.0, 1.0))
     nCircles = diskCenters.shape[0]
-    for blob in range(0, nCircles):
-        c = df.Point(diskCenters[blob, 0], diskCenters[blob, 1])
-        domain -= mshr.Circle(c, diskRadii[blob])
-    print('...domain object generated.')
+    successful = False
+    while not successful:
+        try:
+            print('Generating domain object...')
+            print('nCircles == ', nCircles)
+            domain = mshr.Rectangle(df.Point(0.0, 0.0), df.Point(1.0, 1.0))
+            for blob in range(0, nCircles):
+                c = df.Point(diskCenters[blob, 0], diskCenters[blob, 1])
+                domain -= mshr.Circle(c, diskRadii[blob])
+            print('...domain object generated.')
 
-    # Final step: generate mesh using mshr
-    print('generating FE mesh...')
-    mesh = mshr.generate_mesh(domain, nElements)
-    print('...FE mesh generated.')
+            # Final step: generate mesh using mshr
+            print('generating FE mesh...')
+            mesh = mshr.generate_mesh(domain, nElements)
+            print('...FE mesh generated.')
+            successful = True
+        except:
+            nCircles -= 1
+
 
     # save mesh in xml format for later use
-    # OUTDATED
-    # filename = foldername + '/mesh' + str(mesh_name_iter) + '.xml'
-    # print('saving mesh to ./mesh', str(mesh_name_iter), '.xml ...')
-    # mesh_file = df.File(filename)
-    # mesh_file << mesh
-    # print('... ./mesh', str(mesh_name_iter), '.xml saved.')
+    filename = foldername + '/mesh' + str(mesh_name_iter) + '.xml'
+    mesh_file = df.File(filename)
+    mesh_file << mesh
 
     # save vertex coordinates and cell connectivity to mat file for easy read-in to matlab
-    print('saving mesh to ./mesh' + str(mesh_name_iter) + '.mat ...')
     sio.savemat(foldername + '/mesh' + str(mesh_name_iter) + '.mat',
-                {'x': mesh.coordinates(), 'cells': mesh.cells() + 1})
-    print('... ./mesh' + str(mesh_name_iter) + '.mat saved.')
-    print('removing ' + './microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat ...')
-    os.remove(foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat')
-    print('... ./microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat removed.')
+                {'x': mesh.coordinates(), 'cells': mesh.cells() + 1.0})
+    # os.remove(foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat')
 
 

@@ -1,28 +1,29 @@
 %% Script to generate list of circular exclusions distributed according to
 % a warped Gaussian process
 clear;
+rng('shuffle');
 
-mode = 'tiles';    %engineered or GP
+mode = 'GP';    %engineered or GP
 
 lengthScale = .1;
 covarianceFunction = 'squaredExponential';
 sigmoid_scale = 1.5;         %sigmoid warping length scale param
 nBochnerSamples = 5000;
-nExclusionParams = [8.1, .6];
+nExclusionParams = [8.7, .3];
 margins = [.003, .003, .003, .003];
-rParams = [-5.53, 0.3];
-nMeshes = 0:2500;
+rParams = [-5.23, 0.5];
+nMeshes = 0:100;
 t_max = 3600;                 %in seconds
-plt = true;
+plt = false;
 
-addpath('~/cluster/matlab/projects/rom/genConductivity');
-if plt
-    f = figure;
+addpath('~/matlab/projects/rom/genConductivity');
+if false
+%     f = figure;
 end
 
 %% Set up save path
 if strcmp(mode, 'GP')
-    savepath = '~/cluster/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
+    savepath = '~/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
     savepath = strcat(savepath, num2str(margins(1)), '_', num2str(margins(2)),...
         '_', num2str(margins(3)), '_', num2str(margins(4)), '/N~logn/mu=', ...
         num2str(nExclusionParams(1)), '/sigma=', num2str(nExclusionParams(2)), ...
@@ -55,7 +56,9 @@ mesh_iter = 1;
 for n = nMeshes
     if strcmp(mode, 'GP')
         rejectionFun = genBochnerSamples(lengthScale,1,nBochnerSamples,covarianceFunction);
-        rejectionFun = @(x) sigmf(rejectionFun(x), [sigmoid_scale, 0]);
+        %not working on the cluster
+        %rejectionFun = @(x) sigmf(rejectionFun(x), [sigmoid_scale, 0]);
+        rejectionFun = @(x) sigmf_own(rejectionFun(x), [sigmoid_scale, 0]);
     elseif strcmp(mode, 'engineered')
         rejectionFun = @(x) engineeredRejectionFun(x);
     elseif strcmp(mode, 'tiles')
@@ -84,6 +87,13 @@ for n = nMeshes
             if currentDisks     %first disk cannot overlap            
                 overlap = any(((diskRadius + diskRadii(1:currentDisks))').^2 >=...
                     sum((diskCenter - diskCenters(1:currentDisks, :)).^2, 2));
+                trials = 0;
+                while(overlap && trials < 100)
+                    diskRadius = lognrnd(rParams(1), rParams(2));
+                    overlap = any(((diskRadius + diskRadii(1:currentDisks))').^2 >=...
+                    sum((diskCenter - diskCenters(1:currentDisks, :)).^2, 2));
+                trials = trials + 1;
+                end
             end
             
             if ~overlap
@@ -120,29 +130,51 @@ for n = nMeshes
     
     %% Plotting
     if plt
-        nCols = min([5, nMeshes(end) + 1]);
-        hold on;
+%         nCols = min([5, nMeshes(end) + 1]);
+%         hold on;
+%         
+%         if mesh_iter < nCols
+%             if strcmp(mode, 'GP')
+%                 subplot(2, nCols, mesh_iter, 'Parent', f);
+%                 [xx, yy] = meshgrid(linspace(0, 1, 101));
+%                 x = [xx(:) yy(:)]';
+%                 zz = reshape(rejectionFun(x), 101, 101);
+%                 sf = surf(xx, yy, zz);
+%                 xticks([]);
+%                 yticks([]);
+%                 view(2);
+%                 sf.LineStyle = 'none';
+%             end
+%             
+%             subplot(2, nCols, mesh_iter + nCols, 'Parent', f);
+%             p = plot(diskCenters(:, 1), diskCenters(:, 2), 'ko');
+%             xticks([]);
+%             yticks([]);
+%             p.LineWidth = .5;
+%             p.MarkerSize = 2;
+%         end
         
-        if mesh_iter < nCols
-            if strcmp(mode, 'GP')
-                subplot(2, nCols, mesh_iter, 'Parent', f);
-                [xx, yy] = meshgrid(linspace(0, 1, 101));
-                x = [xx(:) yy(:)]';
-                zz = reshape(rejectionFun(x), 101, 101);
-                sf = surf(xx, yy, zz);
-                xticks([]);
-                yticks([]);
-                view(2);
-                sf.LineStyle = 'none';
+        resolution = 512;
+        [xx, yy] = meshgrid(linspace(0, 1, resolution));
+        x = [xx(:) yy(:)];
+        clear xx yy;
+        
+        img = true(resolution);
+        
+        %loop over every pixel and check if solid or fluid
+        for i = 1:size(x, 1)
+            distSq = sum((diskCenters - x(i, :)).^2, 2);
+            if any(distSq' <= diskRadii.^2)
+                %inside of exclusion, i.e. outside of domain
+                img(i) = false;
             end
-            
-            subplot(2, nCols, mesh_iter + nCols, 'Parent', f);
-            p = plot(diskCenters(:, 1), diskCenters(:, 2), 'ko');
-            xticks([]);
-            yticks([]);
-            p.LineWidth = .5;
-            p.MarkerSize = 2;
         end
+        
+        f = figure;
+        img_h = imagesc(img);
+        grid off;
+        xticks([]);
+        yticks([]);
     end
     mesh_iter = mesh_iter + 1;
 end
@@ -202,6 +234,9 @@ function [r] = get_rejections(N)
 end
 
 
+function r = sigmf_own(x, params)
+    r = 1./(1 + exp(-params(1)*(x - params(2))));
+end
 
 
 

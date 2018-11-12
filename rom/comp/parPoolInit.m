@@ -20,6 +20,7 @@ if(~numel(current_pool))
 else
     ppool = gcp;
 end
+ppool.IdleTimeout = Inf;
 
 end
 

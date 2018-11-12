@@ -19,11 +19,13 @@ PROJECTDIR="/home/constantin/python/projects/stokesEquation"
 # Set JOBNAME by hand for every job!
 JOBNAME="solv_engin_${DATESTR}"
 JOBDIR="/home/constantin/python/jobs/$JOBNAME"
+JOBSCRIPT="${JOBDIR}/genSolution_cluster.py"
 
 #Create job directory and copy source code
 rm -rf $JOBDIR
 mkdir $JOBDIR
-cp -r $PROJECTDIR/* $JOBDIR
+SOLUTIONSCRIPT="${PROJECTDIR}/genSolution_cluster.py"
+cp  $SOLUTIONSCRIPT $JOBSCRIPT
 #Change directory to job directory; completely independent from project directory
 cd $JOBDIR
 CWD=$(printf "%q\n" "$(pwd)")
@@ -49,8 +51,9 @@ sed -i \"47s/.*/margins = (${MARG_LO}, ${MARG_R}, ${MARG_U}, ${MARG_LE})/\" ./ge
 
 
 #Activate fenics environment and run python
-source activate fenics3
-/home/constantin/anaconda3/envs/fenics3/bin/python3.6 ./genSolution_cluster.py
+source ~/.bashrc
+conda activate fenics_new
+python -u ./genSolution_cluster.py
 
 
 " >> job_file.sh

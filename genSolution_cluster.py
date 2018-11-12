@@ -21,7 +21,7 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(0, 5)  # vector of random meshes to load
+meshes = np.arange(0, 2500)  # vector of random meshes to load
 porousMedium = 'nonOverlappingCircles'  # circles or randomField
 nElements = 256
 
@@ -30,7 +30,7 @@ mu = 1  # viscosity
 
 # For circular exclusions
 nExclusionsDist = 'logn'
-nExclusionParams = (8.35, 0.6)
+nExclusionParams = (8.1, 0.6)
 coordinateDistribution = 'tiles'
 
 # for coordinateDistribution == 'gauss'
@@ -90,21 +90,41 @@ domainBoundary = DomainBoundary()
 
 for meshNumber in meshes:
     # set up file names
-    meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
+    # meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
+    meshfile = foldername + '/mesh' + str(meshNumber) + '.mat'
     solutionfolder = foldername + '/p_bc=0.0' + '/u_x=' + u_x + '_u_y=' + u_y
     if not os.path.exists(solutionfolder):
         os.makedirs(solutionfolder)
     solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
-    while (not os.path.isfile(meshfile)) or os.path.isfile(solutionfile):
+    while ((not os.path.isfile(meshfile)) or os.path.isfile(solutionfile)) and meshNumber < meshes[-1]:
         print('Mesh ', str(meshNumber), ' does not exist or solution already computed. Passing to next mesh...')
         print('mesh path == ', meshfile)
         print('solution path == ', solutionfile)
         meshNumber += 1
-        meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
+        # meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
+        meshfile = foldername + '/mesh' + str(meshNumber) + '.mat'
         solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
 
     print('Loading mesh ', str(meshNumber), '...')
-    mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
+    # outdated
+    # mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
+
+    # load mesh from mat file
+    mesh_data = sio.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
+    x = mesh_data['x']
+    cells = mesh_data['cells']
+    cells -= 1.0 # matlab to python indexing
+    cells = np.array(cells, dtype=np.uintp)
+    editor = df.MeshEditor()
+    mesh = df.Mesh()
+    editor.open(mesh, "triangle", 2, 2)
+    editor.init_vertices(x.shape[0])
+    editor.init_cells(cells.shape[0])
+    for k, point in enumerate(x):
+        editor.add_vertex(k, point[:2])
+    for k, cell in enumerate(cells):
+        editor.add_cell(k, cell)
+    editor.close()
     print('mesh loaded.')
 
     print('Setting boundary conditions...')
