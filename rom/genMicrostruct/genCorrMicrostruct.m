@@ -3,20 +3,22 @@
 clear;
 rng('shuffle');
 
-mode = 'GP';    %engineered or GP
+mode = 'GP_GPR';    %engineered, GP or GP_GPR (Gaussian process also on radii)
 
 lengthScale = .1;
+lengthScale_r = .2;
+sigmaGP_r = .2;
 covarianceFunction = 'squaredExponential';
 sigmoid_scale = 1.5;         %sigmoid warping length scale param
 nBochnerSamples = 5000;
-nExclusionParams = [8.7, .3];
+nExclusionParams = [8.7, .1];
 margins = [.003, .003, .003, .003];
 rParams = [-5.23, 0.5];
-nMeshes = 0:100;
+nMeshes = 0:1;
 t_max = 3600;                 %in seconds
-plt = false;
+plt = true;
 
-addpath('~/matlab/projects/rom/genConductivity');
+addpath('~/cluster/matlab/projects/rom/genConductivity');
 if false
 %     f = figure;
 end
@@ -30,6 +32,15 @@ if strcmp(mode, 'GP')
         '/x~GP/cov=', covarianceFunction, '/l=', num2str(lengthScale),...
         '/sig_scale=', num2str(sigmoid_scale), '/r~logn/mu=', num2str(rParams(1)), ...
         '/sigma=', num2str(rParams(2)));
+elseif strcmp(mode, 'GP_GPR')
+    savepath = '~/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
+    savepath = strcat(savepath, num2str(margins(1)), '_', num2str(margins(2)),...
+        '_', num2str(margins(3)), '_', num2str(margins(4)), '/N~logn/mu=', ...
+        num2str(nExclusionParams(1)), '/sigma=', num2str(nExclusionParams(2)), ...
+        '/x~GP/cov=', covarianceFunction, '/l=', num2str(lengthScale),...
+        '/sig_scale=', num2str(sigmoid_scale), '/r~lognGP/mu=', num2str(rParams(1)), ...
+        '/sigma=', num2str(rParams(2)), '/sigmaGP_r=', num2str(sigmaGP_r),...
+        '/l=', num2str(lengthScale_r));
 elseif strcmp(mode, 'engineered')
     savepath = '~/cluster/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
     savepath = strcat(savepath, num2str(margins(1)), '_', num2str(margins(2)),...
@@ -54,8 +65,9 @@ end
 
 mesh_iter = 1;
 for n = nMeshes
-    if strcmp(mode, 'GP')
-        rejectionFun = genBochnerSamples(lengthScale,1,nBochnerSamples,covarianceFunction);
+    if(strcmp(mode, 'GP') || strcmp(mode, 'GP_GPR'))
+        rejectionFun = genBochnerSamples(...
+            lengthScale, 1, nBochnerSamples, covarianceFunction);
         %not working on the cluster
         %rejectionFun = @(x) sigmf(rejectionFun(x), [sigmoid_scale, 0]);
         rejectionFun = @(x) sigmf_own(rejectionFun(x), [sigmoid_scale, 0]);
@@ -77,7 +89,14 @@ for n = nMeshes
     t_elapsed = 0;
     while(currentDisks < nExclusions && t_elapsed < t_max)
         diskCenter = rand(1, 2);
-        diskRadius = lognrnd(rParams(1), rParams(2));
+        if strcmp(mode, 'GP_GPR')
+            radiiFun = genBochnerSamples(...
+            lengthScale_r, sigmaGP_r^2, nBochnerSamples, 'squaredExponential');
+            mu_r = radiiFun(diskCenter') + rParams(1);
+            diskRadius = lognrnd(mu_r, rParams(2));
+        else
+            diskRadius = lognrnd(rParams(1), rParams(2));
+        end
         
         %accept/reject
         if(rand <= rejectionFun(diskCenter'))
@@ -125,8 +144,8 @@ for n = nMeshes
     end
     
     %% save microstructure data
-    save(strcat(savepath, '/microstructureInformation_nomesh', num2str(n)),...
-        'diskCenters', 'diskRadii');
+%     save(strcat(savepath, '/microstructureInformation_nomesh', num2str(n)),...
+%         'diskCenters', 'diskRadii');
     
     %% Plotting
     if plt
@@ -154,27 +173,8 @@ for n = nMeshes
 %             p.MarkerSize = 2;
 %         end
         
-        resolution = 512;
-        [xx, yy] = meshgrid(linspace(0, 1, resolution));
-        x = [xx(:) yy(:)];
-        clear xx yy;
-        
-        img = true(resolution);
-        
-        %loop over every pixel and check if solid or fluid
-        for i = 1:size(x, 1)
-            distSq = sum((diskCenters - x(i, :)).^2, 2);
-            if any(distSq' <= diskRadii.^2)
-                %inside of exclusion, i.e. outside of domain
-                img(i) = false;
-            end
-        end
-        
-        f = figure;
-        img_h = imagesc(img);
-        grid off;
-        xticks([]);
-        yticks([]);
+        [img_handle, fig_handle] =...
+            plotMicrostruct(diskCenters, diskRadii, resolution);
     end
     mesh_iter = mesh_iter + 1;
 end
