@@ -51,6 +51,7 @@ classdef ModelParams < matlab.mixin.Copyable
         
         %% Model hyperparameters
         mode = 'local'  %separate theta_c's per macro-cell
+        %VRVM, sharedVRVM or adaptiveGaussian
         prior_theta_c = 'sharedVRVM'
         gamma   %Gaussian precision of prior on theta_c
         VRVM_a = eps
@@ -59,7 +60,7 @@ classdef ModelParams < matlab.mixin.Copyable
         VRVM_d = eps
         VRVM_e = eps
         VRVM_f = eps
-        VRVM_iter = 50 %iterations with fixed q(lambda_c)
+        VRVM_iter = 500 %iterations with fixed q(lambda_c)
         
         %current parameters of variational distributions
         a
@@ -102,9 +103,8 @@ classdef ModelParams < matlab.mixin.Copyable
             %   u_bc:       boundary velocity field
             %   p_bc:       boundary pressure field
             
-            %only for a single cell here!!!
             %grid of random field
-            self.gridRF = RectangularMesh((1/2)*ones(1, 2));
+            self.gridRF = RectangularMesh((1/4)*ones(1, 4));
             self.cell_dictionary = 1:self.gridRF.nCells;
             
             %% Initialize coarse mesh object
@@ -114,12 +114,12 @@ classdef ModelParams < matlab.mixin.Copyable
             
             %% Set up coarse model bc's
             %Convert flow bc string to handle functions
-            u_x_temp = strrep(u_bc{1}(5:end), 'x[1]', 'y');
+            u_x_temp = strrep(u_bc{1}(5:end), 'x[1]', '*y');
             %This is only valid for unit square domain!!
             u_x_temp_le = strrep(u_x_temp, 'x[0]', '0');
             u_x_temp_r = strrep(u_x_temp, 'x[0]', '1');
             
-            u_y_temp = strrep(u_bc{2}(5:end), 'x[0]', 'x');
+            u_y_temp = strrep(u_bc{2}(5:end), 'x[0]', '*x');
             u_y_temp_lo = strrep(u_y_temp, 'x[1]', '0');
             u_y_temp_u = strrep(u_y_temp, 'x[1]', '1');
             u_bc_handle{1} = str2func(strcat('@(x)', '-(', u_y_temp_lo, ')'));
@@ -158,6 +158,8 @@ classdef ModelParams < matlab.mixin.Copyable
                 self.gamma = 1e4*ones(size(self.theta_c));
             elseif strcmp(self.prior_theta_c, 'sharedVRVM')
                 self.gamma = 1e-4*ones(size(self.theta_c));
+            elseif strcmp(self.prior_theta_c, 'adaptiveGaussian')
+                self.gamma = 1;
             elseif strcmp(self.prior_theta_c, 'none')
                 self.gamma = NaN;
             else
@@ -362,8 +364,11 @@ classdef ModelParams < matlab.mixin.Copyable
                 curr_gamma = self.gamma;
             end
             %curr_gamma = [curr_gamma(:), (1:numel(curr_gamma))']
-            activeFeatures =...
-                [find(curr_gamma < 20), curr_gamma(find(curr_gamma < 20))]
+            if(strcmp(self.prior_theta_c, 'sharedVRVM') || ...
+                    strcmp(self.prior_theta_c, 'VRVM'))
+                activeFeatures =...
+                    [find(curr_gamma < 20), curr_gamma(find(curr_gamma < 20))]
+            end
             
         end
         
@@ -518,9 +523,8 @@ classdef ModelParams < matlab.mixin.Copyable
             sum_logdet_lambda_c = sum(sum(log(Sigma_lambda_c)));
             
             try
-                if(strcmp(self.prior_theta_c, 'sharedVRVM') || ...
-                        strcmp(self.prior_theta_c, 'VRVM'))
-                    logdet_Sigma_theta_ck = zeros(D_c, 1);
+                logdet_Sigma_theta_ck = zeros(D_c, 1);
+                if(strcmp(self.mode, 'local'))
                     for k = 1:D_c
                         logdet_Sigma_theta_ck(k) = logdet(self.Sigma_theta_c(...
                             ((k-1)*nFeatures + 1):(k*nFeatures),...
@@ -536,11 +540,11 @@ classdef ModelParams < matlab.mixin.Copyable
             end
             
             self.elbo = -.5*N*N_dof*log(2*pi) +.5*sum_logdet_lambda_c + ...
-                .5*N*D_c + N_dof*(ee*log(ff) + log(gamma(self.e)) -...
-                log(gamma(ee))) - self.e*sum(log(self.f)) + D_c*(cc*log(dd) +...
-                log(gamma(self.c)) - log(gamma(cc))) -...
+                .5*N*D_c + N_dof*(ee*log(ff) + gammaln(self.e) -...
+                gammaln(ee)) - self.e*sum(log(self.f)) + D_c*(cc*log(dd) +...
+                gammaln(self.c) - gammaln(cc)) -...
                 self.c*sum(log(self.d)) + D_gamma*(aa*log(bb) +...
-                log(gamma(self.a)) - log(gamma(aa))) - ...
+                gammaln(self.a) - gammaln(aa)) - ...
                 self.a*sum(log(self.b(1:D_gamma))) + ...
                 .5*logdet_Sigma_theta_c + .5*D_theta_c;
 
@@ -557,9 +561,9 @@ classdef ModelParams < matlab.mixin.Copyable
                 self.sum_in_macrocell*sqrt(1./self.sigma_cf.s0);
             
             constants = -.5*N*N_dof*log(2*pi) + .5*N*D_c + .5*D_theta_c + ...
-                N_dof*(ee*log(ff) + log(gamma(self.e)) - log(gamma(ee))) +...
-                D_c*(cc*log(dd) + log(gamma(self.c)) - log(gamma(cc))) +...
-                D_gamma*(aa*log(bb) + log(gamma(self.a)) - log(gamma(aa)));
+                N_dof*(ee*log(ff) + gammaln(self.e) - gammaln(ee)) +...
+                D_c*(cc*log(dd) + gammaln(self.c) - gammaln(cc)) +...
+                D_gamma*(aa*log(bb) + gammaln(self.a) - gammaln(aa));
             
 %             sp1 = subplot(2, 3, 1, 'Parent', fig);
 %             hold(sp1, 'on')

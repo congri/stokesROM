@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 16;
+nTrain = 8;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -72,7 +72,7 @@ sw0_sigma = 3e-5;
 sw_decay = .995; %decay factor per iteration
 split_schedule = [];
 if isempty(split_schedule)
-    nSplits = 4;
+    nSplits = 0;
 else
     nSplits = numel(split_schedule);
 end
@@ -225,8 +225,8 @@ for split_iter = 1:(nSplits + 1)
             rom.trainingData.X_interp{1}, figElboTest);
         elbo = rom.modelParams.elbo
         
-        if ~mod(rom.modelParams.EM_iter_split - 1, 5)
-%         if false
+%         if ~mod(rom.modelParams.EM_iter_split - 1, 5)
+        if false
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S
             filename = './data/activeCells_S';
@@ -243,19 +243,22 @@ for split_iter = 1:(nSplits + 1)
             transType, transLimits)
         rom.modelParams.printCurrentParams;
         
-        disp('Plotting...')
-        t_plt = tic;
-        %plot parameters
-%         rom.modelParams.plot_params();
-        %plot modal lambda_c and corresponding -training- data reconstruction
-%         rom.plotCurrentState(0, transType, transLimits);
-        %plot elbo vs. training iteration
-        t_tot = toc(tic_tot)
-%         rom.modelParams.plotElbo(t_tot);
-        %Plot adaptive refinement cell scores
-%         rom.modelParams.plotCellScores();
-        disp('...plotting done. Plotting time:')
-        t_plt = toc(t_plt)
+        plt = false;
+        if(plt && feature('ShowFigureWindows'))
+            disp('Plotting...')
+            t_plt = tic;
+            %plot parameters
+            rom.modelParams.plot_params();
+            %plot modal lambda_c and corresponding -training- data reconstruction
+            rom.plotCurrentState(0, transType, transLimits);
+            %plot elbo vs. training iteration
+            t_tot = toc(tic_tot)
+            rom.modelParams.plotElbo(t_tot);
+            %Plot adaptive refinement cell scores
+            rom.modelParams.plotCellScores();
+            disp('...plotting done. Plotting time:')
+            t_plt = toc(t_plt)
+        end
         
         
         %write parameters to disk to investigate convergence
@@ -267,7 +270,7 @@ for split_iter = 1:(nSplits + 1)
         rom.modelParams.write2file('cell_score_full');
         rom.modelParams.write2file('sigma_cf_score');
         rom.modelParams.write2file('inv_sigma_cf_score');
-        if ~mod(rom.modelParams.EM_iter, 100)
+        if ~mod(rom.modelParams.EM_iter, 5)
             tic
             modelParams = copy(rom.modelParams);
             modelParams.pParams = [];
