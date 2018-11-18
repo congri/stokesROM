@@ -5,20 +5,21 @@ rng('shuffle');
 
 mode = 'GP_GPR';    %engineered, GP or GP_GPR (Gaussian process also on radii)
 
-lengthScale = .1;
-lengthScale_r = .2;
-sigmaGP_r = .2;
+lengthScale = .08;
+lengthScale_r = .05;
+sigmaGP_r = .4;
 covarianceFunction = 'squaredExponential';
-sigmoid_scale = 1.5;         %sigmoid warping length scale param
+sigmoid_scale = 2.5;         %sigmoid warping length scale param
 nBochnerSamples = 5000;
-nExclusionParams = [8.7, .1];
+nExclusionParams = [7.8, .05];
 margins = [.003, .003, .003, .003];
 rParams = [-5.23, 0.5];
-nMeshes = 0:1;
+nMeshes = 0:4;
 t_max = 3600;                 %in seconds
-plt = true;
+plt = false;
+resolution = 2048;
 
-addpath('~/cluster/matlab/projects/rom/genConductivity');
+addpath('~/matlab/projects/rom/genConductivity');
 if false
 %     f = figure;
 end
@@ -108,10 +109,14 @@ for n = nMeshes
                     sum((diskCenter - diskCenters(1:currentDisks, :)).^2, 2));
                 trials = 0;
                 while(overlap && trials < 100)
-                    diskRadius = lognrnd(rParams(1), rParams(2));
+                    if strcmp(mode, 'GP_GPR')
+                        diskRadius = lognrnd(mu_r, rParams(2));
+                    else
+                        diskRadius = lognrnd(rParams(1), rParams(2));
+                    end
                     overlap = any(((diskRadius + diskRadii(1:currentDisks))').^2 >=...
-                    sum((diskCenter - diskCenters(1:currentDisks, :)).^2, 2));
-                trials = trials + 1;
+                        sum((diskCenter - diskCenters(1:currentDisks, :)).^2, 2));
+                    trials = trials + 1;
                 end
             end
             
@@ -144,8 +149,8 @@ for n = nMeshes
     end
     
     %% save microstructure data
-%     save(strcat(savepath, '/microstructureInformation_nomesh', num2str(n)),...
-%         'diskCenters', 'diskRadii');
+    save(strcat(savepath, '/microstructureInformation_nomesh', num2str(n)),...
+        'diskCenters', 'diskRadii');
     
     %% Plotting
     if plt

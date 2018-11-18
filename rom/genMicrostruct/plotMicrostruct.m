@@ -3,7 +3,7 @@ function [img_handle, fig_handle] =...
 %Plots a microstructure of polydisperse spherical exclusions based on
 %disk centers and radii
 if nargin < 3
-    resolution = 1024;
+    resolution = 2048;
 end
 
 % tic;
@@ -53,5 +53,6 @@ xticks([]);
 yticks([]);
 ax = gca;
 colormap(ax, gray);
+axis square;
 end
 

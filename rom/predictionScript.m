@@ -3,6 +3,7 @@ addpath('./mesh')
 addpath('./featureFunctions/nonOverlappingPolydisperseSpheres')
 addpath('./FEM')
 addpath('./rom')
+addpath('./comp')
 
 
 if ~exist('rom', 'var')

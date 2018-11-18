@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 8;
+nTrain = 16;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -95,7 +95,8 @@ for split_iter = 1:(nSplits + 1)
     %theta_c must be initialized after design matrices exist
     if isempty(rom.modelParams.theta_c)
         disp('Initializing theta_c...')
-        rom.modelParams.theta_c=0*ones(size(rom.trainingData.designMatrix{1},2), 1);
+        rom.modelParams.theta_c =...
+            0*ones(size(rom.trainingData.designMatrix{1}, 2), 1);
         disp('...done.')
     end
     

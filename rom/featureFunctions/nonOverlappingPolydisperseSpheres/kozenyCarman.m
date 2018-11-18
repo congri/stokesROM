@@ -22,7 +22,9 @@ porefrac = A./A0;
 s = 2*(1 - porefrac).*(meanRadii./meanSqRadii);
 s(isnan(s)) = 0; %this occurs if macro-cell has no inclusions
 
-k = (porefrac.^3)./(5*(s.^2).*(1 - porefrac).^2);
+
+%the +1 in the denominator is for regularity for high pore fractions
+k = (porefrac.^3)./(5*(s.^2).*(1 - porefrac).^2 + 1);
 k(~isfinite(k)) = 1;
 
 end

@@ -36,7 +36,7 @@ classdef StokesData < handle
         microstructData
         %Flow boundary conditions; C++ string
         p_bc = '0.0';
-        u_bc = {'u_x=0.0-2.0*x[1]', 'u_y=1.0-2.0*x[0]'}
+        u_bc = {'u_x=0.0-2.0x[1]', 'u_y=1.0-2.0x[0]'}
         %Design matrix
         designMatrix
     end
@@ -786,6 +786,7 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
+                
                 %Hagen-Poiseuille?
                 %square log mean distance
                 dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
@@ -831,7 +832,7 @@ classdef StokesData < handle
                 %log min distance squared. Hagen-Poiseuille?
                 dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
                 if n == 1
-                    dlmwrite('./data/features', 'logMinDistCenter',...
+                    dlmwrite('./data/features', 'logMinDistCenterSq',...
                         'delimiter', '', '-append');
                 end
                 
@@ -1437,6 +1438,77 @@ classdef StokesData < handle
                     dlmwrite('./data/features', 'sqrt_2pointCorr005',...
                         'delimiter', '', '-append');
                 end
+                
+                
+                %% Features on coarser grid
+                %should only be used with regular unit square grids, no split!!!
+                %log mean distance on other grid
+                coarserGrid = RectangularMesh((1/2)*ones(1, 2), .5*ones(1, 2));
+                M = coarserGrid.map2fine(gridRF.edges{1}.length*...
+                    ones(1, sqrt(gridRF.nCells)));
+                phi = diskDistance(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, coarserGrid, 'mean', 'edge2edge');
+                
+                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMeanDistCoarseGrid',...
+                        'delimiter', '', '-append');
+                end
+                
+                %chord length density
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, coarserGrid, .00125);
+                %log
+                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features',...
+                        'logChordLengthDens00125CoarseGrid', 'delimiter',...
+                        '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, coarserGrid, .000625);
+                %log
+                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features',...
+                        'logChordLengthDens000625CoarseGrid', 'delimiter',...
+                        '', '-append');
+                end
+                
+                
+                fullDomain = RectangularMesh(1);
+                M = fullDomain.map2fine(gridRF.edges{1}.length*...
+                    ones(1, sqrt(gridRF.nCells)));
+                phi = diskDistance(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, fullDomain, 'mean', 'edge2edge');
+                
+                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMeanDistFullDomain',...
+                        'delimiter', '', '-append');
+                end
+                
+                %chord length density
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, fullDomain, .00125);
+                %log
+                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features',...
+                        'logChordLengthDens00125FullDomain', 'delimiter',...
+                        '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, fullDomain, .000625);
+                %log
+                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features',...
+                        'logChordLengthDens000625FullDomain', 'delimiter',...
+                        '', '-append');
+                end
             end
             self.designMatrix = dMat;
             disp('...feature functions evaluated.');
@@ -1562,27 +1634,51 @@ classdef StokesData < handle
             self.readData('x');
             self.readData('p');
             self.readData('u');
+            self.readData('m');
             
             %figHandle = figure;
             pltIndex = 1;
+            resolution = 1024;
             for n = samples
                 %figure(figHandle);
-                figHandle(n) = figure(n);
+                figHandle(n) = figure('units','normalized',...
+                    'outerposition',[0 0 1 1]);
                 
                 %Mesh
                 pltHandles(1, pltIndex) = subplot(1, 3, 1);
-                meshHandles(1, pltIndex) = triplot(double(self.cells{n}),...
-                    self.X{n}(:, 1), self.X{n}(:, 2), 'linewidth', .5);
-                meshHandles(1, pltIndex).Color = [.3 .3 .3];
-                axis square;
-                axis tight;
+%                 meshHandles(1, pltIndex) = triplot(double(self.cells{n}),...
+%                     self.X{n}(:, 1), self.X{n}(:, 2), 'linewidth', .5);
+%                 meshHandles(1, pltIndex).Color = [.3 .3 .3];
+%                 axis square;
+%                 axis tight;
+%                 grid off;
+%                 xticks({});
+%                 yticks({});
+                
+                [xx, yy] = meshgrid(linspace(0, 1, resolution));
+                r2 = self.microstructData{n}.diskRadii.^2;
+                img = false(resolution);
+                
+                for k = 1:numel(self.microstructData{n}.diskRadii)
+                    img = img | ((xx -...
+                        self.microstructData{n}.diskCenters(k, 1)).^2 +...
+                        (yy - self.microstructData{n}.diskCenters(k, 2)).^2 ...
+                        <= r2(k));
+                end
+                
+                % fig_handle = figure;
+                img_handle = imagesc(img, 'Parent', pltHandles(1, pltIndex));
                 grid off;
-                xticks({});
-                yticks({});
+                xticks([]);
+                yticks([]);
+                ax = gca;
+                
+                
                 
                 
                 %pressure field
                 pltHandles(2, pltIndex) = subplot(1, 3, 2);
+                pltHandles(2, pltIndex).Title.String = 'Pressure $P$';
                 triHandles(2, pltIndex) =...
                     trisurf(double(self.cells{n}), self.X{n}(:, 1),...
                     self.X{n}(:, 2), self.P{n});
@@ -1590,10 +1686,13 @@ classdef StokesData < handle
                 axis square;
                 axis tight;
                 view(3);
-                grid off;
                 box on;
-                xticks({});
-                yticks({});
+                grid on;
+                xticks([0 .25 .5 .75 1]);
+                yticks([0 .25 .5 .75 1]);
+                xticklabels([]);
+                yticklabels([]);
+                pltHandles(2, pltIndex).Title.String = 'Pressure $P$';
 %                 cb(1, pltIndex) = colorbar;
 %                 cb(1, pltIndex).Label.String = 'pressure p';
 %                 cb(1, pltIndex).Label.Interpreter = 'latex';
@@ -1628,9 +1727,12 @@ classdef StokesData < handle
                 xticks({});
                 yticks({});
                 cb(3, pltIndex) = colorbar;
-                cb(3, pltIndex).Label.String = 'velocity norm $|u|$';
+                pltHandles(3, pltIndex).Title.String = 'velocity norm $|u|$';
                 cb(3, pltIndex).Label.Interpreter = 'latex';
                 pltIndex = pltIndex + 1;
+                
+                export_fig(strcat('~/cluster/images/presentationNov18/data_',...
+                    num2str(n)), '-png', '-r350');
             end
         end
     end

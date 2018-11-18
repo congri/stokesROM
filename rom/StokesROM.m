@@ -515,7 +515,6 @@ classdef StokesROM < handle
             %Function to predict finescale output from generative model
             %stokesData is a StokesData object of fine scale data
             %   mode:       'local' for separate theta_c's per macro-cell
-            
             if nargin < 3
                 mode = '';
             end

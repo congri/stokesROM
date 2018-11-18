@@ -22,10 +22,10 @@ GRADIENTSAMPLESSTART=1
 GRADIENTSAMPLESEND=1
 STOCHOPTTIME=120    
 
-NSTART=0
-NTRAIN=15
+NSTART=96
+NTRAIN=32
 NTESTSTART=256
-NTESTEND=1068
+NTESTEND=1110
 
 MAXEMEPOCHS=100
 
@@ -35,14 +35,15 @@ PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${DATESTR}_nTrain=${NTRAIN}_${NAMEBASE}"
 JOBDIR="/home/constantin/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~${COORDDIST}/"
 if [ "$COORDDIST" = "GP" ]; then
-    JOBDIR="${JOBDIR}cov=${X1}/l=${X2}/sig_scale=${X3}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/${BCX}_${BCY}/${JOBNAME}"
+    JOBDIR="${JOBDIR}cov=${X1}/l=${X2}/sig_scale=${X3}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/${BCX}_${BCY}"
 elif [ "$COORDDIST" = "tiles" ]; then
-    JOBDIR="${JOBDIR}r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/${BCX}_${BCY}/${JOBNAME}"
+    JOBDIR="${JOBDIR}r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/${BCX}_${BCY}"
 elif [ "$COORDDIST" = "gauss" ]; then
-    JOBDIR="${JOBDIR}mu=${X1}/cov=${X2}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/${BCX}_${BCY}/${JOBNAME}"
+    JOBDIR="${JOBDIR}mu=${X1}/cov=${X2}/r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/${BCX}_${BCY}"
 elif [ "$COORDDIST" = "engineered" ]; then
-    JOBDIR="${JOBDIR}r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/${BCX}_${BCY}/${JOBNAME}"
+    JOBDIR="${JOBDIR}r~logn/mu=${R1}/sigma=${R2}/p_bc=0.0/${BCX}_${BCY}"
 fi
+JOBDIR="${JOBDIR}/$JOBNAME"
 
 #Create job directory and copy source code
 mkdir -p "${JOBDIR}"
@@ -105,7 +106,7 @@ echo "sed -i \"17s/.*/maxCompTime = ${STOCHOPTTIME};/\" ./VI/efficientStochOpt.m
 echo "sed -i \"18s/.*/nSamplesStart = ${GRADIENTSAMPLESSTART};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
 echo "sed -i \"19s/.*/nSamplesEnd = ${GRADIENTSAMPLESEND};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
 echo "sed -i \"88s/.*/        max_EM_epochs = ${MAXEMEPOCHS}/\" ./ModelParams.m" >> ./job_file.sh
-echo "sed -i \"11s/.*/testSamples = ${NTESTSTART}:${NTESTEND};/\" ./predictionScript.m" >> ./job_file.sh
+echo "sed -i \"12s/.*/testSamples = ${NTESTSTART}:${NTESTEND};/\" ./predictionScript.m" >> ./job_file.sh
 echo "#Run Matlab" >> ./job_file.sh
 echo "/home/programs/matlab/bin/matlab -nodesktop -nodisplay -nosplash -r \" trainModel ; quit ; \"" >> ./job_file.sh
 

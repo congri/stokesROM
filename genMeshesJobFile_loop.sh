@@ -77,7 +77,7 @@ do
 					chmod +x job_file.sh
 					#directly submit job file
 					sbatch job_file.sh
-					sleep 5
+					sleep 20
 					#execute job_file.sh in shell
 					#./job_file.sh
 				done

@@ -1,13 +1,17 @@
 NMESHES=2500
 NELEMENTS=256
-NEX1=8.7    #number of exclusion parameters
-NEX2=0.1
+NEX1=7.8    #number of exclusion parameters
+NEX2=0.05
 RPARAMSLO=-5.23
 RPARAMSHI=0.5
 MARGIN_LO=0.003
 MARGIN_R=0.003
 MARGIN_U=0.003
 MARGIN_LE=0.003
+SIGMAGPR=0.4
+LENGTHSCALE=0.08
+LENGTHSCALER=0.05
+SIGMOID=2.5
 
 
 CORES=1
@@ -26,7 +30,6 @@ MESHGENSCRIPT="${PROJECTDIR}/genMesh_cluster.py"
 cp  $MESHGENSCRIPT $JOBSCRIPT
 #Change directory to job directory; completely independent from project directory
 cd $JOBDIR
-CWD=$(printf "%q\n" "$(pwd)")
 
 #construct job file
 echo "#!/bin/bash" >> ./job_file.sh
@@ -43,6 +46,10 @@ echo "sed -i \"13s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./genMesh_
 echo "sed -i \"19s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./genMesh_cluster.py" >> ./job_file.sh
 echo "sed -i \"23s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./genMesh_cluster.py" >> ./job_file.sh
 echo "sed -i \"27s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"33s/.*/cov_l = ${LENGTHSCALE}/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"34s/.*/sig_scale = ${SIGMOID}/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"35s/.*/sigmaGP_r = ${SIGMAGPR}/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"36s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genMesh_cluster.py" >> ./job_file.sh
 
 
 #Activate fenics environment and run python

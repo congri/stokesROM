@@ -23,7 +23,7 @@ coordinateDist = 'GP'
 margins = [0.003, 0.003, 0.003, 0.003]
 origin_margin = .005
 substractCorners = False     # Substracts circles from domain corners s.t. flow cannot pass
-radiiDist = 'logn'
+radiiDist = 'lognGP'
 r_params = [-5.53, 0.3]
 # for x~gauss
 coordinate_cov = [[0.55, -0.45], [-0.45, 0.55]]
@@ -32,6 +32,8 @@ coordinate_mu = [.8, .8]
 covFun = 'squaredExponential'
 cov_l = 0.1
 sig_scale = 1.5
+sigmaGP_r = 0.4
+lengthScale_r = .05
 
 
 # we need to remove '.0' for correct path names
@@ -68,7 +70,12 @@ elif coordinateDist == 'GP':
 elif coordinateDist == 'engineered' or coordinateDist == 'tiles':
     foldername += '/'
 
-foldername += 'r~' + radiiDist + '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1])
+foldername += 'r~' + radiiDist
+if radiiDist == 'lognGP':
+    foldername += '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1]) +\
+                  '/sigmaGP_r=' + str(sigmaGP_r) + '/l=' + str(lengthScale_r)
+else:
+    foldername += '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1])
 if not os.path.exists(foldername):
     os.makedirs(foldername)
 

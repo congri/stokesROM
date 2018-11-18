@@ -31,7 +31,7 @@ mu = 1  # viscosity
 # For circular exclusions
 nExclusionsDist = 'logn'
 nExclusionParams = (8.1, 0.6)
-coordinateDistribution = 'tiles'
+coordinateDistribution = 'GP'
 
 # for coordinateDistribution == 'gauss'
 coordinate_cov = [[0.55, -0.45], [-0.45, 0.55]]
@@ -41,16 +41,21 @@ coordinate_mu = [0.5, 0.5]
 covFun = 'squaredExponential'
 cov_l = 0.1
 sig_scale = 1.5
+sigmaGP_r = 0.4
+lengthScale_r = .05
 
-radiiDistribution = 'logn'
+radiiDistribution = 'lognGP'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 margins = (0.003, 0.003, 0.003, 0.003)
 r_params = (-5.53, .3)
 
 # Flow boundary condition for velocity on domain boundary
-u_x = '1.0'
-u_y = '0.0'
+u_x = '1.0-1.0*x[1]'
+u_y = '2.0-1.0*x[0]'
+
 flowField = df.Expression((u_x, u_y), degree=2)
+u_x = u_x.replace('*', '')
+u_y = u_y.replace('*', '')
 
 foldername = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nElements)
 
@@ -69,14 +74,18 @@ if porousMedium == 'nonOverlappingCircles':
                       '/cov=' + str(coordinate_cov[0][0]) + '_' + str(coordinate_cov[0][1]) + '_' + \
                       str(coordinate_cov[1][1])
     elif coordinateDistribution == 'GP':
-        foldername += '/cov=' + covFun + '/l=' + str(cov_l) + '/sig_scale=' + str(sig_scale) + '/'
+        foldername += '/cov=' + covFun + '/l=' + str(cov_l) + '/sig_scale=' + str(sig_scale)
     elif coordinateDistribution == 'engineered' or coordinateDistribution == 'tiles':
         pass
     else:
         raise Exception('Invalid coordinates distribution')
 
-    foldername += '/r~' + radiiDistribution + '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1])
-
+    foldername += '/r~' + radiiDistribution
+    if radiiDistribution == 'lognGP':
+        foldername += '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1]) + \
+                      '/sigmaGP_r=' + str(sigmaGP_r) + '/l=' + str(lengthScale_r)
+    else:
+        foldername += '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1])
 
 # Set external boundaries of domain
 class DomainBoundary(df.SubDomain):
@@ -96,14 +105,29 @@ for meshNumber in meshes:
     if not os.path.exists(solutionfolder):
         os.makedirs(solutionfolder)
     solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
-    while ((not os.path.isfile(meshfile)) or os.path.isfile(solutionfile)) and meshNumber < meshes[-1]:
-        print('Mesh ', str(meshNumber), ' does not exist or solution already computed. Passing to next mesh...')
-        print('mesh path == ', meshfile)
-        print('solution path == ', solutionfile)
+
+    # create computation_started.txt if not existent
+    if not os.path.isfile(solutionfolder + '/computation_started.txt'):
+        started_file = open(solutionfolder + '/computation_started.txt', 'w')
+        started_file.close()
+
+    started_file = open(solutionfolder + '/computation_started.txt', 'r')
+    started_computations = started_file.readlines()
+    started_file.close()
+    print('started_computations == ', started_computations)
+    while ((not os.path.isfile(meshfile)) or os.path.isfile(solutionfile)
+           or ((str(meshNumber) + '\n') in started_computations)) and meshNumber < meshes[-1]:
+        # print('Mesh ', str(meshNumber), ' does not exist or solution already computed. Passing to next mesh...')
+        # print('mesh path == ', meshfile)
+        # print('solution path == ', solutionfile)
         meshNumber += 1
         # meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
         meshfile = foldername + '/mesh' + str(meshNumber) + '.mat'
         solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
+
+    # write mesh number to file s.t. it is clear that solution is currently computed
+    with open(solutionfolder + '/computation_started.txt', 'a') as started_file:
+        started_file.write(str(meshNumber) + '\n')
 
     print('Loading mesh ', str(meshNumber), '...')
     # outdated

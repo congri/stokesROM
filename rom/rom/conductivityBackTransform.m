@@ -54,8 +54,8 @@ else
 end
 
 if(any(any(~isfinite(conductivity))))
-    warning('Non-finite conductivity, setting it to 1.')
-    conductivity(~isfinite(conductivity)) = 1;
+    warning('Non-finite conductivity, setting it to 1e-3.')
+    conductivity(~isfinite(conductivity)) = 1e-3;
 end
 end
 
