@@ -137,7 +137,10 @@ for meshNumber in meshes:
     mesh_data = sio.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
     x = mesh_data['x']
     cells = mesh_data['cells']
-    cells -= 1.0 # matlab to python indexing
+    try:
+        cells -= 1  # matlab to python indexing
+    except:
+        cells -= 1.0  # old version: cell connectivity stored as double array
     cells = np.array(cells, dtype=np.uintp)
     editor = df.MeshEditor()
     mesh = df.Mesh()

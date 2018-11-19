@@ -10,7 +10,7 @@ MARG_LE=0.003
 NEXCLUSIONPARAM1=7.8
 NEXCLUSIONPARAM2=0.05
 
-RPARAM1=-5.53
+RPARAM1=-5.23
 RPARAM2=0.5
 
 SIGMAGPR=0.4
@@ -50,7 +50,7 @@ echo "sed -i \"33s/.*/nExclusionParams = (${NEXCLUSIONPARAM1}, ${NEXCLUSIONPARAM
 echo "sed -i \"43s/.*/sig_scale = ${SIGMOID}/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"42s/.*/cov_l = ${LENGTHSCALE}/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"44s/.*/sigmaGP_r = ${SIGMAGPR}/\" ./genSolution_cluster.py" >> ./job_file.sh
-echo "sed -i \"45s/.*lengthScale_r = ${LENGTHSCALER}/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"45s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"50s/.*/r_params = (${RPARAM1}, ${RPARAM2})/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"49s/.*/margins = (${MARG_LO}, ${MARG_R}, ${MARG_U}, ${MARG_LE})/\" ./genSolution_cluster.py" >> ./job_file.sh
 
