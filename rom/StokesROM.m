@@ -738,8 +738,9 @@ classdef StokesROM < handle
             p_var = mean((P - p_bar).^2, 2);
             p_var_bar = mean(p_var)
             SS_tot = mean(var(P, 1, 2));
-            R = 1 - SS_res/SS_tot;
+            R = 1 - SS_res/SS_tot           %Same as (23) in Zhu, Zabaras
             R_i = 1 - meanSqDist./p_var(2:end);
+            mean_R_i = mean(R_i)
 
             
             %% plotting the predictions

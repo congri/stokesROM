@@ -53,6 +53,7 @@ xticks([]);
 yticks([]);
 ax = gca;
 colormap(ax, gray);
+ax.YDir = 'normal';
 axis square;
 end
 

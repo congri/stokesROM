@@ -50,8 +50,8 @@ margins = (0.003, 0.003, 0.003, 0.003)
 r_params = (-5.53, .3)
 
 # Flow boundary condition for velocity on domain boundary
-u_x = '1.0-1.0*x[1]'
-u_y = '2.0-1.0*x[0]'
+u_x = '0.0-2.0*x[1]'
+u_y = '1.0-2.0*x[0]'
 
 flowField = df.Expression((u_x, u_y), degree=2)
 u_x = u_x.replace('*', '')
@@ -128,6 +128,8 @@ for meshNumber in meshes:
     # write mesh number to file s.t. it is clear that solution is currently computed
     with open(solutionfolder + '/computation_started.txt', 'a') as started_file:
         started_file.write(str(meshNumber) + '\n')
+        started_file.flush()
+        os.system('sync')
 
     print('Loading mesh ', str(meshNumber), '...')
     # outdated
@@ -223,7 +225,7 @@ for meshNumber in meshes:
         u, p = U.split()
 
         sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)), 'p': p.compute_vertex_values(),
-                                   'x': mesh.coordinates()})
+                                   'x': mesh.coordinates()}, do_compression=True)
 
     except:
         print('Solver failed to converge. Passing to next mesh...')

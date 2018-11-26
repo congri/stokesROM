@@ -4,10 +4,10 @@ classdef StokesData < handle
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 256
-        numberParams = [7.8, 0.05]   %[min, max] pos. number of circ. exclusions
+        numberParams = [7.8, 0.4]   %[min, max] pos. number of circ. exclusions
         numberDist = 'logn';
         margins = [0.003, 0.003, 0.003, 0.003]    %[l., u.] margin for imp. phase
-        r_params = [-5.23, .5]    %[lo., up.] bound on random blob radius
+        r_params = [-5.23, .3]    %[lo., up.] bound on random blob radius
         coordDist = 'GP'
         coordDist_mu = '0.5_0.5'   %only for gauss
         coordDist_cov = 'squaredExponential'
@@ -39,7 +39,7 @@ classdef StokesData < handle
         microstructData
         %Flow boundary conditions; C++ string
         p_bc = '0.0';
-        u_bc = {'u_x=1.0-1.0x[1]', 'u_y=2.0-1.0x[0]'}
+        u_bc = {'u_x=0.0-2.0x[1]', 'u_y=1.0-2.0x[0]'}
         %Design matrix
         designMatrix
     end
@@ -76,7 +76,7 @@ classdef StokesData < handle
                         num2str(self.margins(3)), '_', ...
                         num2str(self.margins(4)), '/N~', self.numberDist, '/mu=',...
                         sprintf('%.1f', self.numberParams(1)), '/sigma=', ...
-                        sprintf('%.2f', self.numberParams(2)), '/x~',...
+                        sprintf('%.1f', self.numberParams(2)), '/x~',...
                         self.coordDist, '/cov=', self.coordDist_cov, '/l=',...
                         self.densityLengthScale, '/sig_scale=',...
                         self.sigmoidScale, '/r~', self.radiiDist));
@@ -602,21 +602,22 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
+                %THIS APPEARS TO BE UNSTABLE!
                 %kozenyCarman
-                phi = kozenyCarman(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'kozenyCarman',...
-                        'delimiter', '', '-append');
-                end
-                
-                %log kozenyCarman
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log kozenyCarman',...
-                        'delimiter', '', '-append');
-                end
+%                 phi = kozenyCarman(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'kozenyCarman',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log kozenyCarman
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log kozenyCarman',...
+%                         'delimiter', '', '-append');
+%                 end
                 
                 
                 %interface area
@@ -891,30 +892,16 @@ classdef StokesData < handle
                 
                 %chord length density
                 phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .05);
+                    mData{n}.diskRadii, gridRF, .005);
                 dMat{n} = [dMat{n}, phi(:)];
                 if n == 1
-                    dlmwrite('./data/features', 'chordLengthDens05',...
+                    dlmwrite('./data/features', 'chordLengthDens005',...
                         'delimiter', '', '-append');
                 end
                 %log
                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logChordLengthDens05',...
-                        'delimiter', '', '-append');
-                end
-                
-                phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .01);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'chordLengthDens01',...
-                        'delimiter', '', '-append');
-                end
-                %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'logChordLengthDens01',...
+                    dlmwrite('./data/features', 'logChordLengthDens005',...
                         'delimiter', '', '-append');
                 end
                 
@@ -957,6 +944,20 @@ classdef StokesData < handle
                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
                 if n == 1
                     dlmwrite('./data/features', 'logChordLengthDens000625',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, gridRF, .0003);
+                dMat{n} = [dMat{n}, phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'chordLengthDens0003',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens0003',...
                         'delimiter', '', '-append');
                 end
                 
@@ -1060,47 +1061,6 @@ classdef StokesData < handle
                %% h_v, e_v, P, F
                 [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
                     voidNearestSurfaceExclusion(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .02);
-                dMat{n} = [dMat{n}, e_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'e_v02',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, h_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'h_v02',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, poreSizeDens(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'poreSizeProbDens02',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'cumPoreSizeProbDens02',...
-                        'delimiter', '', '-append');
-                end
-                
-                
-                %log
-                dMat{n} =...
-                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
-                    log(poreSizeDens(:) + delta_log),...
-                    log(cumPoreSizeDens(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_e_v02',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_h_v02',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_poreSizeProbDens02',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_cumPoreSizeProbDens02',...
-                        'delimiter', '', '-append');
-                end
-                
-                [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
-                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
                     mData{n}.diskRadii, gridRF, .01);
                 dMat{n} = [dMat{n}, e_v(:)];
                 if n == 1
@@ -1185,6 +1145,49 @@ classdef StokesData < handle
                 
                 [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
                     voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, gridRF, .0025);
+                dMat{n} = [dMat{n}, e_v(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'e_v0025',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, h_v(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'h_v0025',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, poreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreSizeProbDens0025',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'cumPoreSizeProbDens0025',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %log
+                dMat{n} =...
+                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
+                    log(poreSizeDens(:) + delta_log),...
+                    log(cumPoreSizeDens(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_e_v0025',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_h_v0025',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_poreSizeProbDens0025',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_cumPoreSizeProbDens0025',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                
+                [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
+                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
                     mData{n}.diskRadii, gridRF, 0);
                 dMat{n} = [dMat{n}, e_v(:)];
                 if n == 1
@@ -1202,12 +1205,12 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
-%                 %equals to 1 for distance == 0
-%                 dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
-%                 if n == 1
-%                     dlmwrite('./data/features', 'cumPoreSizeProbDens0',...
-%                         'delimiter', '', '-append');
-%                 end
+                %                 %equals to 1 for distance == 0
+                %                 dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
+                %                 if n == 1
+                %                     dlmwrite('./data/features', 'cumPoreSizeProbDens0',...
+                %                         'delimiter', '', '-append');
+                %                 end
                 
                 
                 %log
@@ -1236,7 +1239,7 @@ classdef StokesData < handle
                     dlmwrite('./data/features', 'h_p01004',...
                         'delimiter', '', '-append');
                 end
-                              
+                
                 %log
                 dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
                     log(h_p(:)+delta_log)];
@@ -1665,9 +1668,12 @@ classdef StokesData < handle
                 % fig_handle = figure;
                 img_handle = imagesc(img, 'Parent', pltHandles(1, pltIndex));
                 grid off;
-                xticks([]);
-                yticks([]);
+                xticks([0.5 resolution]);
+                yticks([0.5 resolution]);
+                xticklabels({0, 1});
+                yticklabels({0, 1});
                 ax = gca;
+                ax.YDir = 'normal';
                 
                 
                 
@@ -1686,8 +1692,8 @@ classdef StokesData < handle
                 grid on;
                 xticks([0 .25 .5 .75 1]);
                 yticks([0 .25 .5 .75 1]);
-                xticklabels([]);
-                yticklabels([]);
+                xticklabels({0, '', '', '', 1});
+                yticklabels({0, '', '', '', 1});
                 pltHandles(2, pltIndex).Title.String = 'Pressure $P$';
 %                 cb(1, pltIndex) = colorbar;
 %                 cb(1, pltIndex).Label.String = 'pressure p';
@@ -1757,6 +1763,7 @@ classdef StokesData < handle
                 fig = figure;
             end
             ax = subplot(1,1,1, 'Parent', fig);
+            hold on;
             semilogy(cumsum(explained), 'Parent', ax);
             ax.XLabel.String = 'number of components';
             ax.YLabel.String = 'explained variance';

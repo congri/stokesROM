@@ -18,12 +18,12 @@ LENGTHSCALE=0.08
 LENGTHSCALER=0.05
 SIGMAGPR=0.4
 SIGMOID=2.5
-N1=7.8			#usually lognormal mu for number of exclusions
-N2=0.05
-R1=-5.23
-R2=0.5
+N1=8.4			#usually lognormal mu for number of exclusions
+N2=0.0
+R1=-5.62
+R2=0.0
 
-JOBNAME="genMicrostruct_GP_GPR_muN=${N1}_sigN=${N2}_l=${LENGTHSCALE}_lr=${LENGTHSCALER}_sigma_mu_r=${SIGMAGPR}_sig_scale=${SIGMOID}_sigma_r=${R2}"
+JOBNAME="genMicrostruct_tiles_muN=${N1}_sigN=${N2}_l=${LENGTHSCALE}_lr=${LENGTHSCALER}_sigma_mu_r=${SIGMAGPR}_sig_scale=${SIGMOID}_sigma_r=${R2}"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 
 JOBDIR="/home/constantin/python/jobs/${JOBNAME}_${DATESTR}"
@@ -43,7 +43,6 @@ echo "#!/bin/bash" >> ./job_file.sh
 echo "#SBATCH --job-name=${JOBNAME}" >> ./job_file.sh
 echo "#SBATCH --partition batch_SNB,batch_SKL" >> ./job_file.sh
 echo "#SBATCH --output=/home/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
-echo "#SBATCH --error=/home/constantin/OEfiles/${JOBNAME}.%j.err" >> ./job_file.sh
 echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
 echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
 echo "#SBATCH --time=1000:00:00" >> ./job_file.sh

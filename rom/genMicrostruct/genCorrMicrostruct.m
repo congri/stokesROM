@@ -3,7 +3,7 @@
 clear;
 rng('shuffle');
 
-mode = 'GP_GPR';    %engineered, GP or GP_GPR (Gaussian process also on radii)
+mode = 'tiles';    %engineered, GP or GP_GPR (Gaussian process also on radii)
 
 lengthScale = .08;
 lengthScale_r = .05;
@@ -11,15 +11,23 @@ sigmaGP_r = .4;
 covarianceFunction = 'squaredExponential';
 sigmoid_scale = 2.5;         %sigmoid warping length scale param
 nBochnerSamples = 5000;
-nExclusionParams = [7.8, .05];
+nExclusionParams = [8.4, 0];
 margins = [.003, .003, .003, .003];
-rParams = [-5.23, 0.5];
-nMeshes = 0:4;
+rParams = [-5.62, 0.0];
+max_trials = 1;
+nMeshes = 0:3;
 t_max = 3600;                 %in seconds
 plt = false;
-resolution = 2048;
+resolution = 1024;
 
-addpath('~/matlab/projects/rom/genConductivity');
+if(strcmp((java.net.InetAddress.getLocalHost.getHostName), ...
+        'workstation1-room0436') || ...
+        strcmp((java.net.InetAddress.getLocalHost.getHostName),...
+        'constantin-ThinkPad-T430s'))
+    addpath('~/cluster/matlab/projects/rom/genConductivity');
+else
+    addpath('~/matlab/projects/rom/genConductivity');
+end
 if false
 %     f = figure;
 end
@@ -81,7 +89,7 @@ for n = nMeshes
         error('unknown mode')
     end
     
-    nExclusions = round(lognrnd(nExclusionParams(1), nExclusionParams(2)))
+    nExclusions = round(lognrnd(nExclusionParams(1), nExclusionParams(2)));
     diskCenters = zeros(nExclusions, 2);
     diskRadii = zeros(1, nExclusions);
     currentDisks = 0;
@@ -108,7 +116,7 @@ for n = nMeshes
                 overlap = any(((diskRadius + diskRadii(1:currentDisks))').^2 >=...
                     sum((diskCenter - diskCenters(1:currentDisks, :)).^2, 2));
                 trials = 0;
-                while(overlap && trials < 100)
+                while(overlap && trials < max_trials)
                     if strcmp(mode, 'GP_GPR')
                         diskRadius = lognrnd(mu_r, rParams(2));
                     else
@@ -141,7 +149,7 @@ for n = nMeshes
         end
         t_elapsed = toc(t0);
     end
-    t_elapsed
+%     t_elapsed
     
     if currentDisks < nExclusions
         diskCenters((currentDisks + 1):end, :) = [];
@@ -153,31 +161,7 @@ for n = nMeshes
         'diskCenters', 'diskRadii');
     
     %% Plotting
-    if plt
-%         nCols = min([5, nMeshes(end) + 1]);
-%         hold on;
-%         
-%         if mesh_iter < nCols
-%             if strcmp(mode, 'GP')
-%                 subplot(2, nCols, mesh_iter, 'Parent', f);
-%                 [xx, yy] = meshgrid(linspace(0, 1, 101));
-%                 x = [xx(:) yy(:)]';
-%                 zz = reshape(rejectionFun(x), 101, 101);
-%                 sf = surf(xx, yy, zz);
-%                 xticks([]);
-%                 yticks([]);
-%                 view(2);
-%                 sf.LineStyle = 'none';
-%             end
-%             
-%             subplot(2, nCols, mesh_iter + nCols, 'Parent', f);
-%             p = plot(diskCenters(:, 1), diskCenters(:, 2), 'ko');
-%             xticks([]);
-%             yticks([]);
-%             p.LineWidth = .5;
-%             p.MarkerSize = 2;
-%         end
-        
+    if(plt && feature('ShowFigureWindows'))      
         [img_handle, fig_handle] =...
             plotMicrostruct(diskCenters, diskRadii, resolution);
     end
@@ -228,7 +212,7 @@ function [r] = get_rejections(N)
     yyu = yy(2:(N + 1), 1:N);
     u = [xxu(:), yyu(:)];
     
-    r = .5*ones(64, 1);
+    r = .3*ones(64, 1);
     
     for i = 1:64
         if(u(i, 1) <= .5 && u(i, 2) <= .5)

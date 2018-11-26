@@ -1,7 +1,7 @@
 %% script to generate plot of microstructural data (independent of mesh)
 
 %% params
-resolution = 512;
+resolution = 2048;
 
 %% load data
 %load('/home/constantin/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=0.003_0.003_0.003_0.003/N~logn/mu=8.35/sigma=0.6/x~GP/cov=squaredExponential/l=0.1/sig_scale=1.5/r~logn/mu=-5.53/sigma=0.3/microstructureInformation2.mat')

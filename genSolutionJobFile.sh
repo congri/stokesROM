@@ -8,10 +8,10 @@ MARG_U=0.003
 MARG_LE=0.003
 
 NEXCLUSIONPARAM1=7.8
-NEXCLUSIONPARAM2=0.05
+NEXCLUSIONPARAM2=0.4
 
 RPARAM1=-5.23
-RPARAM2=0.5
+RPARAM2=0.3
 
 SIGMAGPR=0.4
 LENGTHSCALE=0.08
@@ -22,7 +22,7 @@ SIGMOID=2.5
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
 # Set JOBNAME by hand for every job!
-JOBNAME="solv_GPR_${DATESTR}"
+JOBNAME="solv_GPR_N1=${NEXCLUSIONPARAM1}_N2=${NEXCLUSIONPARAM2}_l=${LENGTHSCALE}_s=${SIGMOIND}_R1=${RPARAM1}_R2=${RPARAM2}_SGPR=${SIGMAGPR}_lr=${LENGTHSCALER}_${DATESTR}"
 JOBDIR="/home/constantin/python/jobs/$JOBNAME"
 JOBSCRIPT="${JOBDIR}/genSolution_cluster.py"
 
@@ -39,7 +39,6 @@ echo "#!/bin/bash" >> ./job_file.sh
 echo "#SBATCH --job-name=${JOBNAME}" >> ./job_file.sh
 echo "#SBATCH --partition batch_SNB,batch_SKL" >> ./job_file.sh
 echo "#SBATCH --output=/home/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
-echo "#SBATCH --error=/home/constantin/OEfiles/${JOBNAME}.%j.err" >> ./job_file.sh
 echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
 echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
 echo "#SBATCH --time=1000:00:00" >> ./job_file.sh

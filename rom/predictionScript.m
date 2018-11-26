@@ -9,7 +9,7 @@ addpath('./comp')
 if ~exist('rom', 'var')
     rom = StokesROM;
 end
-testSamples = 128:1012;
+testSamples = 16:32;
 
 testData = StokesData(testSamples);
 [~,~,~, meanSqDist, ~, mll, R, ~] = rom.predict(testData, 'local');

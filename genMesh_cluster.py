@@ -94,6 +94,7 @@ while mesh_name_iter < nMeshes:
     # copy microstructureInformation file, this is the signal that a job is already generating a mesh
     copyfile(foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat',
              foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat')
+    os.system('sync')   #to copy asap
 
     print('Loading microstructural data...')
     matfile = sio.loadmat(foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat')
@@ -126,8 +127,9 @@ while mesh_name_iter < nMeshes:
 
     # save vertex coordinates and cell connectivity to mat file for easy read-in to matlab
     print('saving mesh to ./mesh' + str(mesh_name_iter) + '.mat ...')
+    # is this more efficient with compression turned on?
     sio.savemat(foldername + '/mesh' + str(mesh_name_iter) + '.mat',
-                {'x': mesh.coordinates(), 'cells': mesh.cells() + 1})
+                {'x': mesh.coordinates(), 'cells': mesh.cells() + 1}, do_compression=True)
     print('... ./mesh' + str(mesh_name_iter) + '.mat saved.')
     print('removing ' + './microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat ...')
     os.remove(foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat')
