@@ -473,16 +473,39 @@ classdef StokesROM < handle
                 sb3 = subplot(4, 3, 3 + (i - 1)*3,...
                     'Parent', self.pCurrState.figure);
                 
+                if isempty(self.trainingData.a_x_m)
+                    %fixed bc's
+                    coarseMesh = self.modelParams.coarseMesh;
+                    coarseMesh = coarseMesh.shrink;
+                else
+                    %random bc's
+                    coarseMesh = self.modelParams.coarseMesh;
+                    p_bc_handle = str2func(strcat('@(x)', self.trainingData.p_bc));
+                    u_bc_handle{1} = @(x) - self.trainingData.bc{i + dataOffset}(2)...
+                        - self.trainingData.bc{i + dataOffset}(3)*x;
+                    u_bc_handle{2} = @(y) self.trainingData.bc{i + dataOffset}(1) + ...
+                        self.trainingData.bc{i + dataOffset}(3)*y;
+                    u_bc_handle{3} = @(x) self.trainingData.bc{i + dataOffset}(2) + ...
+                        self.trainingData.bc{i + dataOffset}(3)*x;
+                    u_bc_handle{4} = @(y) - self.trainingData.bc{i + dataOffset}(1)...
+                        - self.trainingData.bc{i + dataOffset}(3)*y;
+                    nX = length(self.modelParams.coarseGridX);
+                    nY = length(self.modelParams.coarseGridY);
+                    coarseMesh = coarseMesh.setBoundaries(...
+                        2:(2*nX + 2*nY), p_bc_handle, u_bc_handle);
+                    coarseMesh = coarseMesh.shrink;
+                end
+                
                 isotropicDiffusivity = true;
                 if isotropicDiffusivity
                     coarseFEMout =...
-                        heat2d(self.modelParams.coarseMesh, Lambda_eff_mode);
+                        heat2d(coarseMesh, Lambda_eff_mode);
                 else
                     D = zeros(2, 2, self.modelParams.coarseMesh.nEl);
                     for j = 1:self.modelParams.coarseMesh.nEl
                         D(:, :, j) =  Lambda_eff_mode(j)*eye(2);
                     end
-                    coarseFEMout = heat2d(self.modelParams.coarseMesh, D);
+                    coarseFEMout = heat2d(coarseMesh, D);
                 end
                 
                 Tc = coarseFEMout.u;
@@ -668,7 +691,29 @@ classdef StokesROM < handle
             predVarArray = predMeanArray;
             mean_squared_response = predMeanArray;
             
-            cm = self.modelParams.coarseMesh;
+            if isempty(self.trainingData.a_x_m)
+                %fixed bc's
+                cm = self.modelParams.coarseMesh;
+            else
+                %random bc's
+                for n = 1:nTest
+                    cm{n} = self.modelParams.coarseMesh;
+                    p_bc_handle = str2func(strcat('@(x)', testData.p_bc));
+                    u_bc_handle{1} = @(x) - testData.bc{n}(2)...
+                        - testData.bc{n}(3)*x;
+                    u_bc_handle{2} = @(y) testData.bc{n}(1) + ...
+                        testData.bc{n}(3)*y;
+                    u_bc_handle{3} = @(x) testData.bc{n}(2) + ...
+                        testData.bc{n}(3)*x;
+                    u_bc_handle{4} = @(y) - testData.bc{n}(1)...
+                        - testData.bc{n}(3)*y;
+                    nX = length(self.modelParams.coarseGridX);
+                    nY = length(self.modelParams.coarseGridY);
+                    cm{n} = cm{n}.setBoundaries(...
+                        2:(2*nX + 2*nY), p_bc_handle, u_bc_handle);
+                end
+            end
+            
             %Compute shape function interpolation matrices W
             if intp
                 self.modelParams.fineScaleInterp(testData.X_interp);
@@ -693,7 +738,11 @@ classdef StokesROM < handle
                     
                     isotropicDiffusivity = true;
                     if isotropicDiffusivity
-                        FEMout = heat2d(cm, LambdaSamples{n}(:, i));
+                        if isempty(self.trainingData.a_x_m)
+                            FEMout = heat2d(cm, LambdaSamples{n}(:, i));
+                        else
+                            FEMout = heat2d(cm{n}, LambdaSamples{n}(:, i));
+                        end
                     else
                         D = zeros(2, 2, cm.nEl);
                         for e = 1:cm.nEl
@@ -820,7 +869,7 @@ classdef StokesROM < handle
                     thdlpred.LineStyle = 'none';
                     thdlpred.FaceColor = 'b';
                     
-%                     %predictive mean + .5*std
+%                     %predictive mean + std
 %                     if intp
 %                         thdlpstd = surf(XX, YY,...
 %                             reshape(predMeanArray{i + pltstart} +...
@@ -831,14 +880,14 @@ classdef StokesROM < handle
 %                             testStokesData.X{i + pltstart}(:, 1),...
 %                             testStokesData.X{i + pltstart}(:, 2),...
 %                             predMeanArray{i + pltstart} +...
-%                             .5*sqrt(predVarArray{i + pltstart}),...
+%                             sqrt(predVarArray{i + pltstart}),...
 %                             'Parent', splt(i));
 %                     end
 %                     thdlpstd.LineStyle = 'none';
 %                     thdlpstd.FaceColor = [.85 .85 .85];
 %                     thdlpstd.FaceAlpha = .7;
 %                     
-%                     %predictive mean - .5*std
+%                     %predictive mean - std
 %                     if intp
 %                         thdlmstd = surf(XX, YY,...
 %                             reshape(predMeanArray{i + pltstart} -...
@@ -849,7 +898,7 @@ classdef StokesROM < handle
 %                             testStokesData.X{i + pltstart}(:, 1),...
 %                             testStokesData.X{i + pltstart}(:, 2),...
 %                             predMeanArray{i + pltstart} -...
-%                             .5*sqrt(predVarArray{i + pltstart}),...
+%                             sqrt(predVarArray{i + pltstart}),...
 %                             'Parent', splt(i));
 %                     end
 %                     thdlmstd.LineStyle = 'none';

@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 3;
+nTrain = 16;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -108,8 +108,33 @@ for split_iter = 1:(nSplits + 1)
     sw_min = 3e-1*[sw0_mu*ones(1, nRFc), sw0_sigma*ones(1, nRFc)];
     sw(sw < sw_min) = sw_min(sw < sw_min);
     
-    %% Actual training phase:
+    if isempty(rom.trainingData.a_x_m)
+        %fixed bc's
+        coarseMesh = rom.modelParams.coarseMesh;
+        coarseMesh = coarseMesh.shrink;
+    else
+        for n = 1:nTrain
+            %random bc's
+            coarseMesh{n} = rom.modelParams.coarseMesh;
+            p_bc_handle = str2func(strcat('@(x)', rom.trainingData.p_bc));
+            u_bc_handle{1} = @(x) - rom.trainingData.bc{n}(2)...
+                                  - rom.trainingData.bc{n}(3)*x;
+            u_bc_handle{2} = @(y) rom.trainingData.bc{n}(1) + ...
+                                  rom.trainingData.bc{n}(3)*y;
+            u_bc_handle{3} = @(x) rom.trainingData.bc{n}(2) + ...
+                                  rom.trainingData.bc{n}(3)*x;
+            u_bc_handle{4} = @(y) - rom.trainingData.bc{n}(1)...
+                                  - rom.trainingData.bc{n}(3)*y;
+            nX = length(rom.modelParams.coarseGridX);
+            nY = length(rom.modelParams.coarseGridY);
+            coarseMesh{n} = coarseMesh{n}.setBoundaries(2:(2*nX + 2*nY),...
+                p_bc_handle, u_bc_handle);
+            coarseMesh{n} = coarseMesh{n}.shrink;
+        end
+    end
     
+    
+    %% Actual training phase:
     converged = false;
     ppool = parPoolInit(nTrain);
     pend = 0;
@@ -139,32 +164,19 @@ for split_iter = 1:(nSplits + 1)
             tc.SigmaInv = inv(tc.Sigma);
             
             Phi_n = rom.trainingData.designMatrix{n};
-            if isempty(rom.trainingData.a_x_m)
-                %fixed bc's
-                coarseMesh = rom.modelParams.coarseMesh;
-                coarseMesh = coarseMesh.shrink;
-            else
-                %random bc's
-                coarseMesh{n} = rom.modelParams.coarseMesh;
-                p_bc_handle = str2func(strcat('@(x)', rom.trainingData.p_bc));
-                u_bc_handle{1} = str2func(strcat('@(x)', '-(', u_y_temp_lo, ')'));
-                u_bc_handle{2} = str2func(strcat('@(y)', u_x_temp_r));
-                u_bc_handle{3} = str2func(strcat('@(x)', u_y_temp_u));
-                u_bc_handle{4} = str2func(strcat('@(y)', '-(', u_x_temp_le, ')'));
-                nX = length(rom.modelParams.coarseGridX);
-                nY = length(rom.modelParams.coarseGridY);
-                coarseMesh{n} = coarseMesh{n}setBoundaries(2:(2*nX + 2*nY),...
-                    p_bc_handle, u_bc_handle);
-                coarseMesh = coarseMesh.shrink;
-            end
             
             rf2fem = rom.modelParams.rf2fem;
             transType = rom.modelParams.diffTransform;
             transLimits = rom.modelParams.diffLimits;
+            if isempty(rom.trainingData.a_x_m)
+                cm = coarseMesh;
+            else
+                cm = coarseMesh{n};
+            end
             lg_q{n} = @(Xi) log_q_n(Xi, P_n_minus_mu, W_cf_n, S_cf_n, tc,...
-                Phi_n, coarseMesh, transType, transLimits, rf2fem, true);
+                Phi_n, cm, transType, transLimits, rf2fem, true);
             lg_q_max{n} = @(Xi) log_q_n(Xi, P_n_minus_mu, W_cf_n, S_cf_n, tc,...
-                Phi_n, coarseMesh, transType, transLimits, rf2fem, false);
+                Phi_n, cm, transType, transLimits, rf2fem, false);
         end
         varDistParamsVec = rom.modelParams.varDistParamsVec;
         
@@ -225,8 +237,13 @@ for split_iter = 1:(nSplits + 1)
             else
                 W_cf_n = rom.modelParams.W_cf{n};
             end
+            if isempty(rom.trainingData.a_x_m)
+                cm = coarseMesh;
+            else
+                cm = coarseMesh{n};
+            end
             p_cf_expHandle_n = @(X) sqMisfit(X, transType, transLimits,...
-                coarseMesh, P_n_minus_mu, W_cf_n, rf2fem);
+                cm, P_n_minus_mu, W_cf_n, rf2fem);
             %Expectations under variational distributions
             p_cf_exp =...
                 mcInference(p_cf_expHandle_n,'diagonalGauss', varDistParams{n});

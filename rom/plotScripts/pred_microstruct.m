@@ -1,18 +1,17 @@
 %Plots mesh underneath prediction
 
 f = gcf;
-test_sample = 256;
+test_sample = [0 1 3];
 resolution = 1024;
 % z1 = [-4e5 -3e6 -5e5 -3e5 -1e5 -1e5];
 % z2 = [6e5 3e6 4.5e5 4.5e5 1e5 1.5e5];
-z1 = [-1e3 -1e3 -1e3 -1e3 -1e3 -1e3];
-z2 = [8e5 6.5e6 1.2e6 4.5e5 1e5 1.5e5];
-for i = 1:6
-    filename = '/home/constantin/cluster/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=0.003_0.003_0.003_0.003/N~logn/mu=8.35/sigma=0.6/x~GP/cov=squaredExponential/l=0.1/sig_scale=1.5/r~logn/mu=-5.53/sigma=0.3/microstructureInformation';
-    filename = strcat(filename, num2str(test_sample), '.mat');
+z1 = [-5e4 -7e4 -1e4];
+z2 = [1.5e4 5e4 4e5];
+for i = 1:3
+    filename = '/home/constantin/cluster/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=0.003_0.003_0.003_0.003/N~logn/mu=7.8/sigma=0.2/x~GP/cov=squaredExponential/l=0.08/sig_scale=1.2/r~lognGP/mu=-5.23/sigma=0.3/sigmaGP_r=0.4/l=0.05/microstructureInformation';
+    filename = strcat(filename, num2str(test_sample(i)), '.mat');
     load(filename);
-    test_sample = test_sample + 1;
-    ax = f.Children(14 - 2*i);
+    ax = f.Children(4 - i);
     ax.ZLim(1) = z1(i);
     ax.ZLim(2) = z2(i);
     
