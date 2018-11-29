@@ -7,10 +7,10 @@ import time
 
 
 path = '/home/constantin/cluster/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/' \
-       'margins=0.003_0.003_0.003_0.003/N~logn/mu=7.8/sigma=0.1/x~GP/cov=squaredExponential/' \
-       'l=0.08/sig_scale=2/r~lognGP/mu=-5.23/sigma=0.5/sigmaGP_r=0.4/l=0.05'
+       'margins=0.003_0.003_0.003_0.003/N~logn/mu=7.8/sigma=0.2/x~GP/cov=squaredExponential/' \
+       'l=0.08/sig_scale=1.2/r~lognGP/mu=-5.23/sigma=0.3/sigmaGP_r=0.4/l=0.05'
 
-bc = '/p_bc=0.0/u_x=1.0-1.0x[1]_u_y=2.0-1.0x[0]'
+bc = '/p_bc=0.0/u_x=1.0-0.0x[1]_u_y=1.0-0.0x[0]'
 
 removing = True
 mode = 'solution'   # 'solution' or 'mesh'

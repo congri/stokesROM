@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 16;
+nTrain = 3;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -43,7 +43,6 @@ if loadParams
     disp('... modelParams loaded.')
 else
     rom.modelParams = ModelParams(rom.trainingData.u_bc, rom.trainingData.p_bc);
-%     rom.modelParams = ModelParams(rom.trainingData.u_bc, '10.0');
     rom.modelParams.initialize(nTrain);
     if any(rom.modelParams.interpolationMode)
         rom.trainingData.interpolate(rom.modelParams);
@@ -70,6 +69,8 @@ rom.trainingData.vtx2Cell(rom.modelParams);
 sw0_mu = 3e-4;
 sw0_sigma = 3e-5;
 sw_decay = .995; %decay factor per iteration
+VI_t = [10*ones(1, 4), 20*ones(1, 4), 40*ones(1, 4),...
+    80*ones(1, 4), 120*ones(1, 10), 180];
 split_schedule = [];
 if isempty(split_schedule)
     nSplits = 0;
@@ -110,7 +111,6 @@ for split_iter = 1:(nSplits + 1)
     %% Actual training phase:
     
     converged = false;
-    epoch = 0;  %one epoch == one time seen every data point
     ppool = parPoolInit(nTrain);
     pend = 0;
     rom.modelParams.EM_iter_split = 0;
@@ -139,8 +139,24 @@ for split_iter = 1:(nSplits + 1)
             tc.SigmaInv = inv(tc.Sigma);
             
             Phi_n = rom.trainingData.designMatrix{n};
-            coarseMesh = rom.modelParams.coarseMesh;
-            coarseMesh = coarseMesh.shrink;
+            if isempty(rom.trainingData.a_x_m)
+                %fixed bc's
+                coarseMesh = rom.modelParams.coarseMesh;
+                coarseMesh = coarseMesh.shrink;
+            else
+                %random bc's
+                coarseMesh{n} = rom.modelParams.coarseMesh;
+                p_bc_handle = str2func(strcat('@(x)', rom.trainingData.p_bc));
+                u_bc_handle{1} = str2func(strcat('@(x)', '-(', u_y_temp_lo, ')'));
+                u_bc_handle{2} = str2func(strcat('@(y)', u_x_temp_r));
+                u_bc_handle{3} = str2func(strcat('@(x)', u_y_temp_u));
+                u_bc_handle{4} = str2func(strcat('@(y)', '-(', u_x_temp_le, ')'));
+                nX = length(rom.modelParams.coarseGridX);
+                nY = length(rom.modelParams.coarseGridY);
+                coarseMesh{n} = coarseMesh{n}setBoundaries(2:(2*nX + 2*nY),...
+                    p_bc_handle, u_bc_handle);
+                coarseMesh = coarseMesh.shrink;
+            end
             
             rf2fem = rom.modelParams.rf2fem;
             transType = rom.modelParams.diffTransform;
@@ -152,12 +168,12 @@ for split_iter = 1:(nSplits + 1)
         end
         varDistParamsVec = rom.modelParams.varDistParamsVec;
         
-        if epoch > 0
+        if(rom.modelParams.epoch > 0 && ~loadParams)
             %Sequentially update N_threads qi's at a time, then perform M-step
             pstart = pend + 1;
             if pstart > nTrain
                 pstart = 1;
-                epoch = epoch + 1;
+                rom.modelParams.epoch = rom.modelParams.epoch + 1;
                 %Gradually reduce VI step width
                 sw = sw_decay*sw;
                 sw(sw < sw_min) = sw_min(sw < sw_min);
@@ -171,18 +187,25 @@ for split_iter = 1:(nSplits + 1)
         else
             pstart = 1;
             pend = nTrain;
-            epoch = epoch + 1;
+            rom.modelParams.epoch = rom.modelParams.epoch + 1;
+            loadParams = false; %first iteration after loading of params needs
+                                %to cycle through all data
         end
         
         disp('Variational Inference...')
+        if(rom.modelParams.epoch + 1 <= numel(VI_t))
+            t = VI_t(rom.modelParams.epoch + 1);
+        else
+            t = VI_t(end);
+        end
         ticBytes(gcp);
         tic
         parfor n = pstart:pend
-            %         mx{n} = max_fun(lg_q_max{n}, varDistParamsVec{n}(1:nRFc));
-            %         varDistParamsVec{n}(1:nRFc) = mx{n};
+%             mx{n} = max_fun(lg_q_max{n}, varDistParamsVec{n}(1:nRFc));
+%             varDistParamsVec{n}(1:nRFc) = mx{n};
             %Finding variational approximation to q_n
             [varDistParams{n}, varDistParamsVec{n}] = efficientStochOpt(...
-                varDistParamsVec{n}, lg_q{n}, 'diagonalGauss', sw, nRFc);
+                varDistParamsVec{n}, lg_q{n}, 'diagonalGauss', sw, nRFc, t);
         end
         tocBytes(gcp)
         VI_time = toc
@@ -286,10 +309,10 @@ for split_iter = 1:(nSplits + 1)
         save('./data/XMean', 'XMean');
         save('./data/XSqMean', 'XSqMean');
         
-        if epoch > rom.modelParams.max_EM_epochs
+        if rom.modelParams.epoch > rom.modelParams.max_EM_epochs
             converged = true;
         end
-        epoch
+        epoch = rom.modelParams.epoch
     end
     
     if split_iter < (nSplits + 1)

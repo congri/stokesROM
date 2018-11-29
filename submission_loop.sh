@@ -1,10 +1,10 @@
 #!/bin/bash
-NITER=60
+NITER=128
 
 for i in `seq 1 $NITER`;
 do
     ./genMeshesJobFile.sh
     #./genSolutionJobFile.sh
-    sleep 120    #needed s.t. no two jobs are generating the same mesh
+    sleep 60    #needed s.t. no two jobs are generating the same mesh
     echo $i
 done

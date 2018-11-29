@@ -4,7 +4,7 @@ classdef StokesData < handle
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 256
-        numberParams = [7.8, 0.4]   %[min, max] pos. number of circ. exclusions
+        numberParams = [7.8, 0.2]   %[min, max] pos. number of circ. exclusions
         numberDist = 'logn';
         margins = [0.003, 0.003, 0.003, 0.003]    %[l., u.] margin for imp. phase
         r_params = [-5.23, .3]    %[lo., up.] bound on random blob radius
@@ -15,7 +15,7 @@ classdef StokesData < handle
         
         %for GP density distribution
         densityLengthScale = '0.08'
-        sigmoidScale = '2.5'
+        sigmoidScale = '1.2'
         %for GP on radii
         sigmaGP_r = 0.4
         l_r = 0.05
@@ -31,15 +31,23 @@ classdef StokesData < handle
                 %onto regular mesh
         P       %pressure at vertices
         U       %velocity at vertices
+        bc      %bondary condition coefficients
         cells   %cell-to-vertex map
         cellOfVertex   %Mapping from vertex to cell of S (p_cf variance)
         N_vertices_tot  %total number of vertices in data
         
         %Microstructural data, e.g. centers & radii of circular inclusions
         microstructData
-        %Flow boundary conditions; C++ string
+        %Flow boundary conditions; C++ string, only for const. bc here!
         p_bc = '0.0';
-        u_bc = {'u_x=0.0-2.0x[1]', 'u_y=1.0-2.0x[0]'}
+        u_bc = {'u_x=1.0-0.0x[1]', 'u_y=1.0-0.0x[0]'}
+        %coefficient distribution for randomized bc's
+        a_x_m = 0.0
+        a_x_s = 1.0
+        a_y_m = 0.0
+        a_y_s = 1.0
+        a_xy_m = 0.0
+        a_xy_s = 1.0
         %Design matrix
         designMatrix
     end
@@ -143,8 +151,18 @@ classdef StokesData < handle
             
             cellIndex = 1;
             for n = self.samples
-                foldername = char(strcat(self.pathname, 'p_bc=', self.p_bc,...
-                    '/', self.u_bc{1}, '_', self.u_bc{2}));
+                if isempty(self.a_x_m)
+                    foldername = char(strcat(self.pathname, 'p_bc=',...
+                        self.p_bc, '/', self.u_bc{1}, '_', self.u_bc{2}));
+                else
+                    foldername = char(strcat(self.pathname, 'p_bc=',...
+                        self.p_bc, '/a_x_m=', sprintf('%.1f', self.a_x_m),...
+                        '_a_x_s=', sprintf('%.1f', self.a_x_s), 'a_y_m=',...
+                        sprintf('%.1f', self.a_y_m), '_a_y_s=',...
+                        sprintf('%.1f', self.a_y_s), 'a_xy_m=',...
+                        sprintf('%.1f', self.a_xy_m), '_a_xy_s=',...
+                        sprintf('%.1f', self.a_xy_s)));
+                end
                 filename = char(strcat(foldername, '/solution',...
                     num2str(n), '.mat'));
                 file = matfile(filename);
@@ -157,6 +175,7 @@ classdef StokesData < handle
                     
                     if contains(quantities, 'p')
                         self.P{cellIndex} = file.p';
+                        self.bc{cellIndex} = file.bc;
                     end
                     
                     if contains(quantities, 'u')
@@ -1185,15 +1204,11 @@ classdef StokesData < handle
                 end
                 
                 
-                
-                [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
+                %e_v == porefrac for d == 0
+                [~, h_v, poreSizeDens, ~] =...
                     voidNearestSurfaceExclusion(mData{n}.diskCenters,...
                     mData{n}.diskRadii, gridRF, 0);
-                dMat{n} = [dMat{n}, e_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'e_v0',...
-                        'delimiter', '', '-append');
-                end
+
                 dMat{n} = [dMat{n}, h_v(:)];
                 if n == 1
                     dlmwrite('./data/features', 'h_v0',...
@@ -1205,21 +1220,19 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
-                %                 %equals to 1 for distance == 0
-                %                 dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
-                %                 if n == 1
-                %                     dlmwrite('./data/features', 'cumPoreSizeProbDens0',...
-                %                         'delimiter', '', '-append');
-                %                 end
+%                 %equals to 1 for distance == 0
+%                 dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'cumPoreSizeProbDens0',...
+%                         'delimiter', '', '-append');
+%                 end
                 
                 
                 %log
                 dMat{n} =...
-                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
+                    [dMat{n}, log(h_v(:)+delta_log),...
                     log(poreSizeDens(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'log_e_v0',...
-                        'delimiter', '', '-append');
                     dlmwrite('./data/features', 'log_h_v0',...
                         'delimiter', '', '-append');
                     dlmwrite('./data/features', 'log_poreSizeProbDens0',...

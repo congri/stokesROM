@@ -60,7 +60,14 @@ classdef ModelParams < matlab.mixin.Copyable
         VRVM_d = eps
         VRVM_e = eps
         VRVM_f = eps
-        VRVM_iter = 500 %iterations with fixed q(lambda_c)
+        %iterations with fixed q(lambda_c)
+        %should be more in the end because q(lambda_c) is not changing
+        %but the gamma's and other params are still changing
+        VRVM_iter = [ones(1, 20), 10*ones(1, 20), 100*ones(1, 20),...
+            1000*ones(1, 20), 10000*ones(1, 20)]
+        VRVM_time = [5*ones(1, 4), 10*ones(1, 4), 15*ones(1, 4), ...
+            20*ones(1, 4), 30*ones(1, 4), 60*ones(1, 4),...
+            90*ones(1, 4), 120*ones(1, 4)]
         
         %current parameters of variational distributions
         a
@@ -85,7 +92,8 @@ classdef ModelParams < matlab.mixin.Copyable
         %% Training parameters
         EM_iter       = 0    %current total number of iterations
         EM_iter_split = 0    %current number of iterations after last split
-        max_EM_epochs = 200   %maximum number of epochs
+        epoch = 0            %current epoch
+        max_EM_epochs = 500   %maximum number of epochs
         
         %% Settings
         computeElbo = true

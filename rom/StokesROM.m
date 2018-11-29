@@ -76,7 +76,25 @@ classdef StokesROM < handle
                 mu_theta = self.modelParams.theta_c;
                 
                 Phi_full = cell2mat(self.trainingData.designMatrix);
-                for i = 1:self.modelParams.VRVM_iter
+                if(numel(self.modelParams.VRVM_iter) >=...
+                        self.modelParams.EM_iter + 1)
+                    iter = ...
+                        self.modelParams.VRVM_iter(self.modelParams.EM_iter+ 1);
+                else
+                    iter = ...
+                        self.modelParams.VRVM_iter(end);
+                end
+                cmpt = tic;
+                if(self.modelParams.epoch + 1 <=...
+                        numel(self.modelParams.VRVM_time))
+                    t_max = self.modelParams.VRVM_time(...
+                        self.modelParams.epoch + 1);
+                else
+                    t_max = self.modelParams.VRVM_time(end);
+                end
+                converged = false;
+                i = 0;
+                while ~converged
                     if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
                         thetaSq_expect_sum = sum(reshape(...
                             mu_theta.^2 + diag(Sigma_theta), dim_gamma,nElc),2);
@@ -144,6 +162,11 @@ classdef StokesROM < handle
                         Sigma_theta = inv(tau_theta);
                     end
                     mu_theta = Sigma_theta*sumPhiTau_cXMean;
+                    i = i + 1;
+                    t = toc(cmpt);
+                    if(t > t_max)
+                        converged = true;
+                    end
                 end
                 
                 %assign <S>, <Sigma_c>, <theta_c>

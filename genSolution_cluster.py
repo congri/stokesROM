@@ -30,7 +30,7 @@ mu = 1  # viscosity
 
 # For circular exclusions
 nExclusionsDist = 'logn'
-nExclusionParams = (8.1, 0.6)
+nExclusionParams = (7.8, 0.2)
 coordinateDistribution = 'GP'
 
 # for coordinateDistribution == 'gauss'
@@ -39,25 +39,27 @@ coordinate_mu = [0.5, 0.5]
 
 # for coordinateDistribution == 'GP'
 covFun = 'squaredExponential'
-cov_l = 0.1
-sig_scale = 1.5
+cov_l = 0.08
+sig_scale = 1.2
 sigmaGP_r = 0.4
 lengthScale_r = .05
 
 radiiDistribution = 'lognGP'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 margins = (0.003, 0.003, 0.003, 0.003)
-r_params = (-5.53, .3)
+r_params = (-5.23, .3)
 
 # Flow boundary condition for velocity on domain boundary
-u_x = '0.0-2.0*x[1]'
-u_y = '1.0-2.0*x[0]'
+rand_bc = True
+if not rand_bc:
+    u_x = '1.0-0.0*x[1]'
+    u_y = '1.0-0.0*x[0]'
 
-flowField = df.Expression((u_x, u_y), degree=2)
-u_x = u_x.replace('*', '')
-u_y = u_y.replace('*', '')
+    flowField = df.Expression((u_x, u_y), degree=2)
+    u_x = u_x.replace('*', '')
+    u_y = u_y.replace('*', '')
 
-foldername = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nElements)
+foldername = '/home/constantin/cluster/python/data/stokesEquation/meshSize=' + str(nElements)
 
 if porousMedium == 'nonOverlappingCircles':
     foldername += '/nonOverlappingDisks/margins=' + str(margins[0]) + '_' + str(margins[1]) + '_' + str(margins[2]) + \
@@ -101,7 +103,26 @@ for meshNumber in meshes:
     # set up file names
     # meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
     meshfile = foldername + '/mesh' + str(meshNumber) + '.mat'
-    solutionfolder = foldername + '/p_bc=0.0' + '/u_x=' + u_x + '_u_y=' + u_y
+    solutionfolder = foldername + '/p_bc=0.0'
+    if rand_bc:
+        a_x_m = 0.0
+        a_x_s = 1.0
+        a_y_m = 0.0
+        a_y_s = 1.0
+        a_xy_m = 0.0
+        a_xy_s = 1.0
+        a_x = np.random.normal(a_x_m, a_x_s)
+        a_y = np.random.normal(a_y_m, a_y_s)
+        a_xy = np.random.normal(a_xy_m, a_xy_s)
+        u_x = str(a_x) + '+' + str(a_xy) + '*x[1]'
+        u_y = str(a_y) + '+' + str(a_xy) + '*x[0]'
+        solutionfolder += '/a_x_m=' + str(a_x_m) + '_a_x_s=' + str(a_x_s) + \
+                          'a_y_m=' + str(a_y_m) + '_a_y_s=' + str(a_y_s) + \
+                          'a_xy_m=' + str(a_xy_m) + '_a_xy_s=' + str(a_xy_s)
+        flowField = df.Expression((u_x, u_y), degree=2)
+    else:
+        solutionfolder += '/u_x=' + u_x + '_u_y=' + u_y
+
     if not os.path.exists(solutionfolder):
         os.makedirs(solutionfolder)
     solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
@@ -224,8 +245,14 @@ for meshNumber in meshes:
         # Get sub-functions
         u, p = U.split()
 
-        sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)), 'p': p.compute_vertex_values(),
-                                   'x': mesh.coordinates()}, do_compression=True)
+        if rand_bc:
+            bc = np.array([a_x, a_y, a_xy])
+            sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates(), 'bc': bc},
+                        do_compression=True)
+        else:
+            sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
 
     except:
         print('Solver failed to converge. Passing to next mesh...')

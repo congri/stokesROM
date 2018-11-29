@@ -1,7 +1,7 @@
 NMESHES=2500
 NELEMENTS=256
 NEX1=7.8    #number of exclusion parameters
-NEX2=0.4
+NEX2=0.2
 RPARAMSLO=-5.23
 RPARAMSHI=0.3
 MARGIN_LO=0.003
@@ -11,7 +11,7 @@ MARGIN_LE=0.003
 SIGMAGPR=0.4
 LENGTHSCALE=0.08
 LENGTHSCALER=0.05
-SIGMOID=2.5
+SIGMOID=1.2
 
 
 CORES=1
@@ -19,7 +19,7 @@ CORES=1
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 #Set up file paths
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
-JOBNAME="genMesh_nElements=${NELEMENTS}nParams1=${NEX1}nParams2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
+JOBNAME="genMesh_nEl=${NELEMENTS}N1=${NEX1}N2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
 JOBDIR="/home/constantin/python/jobs/${JOBNAME}_${DATESTR}"
 JOBSCRIPT="${JOBDIR}/genMesh_cluster.py"
 

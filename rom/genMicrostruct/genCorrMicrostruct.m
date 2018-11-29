@@ -3,18 +3,18 @@
 clear;
 rng('shuffle');
 
-mode = 'tiles';    %engineered, GP or GP_GPR (Gaussian process also on radii)
+mode = 'GP_GPR';    %engineered, GP or GP_GPR (Gaussian process also on radii)
 
 lengthScale = .08;
 lengthScale_r = .05;
 sigmaGP_r = .4;
 covarianceFunction = 'squaredExponential';
-sigmoid_scale = 2.5;         %sigmoid warping length scale param
+sigmoid_scale = 1.2;         %sigmoid warping length scale param
 nBochnerSamples = 5000;
-nExclusionParams = [8.4, 0];
+nExclusionParams = [7.8, .2];
 margins = [.003, .003, .003, .003];
-rParams = [-5.62, 0.0];
-max_trials = 1;
+rParams = [-5.23, .5];
+max_trials = 100;
 nMeshes = 0:3;
 t_max = 3600;                 %in seconds
 plt = false;
@@ -25,8 +25,10 @@ if(strcmp((java.net.InetAddress.getLocalHost.getHostName), ...
         strcmp((java.net.InetAddress.getLocalHost.getHostName),...
         'constantin-ThinkPad-T430s'))
     addpath('~/cluster/matlab/projects/rom/genConductivity');
+    savepath = '~/cluster/';
 else
     addpath('~/matlab/projects/rom/genConductivity');
+    savepath = '~/';
 end
 if false
 %     f = figure;
@@ -34,7 +36,8 @@ end
 
 %% Set up save path
 if strcmp(mode, 'GP')
-    savepath = '~/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
+    savepath = strcat(savepath, ...
+        'python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=');
     savepath = strcat(savepath, num2str(margins(1)), '_', num2str(margins(2)),...
         '_', num2str(margins(3)), '_', num2str(margins(4)), '/N~logn/mu=', ...
         num2str(nExclusionParams(1)), '/sigma=', num2str(nExclusionParams(2)), ...
@@ -42,7 +45,8 @@ if strcmp(mode, 'GP')
         '/sig_scale=', num2str(sigmoid_scale), '/r~logn/mu=', num2str(rParams(1)), ...
         '/sigma=', num2str(rParams(2)));
 elseif strcmp(mode, 'GP_GPR')
-    savepath = '~/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
+    savepath = strcat(savepath,...
+        'python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=');
     savepath = strcat(savepath, num2str(margins(1)), '_', num2str(margins(2)),...
         '_', num2str(margins(3)), '_', num2str(margins(4)), '/N~logn/mu=', ...
         num2str(nExclusionParams(1)), '/sigma=', num2str(nExclusionParams(2)), ...
@@ -51,14 +55,16 @@ elseif strcmp(mode, 'GP_GPR')
         '/sigma=', num2str(rParams(2)), '/sigmaGP_r=', num2str(sigmaGP_r),...
         '/l=', num2str(lengthScale_r));
 elseif strcmp(mode, 'engineered')
-    savepath = '~/cluster/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
+    savepath = strcat(savepath,...
+        'python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=');
     savepath = strcat(savepath, num2str(margins(1)), '_', num2str(margins(2)),...
         '_', num2str(margins(3)), '_', num2str(margins(4)), '/N~logn/mu=', ...
         num2str(nExclusionParams(1)), '/sigma=', num2str(nExclusionParams(2)), ...
         '/x~engineered','/r~logn/mu=', num2str(rParams(1)), ...
         '/sigma=', num2str(rParams(2)));
 elseif strcmp(mode, 'tiles')
-    savepath = '~/cluster/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=';
+    savepath = strcat(savepath,...
+        'python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=');
     savepath = strcat(savepath, num2str(margins(1)), '_', num2str(margins(2)),...
         '_', num2str(margins(3)), '_', num2str(margins(4)), '/N~logn/mu=', ...
         num2str(nExclusionParams(1)), '/sigma=', num2str(nExclusionParams(2)), ...
@@ -67,6 +73,7 @@ elseif strcmp(mode, 'tiles')
 else
     error('unknown mode');
 end
+savepath
 
 if ~exist(savepath, 'dir')
     mkdir(savepath);
@@ -159,6 +166,7 @@ for n = nMeshes
     %% save microstructure data
     save(strcat(savepath, '/microstructureInformation_nomesh', num2str(n)),...
         'diskCenters', 'diskRadii');
+    disp('microstructure saved.')
     
     %% Plotting
     if(plt && feature('ShowFigureWindows'))      

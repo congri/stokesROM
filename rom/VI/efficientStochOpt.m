@@ -1,5 +1,5 @@
-function [varDistParams, x] =...
-    efficientStochOpt(x, log_emp_dist, variationalDist, stepWidth, dim)
+function [varDistParams, x] = efficientStochOpt(...
+    x, log_emp_dist, variationalDist, stepWidth, dim, maxCompTime)
 %Memory efficient stocastic optimization for parfor loop
 %Perform stochastic maximization step
 
@@ -14,7 +14,9 @@ epsilon = 1e-6;                  %curvature stabilization parameter
 
 stepOffset = 200000;                %Robbins-Monro step offset
 maxIterations = Inf;
-maxCompTime = 30;
+if nargin < 6
+    maxCompTime = 10;
+end
 nSamplesStart = 1;                  %gradient samples per iteration
 nSamplesEnd = 1;
 nIncr = (nSamplesEnd - nSamplesStart)/maxCompTime;

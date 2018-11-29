@@ -17,13 +17,13 @@ PROJECTDIR="/home/constantin/python/projects/stokesEquation"
 LENGTHSCALE=0.08
 LENGTHSCALER=0.05
 SIGMAGPR=0.4
-SIGMOID=2.5
-N1=8.4			#usually lognormal mu for number of exclusions
-N2=0.0
-R1=-5.62
-R2=0.0
+SIGMOID=1.0
+N1=7.8			#usually lognormal mu for number of exclusions
+N2=0.2
+R1=-5.23
+R2=0.3
 
-JOBNAME="genMicrostruct_tiles_muN=${N1}_sigN=${N2}_l=${LENGTHSCALE}_lr=${LENGTHSCALER}_sigma_mu_r=${SIGMAGPR}_sig_scale=${SIGMOID}_sigma_r=${R2}"
+JOBNAME="genMicrostruct_GP_GPR_muN=${N1}_sigN=${N2}_l=${LENGTHSCALE}_lr=${LENGTHSCALER}_sigma_mu_r=${SIGMAGPR}_sig_scale=${SIGMOID}_sigma_r=${R2}"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 
 JOBDIR="/home/constantin/python/jobs/${JOBNAME}_${DATESTR}"
@@ -56,7 +56,7 @@ echo "sed -i \"12s/.*/sigmoid_scale = ${SIGMOID};/\" ./genCorrMicrostruct.m" >> 
 echo "sed -i \"14s/.*/nExclusionParams = [${N1}, ${N2}];/\" ./genCorrMicrostruct.m" >> ./job_file.sh
 echo "sed -i \"15s/.*/margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}];/\" ./genCorrMicrostruct.m" >> ./job_file.sh
 echo "sed -i \"16s/.*/rParams = [${R1}, ${R2}];/\" ./genCorrMicrostruct.m" >> ./job_file.sh
-echo "sed -i \"17s/.*/nMeshes = 0:${NDATA};/\" ./genCorrMicrostruct.m" >> ./job_file.sh
+echo "sed -i \"18s/.*/nMeshes = 0:${NDATA};/\" ./genCorrMicrostruct.m" >> ./job_file.sh
 
 
 
