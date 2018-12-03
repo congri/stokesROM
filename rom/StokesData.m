@@ -42,7 +42,7 @@ classdef StokesData < handle
         p_bc = '0.0';
         u_bc = {'u_x=1.0-0.0x[1]', 'u_y=1.0-0.0x[0]'}
         %coefficient distribution for randomized bc's
-        a_x_m = 0.0
+        a_x_m = []      %use fixed bc's if empty
         a_x_s = 1.0
         a_y_m = 0.0
         a_y_s = 1.0
@@ -175,7 +175,9 @@ classdef StokesData < handle
                     
                     if contains(quantities, 'p')
                         self.P{cellIndex} = file.p';
-                        self.bc{cellIndex} = file.bc;
+                        if ~isempty(self.a_x_m)
+                            self.bc{cellIndex} = file.bc;
+                        end
                     end
                     
                     if contains(quantities, 'u')
@@ -593,11 +595,12 @@ classdef StokesData < handle
                 end
                 
                 %Self-consistent approximation (fully ins. spheres)
-                dMat{n} = [dMat{n}, 2*phi(:) - 1];
-                if n == 1
-                    dlmwrite('./data/features', 'SCA',...
-                        'delimiter', '', '-append');
-                end
+                %linearly dependent to the pore fraction!
+%                 dMat{n} = [dMat{n}, 2*phi(:) - 1];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'SCA',...
+%                         'delimiter', '', '-append');
+%                 end
                 
                 %log self-consistent approximation (fully ins. spheres)
                 dMat{n} = [dMat{n}, log(abs(2*phi(:) - 1) + delta_log)];

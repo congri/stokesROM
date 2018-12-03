@@ -691,7 +691,8 @@ classdef StokesROM < handle
             predVarArray = predMeanArray;
             mean_squared_response = predMeanArray;
             
-            if isempty(self.trainingData.a_x_m)
+            rand_bc = isempty(testData.a_x_m);
+            if rand_bc
                 %fixed bc's
                 cm = self.modelParams.coarseMesh;
             else
@@ -738,7 +739,7 @@ classdef StokesROM < handle
                     
                     isotropicDiffusivity = true;
                     if isotropicDiffusivity
-                        if isempty(self.trainingData.a_x_m)
+                        if rand_bc
                             FEMout = heat2d(cm, LambdaSamples{n}(:, i));
                         else
                             FEMout = heat2d(cm{n}, LambdaSamples{n}(:, i));

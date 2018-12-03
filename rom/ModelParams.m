@@ -67,7 +67,7 @@ classdef ModelParams < matlab.mixin.Copyable
             1000*ones(1, 20), 10000*ones(1, 20)]
         VRVM_time = [5*ones(1, 4), 10*ones(1, 4), 15*ones(1, 4), ...
             20*ones(1, 4), 30*ones(1, 4), 60*ones(1, 4),...
-            90*ones(1, 4), 120*ones(1, 4)]
+            90*ones(1, 4), 120*ones(1, 4), 240]
         
         %current parameters of variational distributions
         a

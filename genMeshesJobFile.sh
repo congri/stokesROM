@@ -14,7 +14,7 @@ LENGTHSCALER=0.05
 SIGMOID=1.2
 
 
-CORES=1
+CORES=3
 
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 #Set up file paths
@@ -37,6 +37,7 @@ echo "#SBATCH --job-name=${JOBNAME}" >> ./job_file.sh
 echo "#SBATCH --partition batch_SNB,batch_SKL" >> ./job_file.sh
 echo "#SBATCH --output=/home/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
 echo "#SBATCH --error=/home/constantin/OEfiles/${JOBNAME}.%j.err" >> ./job_file.sh
+echo "#SBATCH --mincpus=${CORES}" >> ./job_file.sh
 echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
 echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
 echo "#SBATCH --time=1000:00:00" >> ./job_file.sh

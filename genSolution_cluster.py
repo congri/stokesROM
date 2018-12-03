@@ -50,7 +50,7 @@ margins = (0.003, 0.003, 0.003, 0.003)
 r_params = (-5.23, .3)
 
 # Flow boundary condition for velocity on domain boundary
-rand_bc = True
+rand_bc = False
 if not rand_bc:
     u_x = '1.0-0.0*x[1]'
     u_y = '1.0-0.0*x[0]'
@@ -59,7 +59,7 @@ if not rand_bc:
     u_x = u_x.replace('*', '')
     u_y = u_y.replace('*', '')
 
-foldername = '/home/constantin/cluster/python/data/stokesEquation/meshSize=' + str(nElements)
+foldername = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nElements)
 
 if porousMedium == 'nonOverlappingCircles':
     foldername += '/nonOverlappingDisks/margins=' + str(margins[0]) + '_' + str(margins[1]) + '_' + str(margins[2]) + \

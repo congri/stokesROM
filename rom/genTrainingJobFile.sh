@@ -1,10 +1,10 @@
-BCX="u_x=1.0-1.0x[1]"
-BCY="u_y=2.0-1.0x[0]"
+BCX="u_x=1.0-0.0x[1]"
+BCY="u_y=1.0-0.0x[0]"
 
-N1=7.8			#usually lognormal mu for number of exclusions
-N2=0.2			#usually lognormal sigma for number of exclusions
-R1=-5.23		#usually lognormal mu for radii distribution
-R2=0.5			#usually lognormal sigma for radii distribution
+N1=8.35			#usually lognormal mu for number of exclusions
+N2=0.6		#usually lognormal sigma for number of exclusions
+R1=-5.53		#usually lognormal mu for radii distribution
+R2=0.3			#usually lognormal sigma for radii distribution
 
 #margins to the domain boundary where no exclusions should be
 MARG1=0.003		
@@ -13,27 +13,28 @@ MARG3=0.003
 MARG4=0.003
 
 SIGMAGPR=0.4
-LENGTHSCALE=0.08
+LENGTHSCALE=0.1
 LENGTHSCALER=0.05
-SIGMOID=2
+SIGMOID=1.5
 
 #parameters of spatial distribution of exclusion centers
 COORDDIST="GP"
-RADIIDIST="lognGP"
+RADIIDIST="logn"
 X1="squaredExponential"
 
 GRADIENTSAMPLESSTART=1
 GRADIENTSAMPLESEND=1
-STOCHOPTTIME=120    
+#define that in matlab file!
+#STOCHOPTTIME=120    
 
-NSTART=8
-NTRAIN=48
-NTESTSTART=56
-NTESTEND=80
+NSTART=0
+NTRAIN=128
+NTESTSTART=128
+NTESTEND=538
 
 MAXEMEPOCHS=100
 
-NAMEBASE="Gx~P_r~GP_2x2"
+NAMEBASE="x~GP_r~GP_4x4"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${DATESTR}_nTrain=${NTRAIN}_${NAMEBASE}"
@@ -83,7 +84,7 @@ cd "$JOBDIR"
 echo "Current directory:"
 echo $PWD
 
-NCORES=16
+NCORES=24
 if [ $NTRAIN -lt $NCORES ]; then
     NCORES=$NTRAIN
 fi
@@ -120,11 +121,10 @@ elif [ "$COORDDIST" = "gauss" ]; then
 echo "sed -i \"12s/.*/        coordDist_mu = '${X1}'/\" ./StokesData.m" >> ./job_file.sh
 echo "sed -i \"13s/.*/        coordDist_cov = '${LENGTHSCALE}'/\" ./StokesData.m" >> ./job_file.sh
 fi
-echo "sed -i \"42s/.*/        u_bc = {'${BCX}', '${BCY}'}/\" ./StokesData.m" >> ./job_file.sh
-echo "sed -i \"17s/.*/maxCompTime = ${STOCHOPTTIME};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
-echo "sed -i \"18s/.*/nSamplesStart = ${GRADIENTSAMPLESSTART};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
-echo "sed -i \"19s/.*/nSamplesEnd = ${GRADIENTSAMPLESEND};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
-echo "sed -i \"88s/.*/        max_EM_epochs = ${MAXEMEPOCHS}/\" ./ModelParams.m" >> ./job_file.sh
+echo "sed -i \"43s/.*/        u_bc = {'${BCX}', '${BCY}'}/\" ./StokesData.m" >> ./job_file.sh
+echo "sed -i \"20s/.*/nSamplesStart = ${GRADIENTSAMPLESSTART};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
+echo "sed -i \"21s/.*/nSamplesEnd = ${GRADIENTSAMPLESEND};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
+echo "sed -i \"96s/.*/        max_EM_epochs = ${MAXEMEPOCHS}/\" ./ModelParams.m" >> ./job_file.sh
 echo "sed -i \"12s/.*/testSamples = ${NTESTSTART}:${NTESTEND};/\" ./predictionScript.m" >> ./job_file.sh
 echo "#Run Matlab" >> ./job_file.sh
 echo "/home/programs/matlab/bin/matlab -nodesktop -nodisplay -nosplash -r \" trainModel ; quit ; \"" >> ./job_file.sh

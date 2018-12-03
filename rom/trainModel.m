@@ -70,7 +70,7 @@ sw0_mu = 3e-4;
 sw0_sigma = 3e-5;
 sw_decay = .995; %decay factor per iteration
 VI_t = [10*ones(1, 4), 20*ones(1, 4), 40*ones(1, 4),...
-    80*ones(1, 4), 120*ones(1, 10), 180];
+    80*ones(1, 4), 120*ones(1, 10)];
 split_schedule = [];
 if isempty(split_schedule)
     nSplits = 0;
