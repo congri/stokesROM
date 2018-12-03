@@ -57,10 +57,6 @@ classdef StokesData < handle
             %constructor
             self.samples = samples;
             self.nSamples = numel(samples);
-
-            for n = 1:numel(samples)
-                self.designMatrix{n} = [];
-            end
         end
         
         function setPathName(self)
@@ -195,9 +191,13 @@ classdef StokesData < handle
                             'microstructureInformation', num2str(n), '.mat'));
                         self.microstructData{cellIndex} = load(datafile);
                     end
+                    
+                    %preallocation of design matrices
+                    self.designMatrix{cellIndex} = [];
                     cellIndex = cellIndex + 1;
                 else
                     self.samples(self.samples == n) = [];
+                    self.nSamples = self.nSamples - 1;
                     warning(strcat(filename, 'not found. Skipping sample.'))
                 end
             end
