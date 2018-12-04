@@ -1,5 +1,5 @@
 # Generates microstructural data, i.e. circles and radii of nonoverlap. disks
-NDATA=2500
+NDATA=10000
 
 
 #margins to the domain boundary where no exclusions should be
@@ -17,7 +17,7 @@ PROJECTDIR="/home/constantin/python/projects/stokesEquation"
 LENGTHSCALE=0.08
 LENGTHSCALER=0.05
 SIGMAGPR=0.4
-SIGMOID=1.0
+SIGMOID=1.2
 N1=7.8			#usually lognormal mu for number of exclusions
 N2=0.2
 R1=-5.23
@@ -56,7 +56,7 @@ echo "sed -i \"12s/.*/sigmoid_scale = ${SIGMOID};/\" ./genCorrMicrostruct.m" >> 
 echo "sed -i \"14s/.*/nExclusionParams = [${N1}, ${N2}];/\" ./genCorrMicrostruct.m" >> ./job_file.sh
 echo "sed -i \"15s/.*/margins = [${MARG1}, ${MARG2}, ${MARG3}, ${MARG4}];/\" ./genCorrMicrostruct.m" >> ./job_file.sh
 echo "sed -i \"16s/.*/rParams = [${R1}, ${R2}];/\" ./genCorrMicrostruct.m" >> ./job_file.sh
-echo "sed -i \"18s/.*/nMeshes = 0:${NDATA};/\" ./genCorrMicrostruct.m" >> ./job_file.sh
+echo "sed -i \"18s/.*/nMeshes = 1600:${NDATA};/\" ./genCorrMicrostruct.m" >> ./job_file.sh
 
 
 

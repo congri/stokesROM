@@ -566,7 +566,7 @@ classdef StokesROM < handle
             end
             
             %Some hard-coded prediction params
-            nSamples_p_c = 10000;    %Samples
+            nSamples_p_c = 1000;    %Samples
             
             %Load test data
             if isempty(testData.X)
@@ -580,13 +580,16 @@ classdef StokesROM < handle
             disp('Loading trained model params...')
             load('./data/modelParams.mat');
             self.modelParams = modelParams;
+            clear modelParams;
             disp('...trained model params loaded.')
             
             testData.evaluateFeatures(self.modelParams.gridRF);
+            testData.microstructData = [];  %memory efficiency
             if exist('./data/featureFunctionMin', 'file')
                 featFuncMin = dlmread('./data/featureFunctionMin');
                 featFuncMax = dlmread('./data/featureFunctionMax');
                 testData.rescaleDesignMatrix(featFuncMin, featFuncMax);
+                clear featureFunctionMin featureFunctionMax;
             end
             if strcmp(mode, 'local')
                 testData.shapeToLocalDesignMat;
@@ -600,7 +603,6 @@ classdef StokesROM < handle
             %short hand notation/avoiding broadcast overhead
             nElc = self.modelParams.gridRF.nCells;
             
-            Xsamples = zeros(nElc, nSamples_p_c, nTest);
             %Lambda as cell array for parallelization
             LambdaSamples{1} = zeros(nElc, nSamples_p_c);
             LambdaSamples = repmat(LambdaSamples, nTest, 1);
@@ -621,24 +623,24 @@ classdef StokesROM < handle
 %             pause
             tau_theta_c = inv(self.modelParams.Sigma_theta_c);
             Sigma_c_vec_inv = 1./diag(self.modelParams.Sigma_c);
-            for i = 1:nTest
+            for n = 1:nTest
                 if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
                         strcmp(self.modelParams.prior_theta_c, 'sharedVRVM'))
-                    SigmaTildeInv = testData.designMatrix{i}'*...
-                        (Sigma_c_vec_inv.*testData.designMatrix{i}) +...
+                    SigmaTildeInv = testData.designMatrix{n}'*...
+                        (Sigma_c_vec_inv.*testData.designMatrix{n}) +...
                         tau_theta_c;
                     
                     lastwarn('');
                     SigmaTilde = inv(SigmaTildeInv);
                     [~, id] = lastwarn; %to catch badly conditioned
                     if strcmp(id, 'MATLAB:nearlySingularMatrix')
-                        mu_lambda_c = testData.designMatrix{i}*...
+                        mu_lambda_c = testData.designMatrix{n}*...
                             self.modelParams.theta_c;
                         Sigma_lambda_c = self.modelParams.Sigma_c;
                     else
                         
                         Sigma_c_inv_Phi = self.modelParams.Sigma_c\...
-                            testData.designMatrix{i};
+                            testData.designMatrix{n};
                         
                         precisionLambda_c = inv(self.modelParams.Sigma_c) - ...
                             Sigma_c_inv_Phi*(SigmaTildeInv\Sigma_c_inv_Phi');
@@ -650,7 +652,7 @@ classdef StokesROM < handle
                             self.modelParams.theta_c;
                     end
                 else
-                    mu_lambda_c = testData.designMatrix{i}*...
+                    mu_lambda_c = testData.designMatrix{n}*...
                     self.modelParams.theta_c;
                     Sigma_lambda_c = self.modelParams.Sigma_c;
                 end
@@ -662,16 +664,16 @@ classdef StokesROM < handle
                     Sigma_lambda_c = .5*(Sigma_lambda_c + Sigma_lambda_c');
                 end
                 Sigma_lambda_c = 1e-12*eye(size(Sigma_lambda_c));
-                Xsamples(:, :, i) = mvnrnd(mu_lambda_c',...
-                    Sigma_lambda_c, nSamples_p_c)';
+                Xsamples = mvnrnd(mu_lambda_c', Sigma_lambda_c, nSamples_p_c)';
                 %Diffusivities
-                LambdaSamples{i} = conductivityBackTransform(...
-                    Xsamples(:, :, i), self.modelParams.diffTransform,...
-                    self.modelParams.diffLimits);
-                meanEffCond(:, i) = self.modelParams.rf2fem*...
-                    mean(LambdaSamples{i}, 2);
-                LambdaSamples{i} = self.modelParams.rf2fem*LambdaSamples{i};
+                LambdaSamples{n} = conductivityBackTransform(Xsamples,...
+                    self.modelParams.diffTransform,self.modelParams.diffLimits);
+                meanEffCond(:, n) = self.modelParams.rf2fem*...
+                    mean(LambdaSamples{n}, 2);
+                LambdaSamples{n} = self.modelParams.rf2fem*LambdaSamples{n};
             end
+            clear Xsamples;  %memory efficiency
+            testData.designMatrix = []; %memory efficiency
             disp('Sampling from p_c done.')
             
             
@@ -681,15 +683,16 @@ classdef StokesROM < handle
             if intp
                 testData.interpolate(self.modelParams);
                 testData.shiftData(true);%p = 0 at orig. otherwise remove!
+                %remove X for memory efficiency. It is unneeded in interp. mode.
+                testData.X = [];
             else
                 testData.shiftData(false);
             end
             
             for n = 1:nTest
-                predMeanArray{n} = zeros(size(testData.P{n}));
+                predMeanArray{n} = 0;
             end
             predVarArray = predMeanArray;
-            mean_squared_response = predMeanArray;
             
             rand_bc = isempty(testData.a_x_m);
             if rand_bc
@@ -725,6 +728,7 @@ classdef StokesROM < handle
             %S_n is a vector of variances at vertices
             testData.vtx2Cell(self.modelParams);
             P = testData.P;
+            testData.P = [];    %memory efficiency
             if intp
                 S = self.modelParams.sigma_cf.s0;
             else
@@ -735,6 +739,7 @@ classdef StokesROM < handle
             end
             
             parfor n = 1:nTest
+                mean_squared_response = 0;
                 for i = 1:nSamples_p_c
                     
                     isotropicDiffusivity = true;
@@ -764,44 +769,42 @@ classdef StokesROM < handle
                     %Sequentially compute mean and <Tf^2> to save memory
                     predMeanArray{n} = ((i - 1)/i)*predMeanArray{n}...
                         + (1/i)*mu_cf;  %U_f-integration can be done analyt.
-                    mean_squared_response{n} = ((i - 1)/i)*...
-                        mean_squared_response{n} + (1/i)*mu_cf.^2;
+                    mean_squared_response = ((i - 1)/i)*...
+                        mean_squared_response + (1/i)*mu_cf.^2;
                 end
                 if intp
-                    mean_squared_response{n} = mean_squared_response{n} + S;
+                    mean_squared_response = mean_squared_response + S;
                 else
-                    mean_squared_response{n} = mean_squared_response{n} + S{n};
+                    mean_squared_response = mean_squared_response + S{n};
                 end
                 
                 %abs to avoid negative variance due to numerical error
-                predVarArray{n} = abs(mean_squared_response{n...
-                    } - predMeanArray{n}.^2);
+                predVarArray{n} = abs(mean_squared_response...
+                    - predMeanArray{n}.^2);
                 %meanTf_meanMCErr = mean(sqrt(predVarArray{n}/nSamples))
                 
                 %Remove response of first vertex as this is an essential node
                 %ATTENTION: THIS IS ONLY VALID FOR B.C.'s WHERE VERTEX 1 IS THE 
                 %ONLY ESSENTIAL VERTEX
-                meanMahaErrTemp{n} =...
-                    mean(sqrt(abs((1./(predVarArray{n}(2:end))).*...
-                    (P{n}(2:end) - predMeanArray{n}(2:end)).^2)));
+%                 meanMahaErrTemp{n} =...
+%                     mean(sqrt(abs((1./(predVarArray{n}(2:end))).*...
+%                     (P{n}(2:end) - predMeanArray{n}(2:end)).^2)));
                 sqDist{n} = (P{n}(2:end) - predMeanArray{n}(2:end)).^2;
-                meanSqDistTemp{n} = mean(sqDist{n});    %mean over vertices
                 
-                logLikelihood{n} = -.5*numel(P{n}(2:end))*log(2*pi) -...
+                logLikelihood = -.5*numel(P{n}(2:end))*log(2*pi) -...
                     .5*sum(log(predVarArray{n}(2:end)), 'omitnan') - ...
                     .5*sum(sqDist{n}./predVarArray{n}(2:end), 'omitnan');
                 %average over dof's
-                meanLogLikelihood(n) = logLikelihood{n}/numel(P{n}(2:end));
-                logPerplexity{n} = -(1/(numel(P{n}(2:end))))*logLikelihood{n};
+                meanLogLikelihood(n) = logLikelihood/numel(P{n}(2:end));
+%                 logPerplexity{n} = -(1/(numel(P{n}(2:end))))*logLikelihood{n};
             end
             
-            meanMahalanobisError = mean(cell2mat(meanMahaErrTemp));
+%             meanMahalanobisError = mean(cell2mat(meanMahaErrTemp));
             meanSqDist = mean(cell2mat(sqDist), 2);
-            meanSqDistSq = mean(cell2mat(meanSqDistTemp).^2);
 %             meanSquaredDistanceError =...
 %                 sqrt((meanSqDistSq - meanSqDist^2)/nTest);
-            meanLogPerplexity = mean(cell2mat(logPerplexity));
-            meanPerplexity = exp(meanLogPerplexity);
+%             meanLogPerplexity = mean(cell2mat(logPerplexity));
+%             meanPerplexity = exp(meanLogPerplexity);
             
             %Coefficient of determination, see wikipedia
             SS_res = mean(meanSqDist);
@@ -832,13 +835,13 @@ classdef StokesROM < handle
                         nSY = numel(self.modelParams.fineGridY) + 1;
                         XX = reshape(testData.X_interp{1}(:, 1), nSX,nSY);
                         YY = reshape(testData.X_interp{1}(:, 2), nSX,nSY);
-                        P = reshape(testData.P{i + pltstart}, nSX, nSY);
-                        thdl = surf(XX, YY, P, 'Parent', splt(i));
+                        PP = reshape(P(:, i + pltstart), nSX, nSY);
+                        thdl = surf(XX, YY, PP, 'Parent', splt(i));
                     else
                         thdl = trisurf(double(testData.cells{i + pltstart}),...
                             testData.X{i + pltstart}(:, 1),...
                             testData.X{i + pltstart}(:, 2),...
-                            testData.P{i + pltstart}, 'Parent', splt(i));
+                            P(:, i + pltstart), 'Parent', splt(i));
                     end
                     thdl.LineStyle = 'none';
                     axis(splt(i), 'tight');
@@ -851,8 +854,8 @@ classdef StokesROM < handle
                     splt(i).BoxStyle = 'full';
 %                     splt(i).ZLim = [-2e4, 4e3];
                     cbp_true = colorbar('Parent', fig);
-                    splt(i).CLim = [min(testData.P{i + pltstart}), ...
-                        max(testData.P{i + pltstart})];
+                    splt(i).CLim = [min(P(:, i + pltstart)), ...
+                        max(P(:, i + pltstart))];
                     splt(i).View = [-140, 20];
                     
                     %predictive mean

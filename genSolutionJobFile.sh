@@ -7,18 +7,18 @@ MARG_R=0.003
 MARG_U=0.003
 MARG_LE=0.003
 
-NEXCLUSIONPARAM1=7.8
-NEXCLUSIONPARAM2=0.2
+NEXCLUSIONPARAM1=8.35
+NEXCLUSIONPARAM2=0.6
 
-RPARAM1=-5.23
+RPARAM1=-5.53
 RPARAM2=0.3
 
 SIGMAGPR=0.4
-LENGTHSCALE=0.08
+LENGTHSCALE=0.1
 LENGTHSCALER=0.05
-SIGMOID=1.2
+SIGMOID=1.5
 
-CORES=2
+CORES=1
 
 #Set up file paths
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
@@ -59,7 +59,7 @@ echo "sed -i \"50s/.*/r_params = (${RPARAM1}, ${RPARAM2})/\" ./genSolution_clust
 #Activate fenics environment and run python
 echo "source ~/.bashrc" >> ./job_file.sh
 echo "conda activate fenics_new" >> job_file.sh
-echo "python -u ./genSolution_cluster.py" >> job_file.sh
+echo "srun -u python -u ./genSolution_cluster.py" >> job_file.sh
 echo "" >> job_file.sh
 
 

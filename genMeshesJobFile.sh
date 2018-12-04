@@ -14,7 +14,7 @@ LENGTHSCALER=0.05
 SIGMOID=1.2
 
 
-CORES=3
+CORES=1
 
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 #Set up file paths
@@ -57,7 +57,7 @@ echo "sed -i \"36s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genMesh_cluster.py" >
 echo "source ~/.bashrc" >> ./job_file.sh
 echo "conda activate mshr_new" >> ./job_file.sh
 echo "ulimit -s 32000" >> ./job_file.sh 
-echo "python -u ./genMesh_cluster.py" >> ./job_file.sh
+echo "srun -u python -u ./genMesh_cluster.py" >> ./job_file.sh
 
 
 chmod +x job_file.sh

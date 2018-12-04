@@ -5,12 +5,12 @@ import dolfin as df
 import time
 import scipy.io as sio
 import os
+import socket
 
 # Test for PETSc or Epetra
 if not df.has_linear_algebra_backend("PETSc") and not df.has_linear_algebra_backend("Epetra"):
     df.info("DOLFIN has not been configured with Trilinos or PETSc. Exiting.")
     exit()
-
 if df.has_krylov_solver_method("minres"):
     krylov_method = "minres"
 elif df.has_krylov_solver_method("tfqmr"):
@@ -21,7 +21,7 @@ else:
     exit()
 
 # general parameters
-meshes = np.arange(0, 2500)  # vector of random meshes to load
+meshes = np.arange(0, 10000)  # vector of random meshes to load
 porousMedium = 'nonOverlappingCircles'  # circles or randomField
 nElements = 256
 
@@ -44,7 +44,7 @@ sig_scale = 1.2
 sigmaGP_r = 0.4
 lengthScale_r = .05
 
-radiiDistribution = 'lognGP'
+radiiDistribution = 'logn'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 margins = (0.003, 0.003, 0.003, 0.003)
 r_params = (-5.23, .3)
@@ -59,7 +59,12 @@ if not rand_bc:
     u_x = u_x.replace('*', '')
     u_y = u_y.replace('*', '')
 
-foldername = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nElements)
+if socket.gethostname() == 'workstation1-room0436':
+    foldername = '/home/constantin/cluster'
+else:
+    foldername = '/home/constantin'
+
+foldername += '/python/data/stokesEquation/meshSize=' + str(nElements)
 
 if porousMedium == 'nonOverlappingCircles':
     foldername += '/nonOverlappingDisks/margins=' + str(margins[0]) + '_' + str(margins[1]) + '_' + str(margins[2]) + \

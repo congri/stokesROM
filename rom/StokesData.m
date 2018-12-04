@@ -438,7 +438,7 @@ classdef StokesData < handle
             
             Nx = numel(modelParams.fineGridX);
             
-            if isempty(self.X)
+            if(isempty(self.X) && isempty(self.X_interp))
                 self = self.readData('x');
             end
             if any(modelParams.interpolationMode)
