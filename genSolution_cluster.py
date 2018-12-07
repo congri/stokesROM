@@ -30,7 +30,7 @@ mu = 1  # viscosity
 
 # For circular exclusions
 nExclusionsDist = 'logn'
-nExclusionParams = (7.8, 0.2)
+nExclusionParams = (8.35, 0.6)
 coordinateDistribution = 'GP'
 
 # for coordinateDistribution == 'gauss'
@@ -39,15 +39,15 @@ coordinate_mu = [0.5, 0.5]
 
 # for coordinateDistribution == 'GP'
 covFun = 'squaredExponential'
-cov_l = 0.08
-sig_scale = 1.2
+cov_l = 0.1
+sig_scale = 1.5
 sigmaGP_r = 0.4
 lengthScale_r = .05
 
 radiiDistribution = 'logn'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 margins = (0.003, 0.003, 0.003, 0.003)
-r_params = (-5.23, .3)
+r_params = (-5.53, .3)
 
 # Flow boundary condition for velocity on domain boundary
 rand_bc = False
@@ -104,162 +104,177 @@ class DomainBoundary(df.SubDomain):
 # Initialize sub-domain instances for outer domain boundaries
 domainBoundary = DomainBoundary()
 
-for meshNumber in meshes:
-    # set up file names
+meshNumber = 0
+# set up file names
+# meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
+meshfile = foldername + '/mesh' + str(meshNumber) + '.mat'
+solutionfolder = foldername + '/p_bc=0.0'
+if rand_bc:
+    a_x_m = 0.0
+    a_x_s = 1.0
+    a_y_m = 0.0
+    a_y_s = 1.0
+    a_xy_m = 0.0
+    a_xy_s = 1.0
+    a_x = np.random.normal(a_x_m, a_x_s)
+    a_y = np.random.normal(a_y_m, a_y_s)
+    a_xy = np.random.normal(a_xy_m, a_xy_s)
+    u_x = str(a_x) + '+' + str(a_xy) + '*x[1]'
+    u_y = str(a_y) + '+' + str(a_xy) + '*x[0]'
+    solutionfolder += '/a_x_m=' + str(a_x_m) + '_a_x_s=' + str(a_x_s) + \
+                      'a_y_m=' + str(a_y_m) + '_a_y_s=' + str(a_y_s) + \
+                      'a_xy_m=' + str(a_xy_m) + '_a_xy_s=' + str(a_xy_s)
+    flowField = df.Expression((u_x, u_y), degree=2)
+else:
+    solutionfolder += '/u_x=' + u_x + '_u_y=' + u_y
+
+if not os.path.exists(solutionfolder):
+    os.makedirs(solutionfolder)
+solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
+
+# create computation_started.txt if not existent
+if not os.path.isfile(solutionfolder + '/computation_started.dat'):
+    started_file = open(solutionfolder + '/computation_started.dat', 'wb', buffering=0)
+    started_file.close()
+
+started_file = open(solutionfolder + '/computation_started.dat', 'rb', buffering=0)
+it = 0
+# read started computations from binary file
+started_computations = []
+while True:
+    started_file.seek(2*it)
+    started_computations_bin = started_file.read(2)
+    if started_computations_bin == b'':
+        break
+    started_computations.append(int.from_bytes(started_computations_bin, byteorder='big', signed=False))
+    it += 1
+started_file.close()
+
+print('started_computations == ', started_computations)
+# while ((not os.path.isfile(meshfile)) or os.path.isfile(solutionfile)
+#        or ((str(meshNumber) + '\n') in started_computations)) and meshNumber < meshes[-1]:
+while ((not os.path.isfile(meshfile)) or os.path.isfile(solutionfile)
+       or (meshNumber in started_computations)) and meshNumber < meshes[-1]:
+    # print('Mesh ', str(meshNumber), ' does not exist or solution already computed. Passing to next mesh...')
+    # print('mesh path == ', meshfile)
+    # print('solution path == ', solutionfile)
+    meshNumber += 1
     # meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
     meshfile = foldername + '/mesh' + str(meshNumber) + '.mat'
-    solutionfolder = foldername + '/p_bc=0.0'
-    if rand_bc:
-        a_x_m = 0.0
-        a_x_s = 1.0
-        a_y_m = 0.0
-        a_y_s = 1.0
-        a_xy_m = 0.0
-        a_xy_s = 1.0
-        a_x = np.random.normal(a_x_m, a_x_s)
-        a_y = np.random.normal(a_y_m, a_y_s)
-        a_xy = np.random.normal(a_xy_m, a_xy_s)
-        u_x = str(a_x) + '+' + str(a_xy) + '*x[1]'
-        u_y = str(a_y) + '+' + str(a_xy) + '*x[0]'
-        solutionfolder += '/a_x_m=' + str(a_x_m) + '_a_x_s=' + str(a_x_s) + \
-                          'a_y_m=' + str(a_y_m) + '_a_y_s=' + str(a_y_s) + \
-                          'a_xy_m=' + str(a_xy_m) + '_a_xy_s=' + str(a_xy_s)
-        flowField = df.Expression((u_x, u_y), degree=2)
-    else:
-        solutionfolder += '/u_x=' + u_x + '_u_y=' + u_y
-
-    if not os.path.exists(solutionfolder):
-        os.makedirs(solutionfolder)
     solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
 
-    # create computation_started.txt if not existent
-    if not os.path.isfile(solutionfolder + '/computation_started.txt'):
-        started_file = open(solutionfolder + '/computation_started.txt', 'w')
-        started_file.close()
+# meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
+meshfile = foldername + '/mesh' + str(meshNumber) + '.mat'
+solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
+# write mesh number to file s.t. it is clear that solution is currently computed
+with open(solutionfolder + '/computation_started.dat', 'ab', buffering=0) as started_file:
+    # started_file.write(str(meshNumber) + '\n')
+    saved_bytes = (meshNumber).to_bytes(2, byteorder='big', signed=False)
+    started_file.write(saved_bytes)
 
-    started_file = open(solutionfolder + '/computation_started.txt', 'r')
-    started_computations = started_file.readlines()
-    started_file.close()
-    print('started_computations == ', started_computations)
-    while ((not os.path.isfile(meshfile)) or os.path.isfile(solutionfile)
-           or ((str(meshNumber) + '\n') in started_computations)) and meshNumber < meshes[-1]:
-        # print('Mesh ', str(meshNumber), ' does not exist or solution already computed. Passing to next mesh...')
-        # print('mesh path == ', meshfile)
-        # print('solution path == ', solutionfile)
-        meshNumber += 1
-        # meshfile = foldername + '/mesh' + str(meshNumber) + '.xml'
-        meshfile = foldername + '/mesh' + str(meshNumber) + '.mat'
-        solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
+print('Loading mesh ', str(meshNumber), '...')
+# outdated
+# mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
 
-    # write mesh number to file s.t. it is clear that solution is currently computed
-    with open(solutionfolder + '/computation_started.txt', 'a') as started_file:
-        started_file.write(str(meshNumber) + '\n')
-        started_file.flush()
-        os.system('sync')
+# load mesh from mat file
+mesh_data = sio.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
+x = mesh_data['x']
+cells = mesh_data['cells']
+try:
+    cells -= 1  # matlab to python indexing
+except:
+    cells -= 1.0  # old version: cell connectivity stored as double array
+cells = np.array(cells, dtype=np.uintp)
+editor = df.MeshEditor()
+mesh = df.Mesh()
+editor.open(mesh, "triangle", 2, 2)
+editor.init_vertices(x.shape[0])
+editor.init_cells(cells.shape[0])
+for k, point in enumerate(x):
+    editor.add_vertex(k, point[:2])
+for k, cell in enumerate(cells):
+    editor.add_cell(k, cell)
+editor.close()
+print('mesh loaded.')
 
-    print('Loading mesh ', str(meshNumber), '...')
-    # outdated
-    # mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
-
-    # load mesh from mat file
-    mesh_data = sio.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
-    x = mesh_data['x']
-    cells = mesh_data['cells']
-    try:
-        cells -= 1  # matlab to python indexing
-    except:
-        cells -= 1.0  # old version: cell connectivity stored as double array
-    cells = np.array(cells, dtype=np.uintp)
-    editor = df.MeshEditor()
-    mesh = df.Mesh()
-    editor.open(mesh, "triangle", 2, 2)
-    editor.init_vertices(x.shape[0])
-    editor.init_cells(cells.shape[0])
-    for k, point in enumerate(x):
-        editor.add_vertex(k, point[:2])
-    for k, cell in enumerate(cells):
-        editor.add_cell(k, cell)
-    editor.close()
-    print('mesh loaded.')
-
-    print('Setting boundary conditions...')
+print('Setting boundary conditions...')
 
 
-    # Define interior boundaries
-    class InteriorBoundary(df.SubDomain):
-        def inside(self, x, on_boundary):
-            outerBoundary = x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS \
-                            or x[0] > (1.0 - df.DOLFIN_EPS) or x[0] < df.DOLFIN_EPS
-            return on_boundary and not outerBoundary
+# Define interior boundaries
+class InteriorBoundary(df.SubDomain):
+    def inside(self, x, on_boundary):
+        outerBoundary = x[1] > 1.0 - df.DOLFIN_EPS or x[1] < df.DOLFIN_EPS \
+                        or x[0] > (1.0 - df.DOLFIN_EPS) or x[0] < df.DOLFIN_EPS
+        return on_boundary and not outerBoundary
 
 
-    # Initialize sub-domain instance for interior boundaries
-    interiorBoundary = InteriorBoundary()
+# Initialize sub-domain instance for interior boundaries
+interiorBoundary = InteriorBoundary()
 
-    # Define mixed function space (Taylor-Hood)
-    u_e = df.VectorElement("CG", mesh.ufl_cell(), 2)
-    p_e = df.FiniteElement("CG", mesh.ufl_cell(), 1)
-    mixedEl = df.MixedElement([u_e, p_e])
-    W = df.FunctionSpace(mesh, mixedEl)
+# Define mixed function space (Taylor-Hood)
+u_e = df.VectorElement("CG", mesh.ufl_cell(), 2)
+p_e = df.FiniteElement("CG", mesh.ufl_cell(), 1)
+mixedEl = df.MixedElement([u_e, p_e])
+W = df.FunctionSpace(mesh, mixedEl)
 
-    # No-slip boundary condition for velocity on material interfaces
-    noslip = df.Constant((0.0, 0.0))
-    # Boundary conditions for solid phase
-    bc1 = df.DirichletBC(W.sub(0), noslip, interiorBoundary)
+# No-slip boundary condition for velocity on material interfaces
+noslip = df.Constant((0.0, 0.0))
+# Boundary conditions for solid phase
+bc1 = df.DirichletBC(W.sub(0), noslip, interiorBoundary)
 
-    # BC's on domain boundary
-    bc2 = df.DirichletBC(W.sub(0), flowField, domainBoundary)
+# BC's on domain boundary
+bc2 = df.DirichletBC(W.sub(0), flowField, domainBoundary)
 
-    # Collect boundary conditions
-    bcs = [bc1, bc2]
-    print('boundary conditions set.')
+# Collect boundary conditions
+bcs = [bc1, bc2]
+print('boundary conditions set.')
 
-    # Define variational problem
-    (u, p) = df.TrialFunctions(W)
-    (v, q) = df.TestFunctions(W)
-    f = df.Constant((0.0, 0.0))  # right hand side
-    a = mu * df.inner(df.grad(u), df.grad(v)) * df.dx + df.div(v) * p * df.dx + q * df.div(u) * df.dx
-    L = df.inner(f, v) * df.dx
+# Define variational problem
+(u, p) = df.TrialFunctions(W)
+(v, q) = df.TestFunctions(W)
+f = df.Constant((0.0, 0.0))  # right hand side
+a = mu * df.inner(df.grad(u), df.grad(v)) * df.dx + df.div(v) * p * df.dx + q * df.div(u) * df.dx
+L = df.inner(f, v) * df.dx
 
-    # Form for use in constructing preconditioner matrix
-    b = df.inner(df.grad(u), df.grad(v)) * df.dx + p * q * df.dx
+# Form for use in constructing preconditioner matrix
+b = df.inner(df.grad(u), df.grad(v)) * df.dx + p * q * df.dx
 
-    # Assemble system
-    A, bb = df.assemble_system(a, L, bcs)
+# Assemble system
+A, bb = df.assemble_system(a, L, bcs)
 
-    # Assemble preconditioner system
-    P, btmp = df.assemble_system(b, L, bcs)
+# Assemble preconditioner system
+P, btmp = df.assemble_system(b, L, bcs)
 
-    # Create Krylov solver and AMG preconditioner
-    solver = df.KrylovSolver(krylov_method, 'amg')
+# Create Krylov solver and AMG preconditioner
+solver = df.KrylovSolver(krylov_method, 'amg')
 
-    # Associate operator (A) and preconditioner matrix (P)
-    solver.set_operators(A, P)
+# Associate operator (A) and preconditioner matrix (P)
+solver.set_operators(A, P)
 
-    # Solve
-    print('Solving PDE...')
-    t = time.time()
-    U = df.Function(W)
+# Solve
+print('Solving PDE...')
+t = time.time()
+U = df.Function(W)
 
-    try:
-        solver.solve(U.vector(), bb)
-        elapsed_time = time.time() - t
-        print('PDE solved. Time: ', elapsed_time)
-        print('sample: ', meshNumber)
+try:
+    solver.solve(U.vector(), bb)
+    elapsed_time = time.time() - t
+    print('PDE solved. Time: ', elapsed_time)
+    print('sample: ', meshNumber)
 
-        # Get sub-functions
-        u, p = U.split()
+    # Get sub-functions
+    u, p = U.split()
 
-        if rand_bc:
-            bc = np.array([a_x, a_y, a_xy])
-            sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
-                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates(), 'bc': bc},
-                        do_compression=True)
-        else:
-            sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
-                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
+    if rand_bc:
+        bc = np.array([a_x, a_y, a_xy])
+        sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+                                   'p': p.compute_vertex_values(), 'x': mesh.coordinates(), 'bc': bc},
+                    do_compression=True)
+    else:
+        sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+                                   'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
 
-    except:
-        print('Solver failed to converge. Passing to next mesh...')
+except:
+    print('Solver failed to converge. Passing to next mesh...')
 
 

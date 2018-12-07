@@ -42,7 +42,7 @@ classdef StokesData < handle
         p_bc = '0.0';
         u_bc = {'u_x=1.0-0.0x[1]', 'u_y=1.0-0.0x[0]'}
         %coefficient distribution for randomized bc's
-        a_x_m = []      %use fixed bc's if empty
+        a_x_m = 0.0      %use fixed bc's if empty
         a_x_s = 1.0
         a_y_m = 0.0
         a_y_s = 1.0

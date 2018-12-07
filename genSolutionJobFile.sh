@@ -58,8 +58,10 @@ echo "sed -i \"50s/.*/r_params = (${RPARAM1}, ${RPARAM2})/\" ./genSolution_clust
 
 #Activate fenics environment and run python
 echo "source ~/.bashrc" >> ./job_file.sh
-echo "conda activate fenics_new" >> job_file.sh
-echo "srun -u python -u ./genSolution_cluster.py" >> job_file.sh
+echo "conda activate fenics_new" >> ./job_file.sh
+#echo "while true; do" >> ./job_file.sh
+echo "python -u ./genSolution_cluster.py" >> ./job_file.sh
+#echo "done" >> ./job_file.sh
 echo "" >> job_file.sh
 
 

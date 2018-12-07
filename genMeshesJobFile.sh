@@ -56,8 +56,11 @@ echo "sed -i \"36s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genMesh_cluster.py" >
 #Activate fenics environment and run python
 echo "source ~/.bashrc" >> ./job_file.sh
 echo "conda activate mshr_new" >> ./job_file.sh
-echo "ulimit -s 32000" >> ./job_file.sh 
-echo "srun -u python -u ./genMesh_cluster.py" >> ./job_file.sh
+echo "ulimit -s 32000" >> ./job_file.sh
+#echo "while true; do" >> ./job_file.sh
+echo "python -u ./genMesh_cluster.py" >> ./job_file.sh
+#echo "done" >> ./job_file.sh
+echo "" >> ./job_file.sh
 
 
 chmod +x job_file.sh
