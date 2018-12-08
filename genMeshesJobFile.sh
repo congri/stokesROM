@@ -1,4 +1,4 @@
-NMESHES=2500
+NMESHES=10000
 NELEMENTS=256
 NEX1=7.8    #number of exclusion parameters
 NEX2=0.2
@@ -57,9 +57,9 @@ echo "sed -i \"36s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genMesh_cluster.py" >
 echo "source ~/.bashrc" >> ./job_file.sh
 echo "conda activate mshr_new" >> ./job_file.sh
 echo "ulimit -s 32000" >> ./job_file.sh
-#echo "while true; do" >> ./job_file.sh
+echo "while true; do" >> ./job_file.sh
 echo "python -u ./genMesh_cluster.py" >> ./job_file.sh
-#echo "done" >> ./job_file.sh
+echo "done" >> ./job_file.sh
 echo "" >> ./job_file.sh
 
 

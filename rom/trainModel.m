@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 16;
+nTrain = 8;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -53,6 +53,7 @@ else
         interp = false;
     end
 end
+
 %do not remove! if no cell is splitted, pass empty array
 rom.modelParams.splitRFcells([]);
 
@@ -63,7 +64,6 @@ end
 mkdir('./data/');
 
 rom.trainingData.shiftData(interp, 'p'); %shifts p to 0 at origin
-
 rom.trainingData.vtx2Cell(rom.modelParams);
 
 sw0_mu = 3e-4;
@@ -84,7 +84,7 @@ for split_iter = 1:(nSplits + 1)
     %delete design matrices so that they can be recomputed
     rom.trainingData.designMatrix = cell(1, nTrain);
     rom.trainingData.evaluateFeatures(rom.modelParams.gridRF);
-
+    
     if strcmp(rom.modelParams.normalization, 'rescale')
         rom.trainingData.rescaleDesignMatrix;
     end
@@ -92,7 +92,7 @@ for split_iter = 1:(nSplits + 1)
     if strcmp(rom.modelParams.mode, 'local')
         rom.trainingData.shapeToLocalDesignMat;
     end
-    
+        
     %theta_c must be initialized after design matrices exist
     if isempty(rom.modelParams.theta_c)
         disp('Initializing theta_c...')
@@ -107,7 +107,7 @@ for split_iter = 1:(nSplits + 1)
         [sw0_mu*ones(1, nRFc), sw0_sigma*ones(1, nRFc)];
     sw_min = 3e-1*[sw0_mu*ones(1, nRFc), sw0_sigma*ones(1, nRFc)];
     sw(sw < sw_min) = sw_min(sw < sw_min);
-    
+        
     if isempty(rom.trainingData.a_x_m)
         %fixed bc's
         coarseMesh = rom.modelParams.coarseMesh;

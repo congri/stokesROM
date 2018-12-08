@@ -17,8 +17,8 @@ path += '/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/' \
         # + '/sigmaGP_r=0.4/l=0.05'
 
 print('path == ', path)
-# bc = '/p_bc=0.0/u_x=1.0-0.0x[1]_u_y=1.0-0.0x[0]'
-bc = '/p_bc=0.0/a_x_m=0.0_a_x_s=1.0a_y_m=0.0_a_y_s=1.0a_xy_m=0.0_a_xy_s=1.0'
+bc = '/p_bc=0.0/u_x=1.0-0.0x[1]_u_y=1.0-0.0x[0]'
+# bc = '/p_bc=0.0/a_x_m=0.0_a_x_s=1.0a_y_m=0.0_a_y_s=1.0a_xy_m=0.0_a_xy_s=1.0'
 
 removing = True
 mode = 'solution'   # 'solution' or 'mesh'

@@ -42,7 +42,7 @@ classdef StokesData < handle
         p_bc = '0.0';
         u_bc = {'u_x=1.0-0.0x[1]', 'u_y=1.0-0.0x[0]'}
         %coefficient distribution for randomized bc's
-        a_x_m = 0.0      %use fixed bc's if empty
+        a_x_m = []      %use fixed bc's if empty
         a_x_s = 1.0
         a_y_m = 0.0
         a_y_s = 1.0
@@ -50,6 +50,7 @@ classdef StokesData < handle
         a_xy_s = 1.0
         %Design matrix
         designMatrix
+        designMatrixSqSum       %precomputation for efficiency
     end
     
     methods
@@ -193,13 +194,15 @@ classdef StokesData < handle
                     end
                     
                     %preallocation of design matrices
-                    self.designMatrix{cellIndex} = [];
                     cellIndex = cellIndex + 1;
                 else
                     self.samples(self.samples == n) = [];
                     self.nSamples = self.nSamples - 1;
                     warning(strcat(filename, 'not found. Skipping sample.'))
                 end
+            end
+            if isempty(self.designMatrix)
+                self.designMatrix = cell(cellIndex - 1, 1);
             end
             
             disp('... data loaded to workspace.')
