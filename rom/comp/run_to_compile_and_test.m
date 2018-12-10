@@ -30,10 +30,10 @@ else
 end
 
 % Number of multiplies to test.
-n_mults = 10;
+n_mults = 2000;
 
 % Size of matrix to test.
-matdim = 1000;
+matdim = 320;
 
 % Generate random symmetric matrix.
 if verLessThan('matlab', '7.12')
@@ -67,6 +67,17 @@ for i=1:n_mults
 end
 t_chol=toc;
 disp(['Runtime: ' num2str(t_chol) ' seconds']);
+
+opts.POSDEF = true;
+opts.SYM = true;
+I = eye(matdim);
+tic;
+for i = 1:n_mults
+    A_inv = linsolve(A, I, opts);
+end
+t_linsolv = toc;
+disp(['Runtime: ' num2str(t_linsolv) ' seconds']);
+
 
 % Compute and display the max numerical difference.
 err = A_cholinv - inv(A);

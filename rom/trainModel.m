@@ -284,7 +284,7 @@ for split_iter = 1:(nSplits + 1)
             transType, transLimits)
         rom.modelParams.printCurrentParams;
         
-        plt = true;
+        plt = false;
         if(plt && feature('ShowFigureWindows'))
             disp('Plotting...')
             t_plt = tic;

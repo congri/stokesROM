@@ -1,9 +1,9 @@
 BCX="u_x=1.0-0.0x[1]"
 BCY="u_y=1.0-0.0x[0]"
 
-N1=8.35			#usually lognormal mu for number of exclusions
-N2=0.6		#usually lognormal sigma for number of exclusions
-R1=-5.53		#usually lognormal mu for radii distribution
+N1=7.8			#usually lognormal mu for number of exclusions
+N2=0.2		#usually lognormal sigma for number of exclusions
+R1=-5.23		#usually lognormal mu for radii distribution
 R2=0.3			#usually lognormal sigma for radii distribution
 
 #margins to the domain boundary where no exclusions should be
@@ -13,13 +13,13 @@ MARG3=0.003
 MARG4=0.003
 
 SIGMAGPR=0.4
-LENGTHSCALE=0.1
+LENGTHSCALE=0.08
 LENGTHSCALER=0.05
-SIGMOID=1.5
+SIGMOID=1.2
 
 #parameters of spatial distribution of exclusion centers
 COORDDIST="GP"
-RADIIDIST="logn"
+RADIIDIST="lognGP"
 X1="squaredExponential"
 
 GRADIENTSAMPLESSTART=1
@@ -30,11 +30,11 @@ GRADIENTSAMPLESEND=1
 NSTART=0
 NTRAIN=128
 NTESTSTART=128
-NTESTEND=538
+NTESTEND=1128
 
-MAXEMEPOCHS=100
+MAXEMEPOCHS=500
 
-NAMEBASE="x~GP_r~GP_4x4"
+NAMEBASE="new_features_8x8"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${DATESTR}_nTrain=${NTRAIN}_${NAMEBASE}"

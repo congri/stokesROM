@@ -480,8 +480,17 @@ classdef StokesData < handle
             mData = self.microstructData;
             dMat = self.designMatrix;
             delta_log = 1;
-            %feature name file is written for every data sample. This is 
-            %unnecessary overhead
+
+            grid1x1 = RectangularMesh(1);
+            M1 = grid1x1.map2fine(gridRF.edges{1}.length*ones(1, sqrt(gridRF.nCells)));
+            grid2x2 = RectangularMesh((1/2)*ones(1, 2), (1/2)*ones(1, 2));
+            M2 = grid2x2.map2fine(gridRF.edges{1}.length*ones(1, sqrt(gridRF.nCells)));
+            grid4x4 = RectangularMesh((1/4)*ones(1, 4), (1/4)*ones(1, 4));
+            M4 = grid4x4.map2fine(gridRF.edges{1}.length*ones(1, sqrt(gridRF.nCells)));
+            grid8x8 = RectangularMesh((1/8)*ones(1, 8), (1/8)*ones(1, 8));
+            M8 = grid8x8.map2fine(gridRF.edges{1}.length*ones(1, sqrt(gridRF.nCells)));
+            
+            
             parPoolInit(self.nSamples);
             parfor n = 1:numel(self.samples)
                 %constant 1
@@ -490,515 +499,2113 @@ classdef StokesData < handle
                     dlmwrite('./data/features', 'const', 'delimiter', '');
                 end
                 
-                %sum of radii moments
-                phi = momentPerVolume(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .2);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', '0.2_moment',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log0.2_moment',...
-                        'delimiter', '', '-append');
-                end
-                
-                phi = momentPerVolume(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .5);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', '0.5_moment',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_0.5_moment',...
-                        'delimiter', '', '-append');
-                end
-                
-                phi = momentPerVolume(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, 1.0);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', '1.0_moment',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_1.0_moment',...
-                        'delimiter', '', '-append');
-                end
-                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %% FULL DOMAIN
                 %pore fraction
                 phi = volumeFractionCircExclusions(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF);
-                dMat{n} = [dMat{n}, phi(:)];
+                    mData{n}.diskRadii, grid1x1);
+                dMat{n} = [dMat{n}, M1*phi(:)];
                 if n == 1
-                    dlmwrite('./data/features', 'poreFraction',...
+                    dlmwrite('./data/features', 'poreFraction1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %log pore fraction
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logPoreFraction',...
+                    dlmwrite('./data/features', 'logPoreFraction1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %sqrt pore fraction
-                dMat{n} = [dMat{n}, sqrt(phi(:))];
+                dMat{n} = [dMat{n}, M1*sqrt(phi(:))];
                 if n == 1
-                    dlmwrite('./data/features', 'sqrtPoreFraction',...
+                    dlmwrite('./data/features', 'sqrtPoreFraction1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %pore fraction powers (Archie's law, DEM, see Torquato 18.24)
-                dMat{n} = [dMat{n}, phi(:).^1.5];
+                dMat{n} = [dMat{n}, M1*phi(:).^1.5];
                 if n == 1
-                    dlmwrite('./data/features', 'PoreFraction^1.5',...
+                    dlmwrite('./data/features', 'PoreFraction^1.5_1x1',...
                         'delimiter', '', '-append');
                 end
                 
-                dMat{n} = [dMat{n}, phi(:).^2];
+                dMat{n} = [dMat{n}, M1*phi(:).^2];
                 if n == 1
-                    dlmwrite('./data/features', 'PoreFraction^2',...
+                    dlmwrite('./data/features', 'PoreFraction^2_1x1',...
                         'delimiter', '', '-append');
                 end
                 
-                dMat{n} = [dMat{n}, phi(:).^2.5];
+                dMat{n} = [dMat{n}, M1*phi(:).^2.5];
                 if n == 1
-                    dlmwrite('./data/features', 'PoreFraction^2.5',...
-                        'delimiter', '', '-append');
-                end
-                
-                dMat{n} = [dMat{n}, phi(:).^3];
-                if n == 1
-                    dlmwrite('./data/features', 'PoreFraction^3',...
-                        'delimiter', '', '-append');
-                end
-                
-                dMat{n} = [dMat{n}, phi(:).^3.5];
-                if n == 1
-                    dlmwrite('./data/features', 'PoreFraction^3.5',...
-                        'delimiter', '', '-append');
-                end
-                
-                dMat{n} = [dMat{n}, phi(:).^4];
-                if n == 1
-                    dlmwrite('./data/features', 'PoreFraction^4',...
+                    dlmwrite('./data/features', 'PoreFraction^2.5_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %exp pore fraction
-                dMat{n} = [dMat{n}, exp(phi(:))];
+                dMat{n} = [dMat{n}, M1*exp(phi(:))];
                 if n == 1
-                    dlmwrite('./data/features', 'expPoreFraction',...
+                    dlmwrite('./data/features', 'expPoreFraction1x1',...
                         'delimiter', '', '-append');
                 end
-                
-                %Self-consistent approximation (fully ins. spheres)
-                %linearly dependent to the pore fraction!
-%                 dMat{n} = [dMat{n}, 2*phi(:) - 1];
-%                 if n == 1
-%                     dlmwrite('./data/features', 'SCA',...
-%                         'delimiter', '', '-append');
-%                 end
                 
                 %log self-consistent approximation (fully ins. spheres)
-                dMat{n} = [dMat{n}, log(abs(2*phi(:) - 1) + delta_log)];
+                dMat{n} = [dMat{n}, M1*log(abs(2*phi(:) - 1) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'log_SCA',...
+                    dlmwrite('./data/features', 'log_SCA1x1',...
                         'delimiter', '', '-append');
                 end
                 
-                
                 %Maxwell approximation
-                dMat{n} = [dMat{n}, phi(:)./(2 - phi(:))];
+                dMat{n} = [dMat{n}, M1*(phi(:)./(2 - phi(:)))];
                 if n == 1
-                    dlmwrite('./data/features', 'maxwellApproximation',...
+                    dlmwrite('./data/features', 'maxwellApproximation1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %log Maxwell approximation
-                dMat{n} = [dMat{n}, log(phi(:)./(2 - phi(:)) + delta_log)];
+                dMat{n} = [dMat{n}, M1*log(phi(:)./(2 - phi(:)) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'log_maxwellApproximation',...
+                    dlmwrite('./data/features', 'log_maxwellApproximation1x1',...
                         'delimiter', '', '-append');
                 end
                 
-                %THIS APPEARS TO BE UNSTABLE!
-                %kozenyCarman
-%                 phi = kozenyCarman(mData{n}.diskCenters,...
-%                     mData{n}.diskRadii, gridRF);
-%                 dMat{n} = [dMat{n}, phi(:)];
-%                 if n == 1
-%                     dlmwrite('./data/features', 'kozenyCarman',...
-%                         'delimiter', '', '-append');
-%                 end
-%                 
-%                 %log kozenyCarman
-%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-%                 if n == 1
-%                     dlmwrite('./data/features', 'log kozenyCarman',...
-%                         'delimiter', '', '-append');
-%                 end
+                
+                %chord length density
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1, .005);
+                %log
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens005_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1, .0025);
+                %log
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens0025_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1, .00125);
+                %log
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens00125_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1, .000625);
+                %log
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens000625_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1, .0003);
+                %log
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens0003_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1, 0);
+                %log
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens0_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
                 
                 
                 %interface area
                 phi = interfacePerVolume(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF);
-                dMat{n} = [dMat{n}, phi(:)];
+                    mData{n}.diskRadii, grid1x1);
+                dMat{n} = [dMat{n}, M1*phi(:)];
                 if n == 1
-                    dlmwrite('./data/features', 'interfaceArea',...
+                    dlmwrite('./data/features', 'interfaceArea_1x1',...
                         'delimiter', '', '-append');
                 end
                 
-%                 %for safety reasons: this effectively takes out macro-cells
-%                 %without exclusion
-%                 phi(phi == 0) = 1;
                 %log interface area
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logInterfaceArea',...
+                    dlmwrite('./data/features', 'logInterfaceArea_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %log interface area^1.5
-                dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^1.5];
+                dMat{n} = [dMat{n}, M1*abs(log(phi(:) + delta_log)).^1.5];
                 if n == 1
-                    dlmwrite('./data/features', 'abs(logInterfaceArea)^1.5',...
+                    dlmwrite('./data/features', 'abs(logInterfaceArea)^1.5_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %square log interface area
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log).^2];
                 if n == 1
-                    dlmwrite('./data/features', 'squareLogInterfaceArea',...
+                    dlmwrite('./data/features', 'squareLogInterfaceArea_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %cube log interface area
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^3];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log).^3];
                 if n == 1
-                    dlmwrite('./data/features', 'cubeLogInterfaceArea',...
+                    dlmwrite('./data/features', 'cubeLogInterfaceArea_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %log^4 interface area
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^4];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log).^4];
                 if n == 1
-                    dlmwrite('./data/features', 'log^4InterfaceArea',...
+                    dlmwrite('./data/features', 'log^4InterfaceArea_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %log^1/2 interface area
-                dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^.5];
+                dMat{n} = [dMat{n}, M1*abs(log(phi(:) + delta_log)).^.5];
                 if n == 1
-                    dlmwrite('./data/features', 'log^1/2InterfaceArea',...
+                    dlmwrite('./data/features', 'log^1/2InterfaceArea_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %log^1/3 interface area
-                dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^(1/3)];
+                dMat{n} = [dMat{n}, M1*abs(log(phi(:) + delta_log)).^(1/3)];
                 if n == 1
-                    dlmwrite('./data/features', 'log^1/3InterfaceArea',...
+                    dlmwrite('./data/features', 'log^1/3InterfaceArea_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %log^1/4 interface area
-                dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^.25];
+                dMat{n} = [dMat{n}, M1*abs(log(phi(:) + delta_log)).^.25];
                 if n == 1
-                    dlmwrite('./data/features', 'log^1/4InterfaceArea',...
+                    dlmwrite('./data/features', 'log^1/4InterfaceArea_1x1',...
                         'delimiter', '', '-append');
                 end
                 
-%                 %next
-%                 phi_temp = phi(:);
-%                 phi_temp = [phi_temp(2:end); phi_temp(1)];
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
-%
-%                 %preceding
-%                 phi_temp = phi(:);
-%                 phi_temp = [phi_temp(end); phi_temp(1:(end - 1))];
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
-%
-%                 %above (N_c = 4)
-%                 phi_temp = phi(:);
-%                 phi_temp = [phi_temp(5:end); phi_temp(1:4)];
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
-%
-%                 %below (N_c = 4)
-%                 phi_temp = phi(:);
-%                 phi_temp = [phi_temp((end - 3):end); phi_temp(1:(end - 4))];
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
-%
-%                 %transpose
-%                 phi_temp = reshape(phi(:), 4, 4)';
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
-%
-%                 %flip
-%                 phi_temp = flipud(phi(:));
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
-%
-%                 %flip transpose
-%                 phi_temp = flipud(phi(:));
-%                 phi_temp = reshape(phi_temp, 4, 4)';
-%                 dMat{n} = [dMat{n}, log(phi_temp(:) + delta_log)];
-                
-                
-                
-                %exp interface area
-                %THIS FEATURE IS UNSTABLE!
-%                 dMat{n} = [dMat{n}, exp(phi(:))];
-%                 if n == 1
-%                     dlmwrite('./data/features', 'expInterfaceArea',...
-%                         'delimiter', '', '-append');
-%                 end
-                
                 %sqrt interface area
-                dMat{n} = [dMat{n}, sqrt(phi(:))];
+                dMat{n} = [dMat{n}, M1*sqrt(phi(:))];
                 if n == 1
-                    dlmwrite('./data/features', 'sqrtInterfaceArea',...
+                    dlmwrite('./data/features', 'sqrtInterfaceArea_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %interface area ^(1/3)
-                dMat{n} = [dMat{n}, phi(:).^(1/3)];
+                dMat{n} = [dMat{n}, M1*phi(:).^(1/3)];
                 if n == 1
-                    dlmwrite('./data/features', 'InterfaceArea^(1/3)',...
+                    dlmwrite('./data/features', 'InterfaceArea^(1/3)_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %interface area ^(1/4)
-                dMat{n} = [dMat{n}, phi(:).^(1/4)];
+                dMat{n} = [dMat{n}, M1*phi(:).^(1/4)];
                 if n == 1
-                    dlmwrite('./data/features', 'InterfaceArea^(1/4)',...
+                    dlmwrite('./data/features', 'InterfaceArea^(1/4)_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %interface area ^(1/5)
-                dMat{n} = [dMat{n}, phi(:).^(1/5)];
+                dMat{n} = [dMat{n}, M1*phi(:).^(1/5)];
                 if n == 1
-                    dlmwrite('./data/features', 'InterfaceArea^(1/5)',...
+                    dlmwrite('./data/features', 'InterfaceArea^(1/5)_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %square interface area
-                dMat{n} = [dMat{n}, phi(:).^2];
+                dMat{n} = [dMat{n}, M1*phi(:).^2];
                 if n == 1
-                    dlmwrite('./data/features', 'squareInterfaceArea',...
+                    dlmwrite('./data/features', 'squareInterfaceArea_1x1',...
                         'delimiter', '', '-append');
                 end
                 
+                
+                
                 %mean distance between disk edges
                 phi = diskDistance(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, 'mean',...
+                    mData{n}.diskRadii, grid1x1, 'mean',...
                     'edge2edge');
-                dMat{n} = [dMat{n}, phi(:)];
+                dMat{n} = [dMat{n}, M1*phi(:)];
                 if n == 1
-                    dlmwrite('./data/features', 'meanDist',...
+                    dlmwrite('./data/features', 'meanDist_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %log mean distance
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logMeanDist',...
+                    dlmwrite('./data/features', 'logMeanDist_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 
                 %Hagen-Poiseuille?
                 %square log mean distance
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log).^2];
                 if n == 1
-                    dlmwrite('./data/features', 'squareLogMeanDist',...
+                    dlmwrite('./data/features', 'squareLogMeanDist_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %log^3 mean distance
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^3];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log).^3];
                 if n == 1
-                    dlmwrite('./data/features', 'log^3MeanDist',...
+                    dlmwrite('./data/features', 'log^3MeanDist_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 
                 %mean distance between disk centers
                 phi = diskDistance(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, 'mean', 2);
-                dMat{n} = [dMat{n}, phi(:)];
+                    mData{n}.diskRadii, grid1x1, 'mean', 2);
+                dMat{n} = [dMat{n}, M1*phi(:)];
                 if n == 1
-                    dlmwrite('./data/features', 'meanDistCenter',...
+                    dlmwrite('./data/features', 'meanDistCenter_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 
                 %min distance between disk centers
                 phi = diskDistance(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, 'min', 2);
-                dMat{n} = [dMat{n}, phi(:)];
+                    mData{n}.diskRadii, grid1x1, 'min', 2);
+                dMat{n} = [dMat{n}, M1*phi(:)];
                 if n == 1
-                    dlmwrite('./data/features', 'minDistCenter',...
+                    dlmwrite('./data/features', 'minDistCenter_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %log min distance
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logMinDistCenter',...
+                    dlmwrite('./data/features', 'logMinDistCenter_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 %log min distance squared. Hagen-Poiseuille?
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log).^2];
                 if n == 1
-                    dlmwrite('./data/features', 'logMinDistCenterSq',...
+                    dlmwrite('./data/features', 'logMinDistCenterSq_1x1',...
                         'delimiter', '', '-append');
                 end
                 
-                %% lin path
-                phi = matrixLinealPath(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .25);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'linPath25',...
-                        'delimiter', '', '-append');
-                end
-                %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'logLinPath25',...
-                        'delimiter', '', '-append');
-                end
                 
+                % lin path
                 phi = matrixLinealPath(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .1);
-                dMat{n} = [dMat{n}, phi(:)];
+                    mData{n}.diskRadii, grid1x1, .25);
+                dMat{n} = [dMat{n}, M1*phi(:)];
                 if n == 1
-                    dlmwrite('./data/features', 'linPath1',...
+                    dlmwrite('./data/features', 'linPath25_1x1',...
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logLinPath1',...
+                    dlmwrite('./data/features', 'logLinPath25_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 phi = matrixLinealPath(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .05);
-                dMat{n} = [dMat{n}, phi(:)];
+                    mData{n}.diskRadii, grid1x1, .1);
+                dMat{n} = [dMat{n}, M1*phi(:)];
                 if n == 1
-                    dlmwrite('./data/features', 'linPath05',...
+                    dlmwrite('./data/features', 'linPath1_1x1',...
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logLinPath05',...
+                    dlmwrite('./data/features', 'logLinPath1_1x1',...
                         'delimiter', '', '-append');
                 end
                 
                 phi = matrixLinealPath(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .02);
-                dMat{n} = [dMat{n}, phi(:)];
+                    mData{n}.diskRadii, grid1x1, .05);
+                dMat{n} = [dMat{n}, M1*phi(:)];
                 if n == 1
-                    dlmwrite('./data/features', 'linPath02',...
+                    dlmwrite('./data/features', 'linPath05_1x1',...
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logLinPath02',...
+                    dlmwrite('./data/features', 'logLinPath05_1x1',...
                         'delimiter', '', '-append');
                 end
+                
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1, .02);
+                dMat{n} = [dMat{n}, M1*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath02_1x1',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath02_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                                
+                %e_v == porefrac for d == 0
+                [~, h_v, poreSizeDens, ~] =...
+                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1, 0);
+
+                dMat{n} = [dMat{n}, M1*h_v(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'h_v0_1x1',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M1*poreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreSizeProbDens0_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %log
+                dMat{n} =...
+                    [dMat{n}, M1*log(h_v(:)+delta_log),...
+                    M1*log(poreSizeDens(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_h_v0_1x1',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_poreSizeProbDens0_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                %mean chord length
+                phi = meanChordLength(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1);
+                dMat{n} = [dMat{n}, M1*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'meanChordLength_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log mean chord length
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMeanChordLength_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                %exp mean chord length
+                dMat{n} = [dMat{n}, M1*exp(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'expMeanChordLength_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                %sqrt mean chord length
+                dMat{n} = [dMat{n}, M1*sqrt(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'sqrtMeanChordLength_1x1',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %% 2x2
+                %pore fraction
+                phi = volumeFractionCircExclusions(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreFraction2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log pore fraction
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logPoreFraction2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %sqrt pore fraction
+                dMat{n} = [dMat{n}, M2*sqrt(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'sqrtPoreFraction2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %pore fraction powers (Archie's law, DEM, see Torquato 18.24)
+                dMat{n} = [dMat{n}, M2*phi(:).^1.5];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^1.5_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                dMat{n} = [dMat{n}, M2*phi(:).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^2_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                dMat{n} = [dMat{n}, M2*phi(:).^2.5];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^2.5_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %exp pore fraction
+                dMat{n} = [dMat{n}, M2*exp(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'expPoreFraction2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log self-consistent approximation (fully ins. spheres)
+                dMat{n} = [dMat{n}, M2*log(abs(2*phi(:) - 1) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_SCA2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %Maxwell approximation
+                dMat{n} = [dMat{n}, M2*(phi(:)./(2 - phi(:)))];
+                if n == 1
+                    dlmwrite('./data/features', 'maxwellApproximation2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log Maxwell approximation
+                dMat{n} = [dMat{n}, M2*log(phi(:)./(2 - phi(:)) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_maxwellApproximation2x2',...
+                        'delimiter', '', '-append');
+                end
+                
                 
                 %chord length density
                 phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .005);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'chordLengthDens005',...
-                        'delimiter', '', '-append');
-                end
+                    mData{n}.diskRadii, grid2x2, .005);
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logChordLengthDens005',...
+                    dlmwrite('./data/features', 'logChordLengthDens005_2x2',...
                         'delimiter', '', '-append');
                 end
                 
                 phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .0025);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'chordLengthDens0025',...
-                        'delimiter', '', '-append');
-                end
+                    mData{n}.diskRadii, grid2x2, .0025);
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logChordLengthDens0025',...
+                    dlmwrite('./data/features', 'logChordLengthDens0025_2x2',...
                         'delimiter', '', '-append');
                 end
                 
                 phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .00125);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'chordLengthDens00125',...
-                        'delimiter', '', '-append');
-                end
+                    mData{n}.diskRadii, grid2x2, .00125);
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logChordLengthDens00125',...
+                    dlmwrite('./data/features', 'logChordLengthDens00125_2x2',...
                         'delimiter', '', '-append');
                 end
                 
                 phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .000625);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'chordLengthDens000625',...
-                        'delimiter', '', '-append');
-                end
+                    mData{n}.diskRadii, grid2x2, .000625);
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logChordLengthDens000625',...
+                    dlmwrite('./data/features', 'logChordLengthDens000625_2x2',...
                         'delimiter', '', '-append');
                 end
                 
                 phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .0003);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'chordLengthDens0003',...
-                        'delimiter', '', '-append');
-                end
+                    mData{n}.diskRadii, grid2x2, .0003);
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logChordLengthDens0003',...
+                    dlmwrite('./data/features', 'logChordLengthDens0003_2x2',...
                         'delimiter', '', '-append');
                 end
                 
                 phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, 0);
-                dMat{n} = [dMat{n}, phi(:)];
+                    mData{n}.diskRadii, grid2x2, 0);
+                %log
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'chordLengthDens0',...
+                    dlmwrite('./data/features', 'logChordLengthDens0_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                
+                %interface area
+                phi = interfacePerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'interfaceArea_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log interface area
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logInterfaceArea_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log interface area^1.5
+                dMat{n} = [dMat{n}, M2*abs(log(phi(:) + delta_log)).^1.5];
+                if n == 1
+                    dlmwrite('./data/features', 'abs(logInterfaceArea)^1.5_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %square log interface area
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'squareLogInterfaceArea_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %cube log interface area
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log).^3];
+                if n == 1
+                    dlmwrite('./data/features', 'cubeLogInterfaceArea_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^4 interface area
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log).^4];
+                if n == 1
+                    dlmwrite('./data/features', 'log^4InterfaceArea_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^1/2 interface area
+                dMat{n} = [dMat{n}, M2*abs(log(phi(:) + delta_log)).^.5];
+                if n == 1
+                    dlmwrite('./data/features', 'log^1/2InterfaceArea_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^1/3 interface area
+                dMat{n} = [dMat{n}, M2*abs(log(phi(:) + delta_log)).^(1/3)];
+                if n == 1
+                    dlmwrite('./data/features', 'log^1/3InterfaceArea_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^1/4 interface area
+                dMat{n} = [dMat{n}, M2*abs(log(phi(:) + delta_log)).^.25];
+                if n == 1
+                    dlmwrite('./data/features', 'log^1/4InterfaceArea_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %sqrt interface area
+                dMat{n} = [dMat{n}, M2*sqrt(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'sqrtInterfaceArea_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/3)
+                dMat{n} = [dMat{n}, M2*phi(:).^(1/3)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/3)_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/4)
+                dMat{n} = [dMat{n}, M2*phi(:).^(1/4)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/4)_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/5)
+                dMat{n} = [dMat{n}, M2*phi(:).^(1/5)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/5)_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %square interface area
+                dMat{n} = [dMat{n}, M2*phi(:).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'squareInterfaceArea_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                
+                %mean distance between disk edges
+                phi = diskDistance(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2, 'mean',...
+                    'edge2edge');
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'meanDist_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log mean distance
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMeanDist_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %Hagen-Poiseuille?
+                %square log mean distance
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'squareLogMeanDist_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^3 mean distance
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log).^3];
+                if n == 1
+                    dlmwrite('./data/features', 'log^3MeanDist_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %mean distance between disk centers
+                phi = diskDistance(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2, 'mean', 2);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'meanDistCenter_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %min distance between disk centers
+                phi = diskDistance(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2, 'min', 2);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'minDistCenter_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log min distance
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMinDistCenter_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log min distance squared. Hagen-Poiseuille?
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'logMinDistCenterSq_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                % lin path
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2, .25);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath25_2x2',...
                         'delimiter', '', '-append');
                 end
                 %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
                 if n == 1
-                    dlmwrite('./data/features', 'logChordLengthDens0',...
+                    dlmwrite('./data/features', 'logLinPath25_2x2',...
                         'delimiter', '', '-append');
                 end
+                
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2, .1);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath1_2x2',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath1_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2, .05);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath05_2x2',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath05_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2, .02);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath02_2x2',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath02_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                                
+                %e_v == porefrac for d == 0
+                [~, h_v, poreSizeDens, ~] =...
+                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2, 0);
+
+                dMat{n} = [dMat{n}, M2*h_v(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'h_v0_2x2',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M2*poreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreSizeProbDens0_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %log
+                dMat{n} =...
+                    [dMat{n}, M2*log(h_v(:)+delta_log),...
+                    M2*log(poreSizeDens(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_h_v0_2x2',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_poreSizeProbDens0_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %mean chord length
+                phi = meanChordLength(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'meanChordLength_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log mean chord length
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMeanChordLength_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %exp mean chord length
+                dMat{n} = [dMat{n}, M2*exp(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'expMeanChordLength_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %sqrt mean chord length
+                dMat{n} = [dMat{n}, M2*sqrt(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'sqrtMeanChordLength_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %% 4x4
+                %pore fraction
+                phi = volumeFractionCircExclusions(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreFraction4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log pore fraction
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logPoreFraction4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %sqrt pore fraction
+                dMat{n} = [dMat{n}, M4*sqrt(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'sqrtPoreFraction4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %pore fraction powers (Archie's law, DEM, see Torquato 18.24)
+                dMat{n} = [dMat{n}, M4*phi(:).^1.5];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^1.5_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                dMat{n} = [dMat{n}, M4*phi(:).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^2_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                dMat{n} = [dMat{n}, M4*phi(:).^2.5];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^2.5_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %exp pore fraction
+                dMat{n} = [dMat{n}, M4*exp(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'expPoreFraction4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log self-consistent approximation (fully ins. spheres)
+                dMat{n} = [dMat{n}, M4*log(abs(2*phi(:) - 1) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_SCA4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %Maxwell approximation
+                dMat{n} = [dMat{n}, M4*(phi(:)./(2 - phi(:)))];
+                if n == 1
+                    dlmwrite('./data/features', 'maxwellApproximation4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log Maxwell approximation
+                dMat{n} = [dMat{n}, M4*log(phi(:)./(2 - phi(:)) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_maxwellApproximation4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %chord length density
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, .005);
+                %log
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens005_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, .0025);
+                %log
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens0025_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, .00125);
+                %log
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens00125_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, .000625);
+                %log
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens000625_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, .0003);
+                %log
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens0003_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, 0);
+                %log
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens0_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                
+                %interface area
+                phi = interfacePerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'interfaceArea_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log interface area
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logInterfaceArea_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log interface area^1.5
+                dMat{n} = [dMat{n}, M4*abs(log(phi(:) + delta_log)).^1.5];
+                if n == 1
+                    dlmwrite('./data/features', 'abs(logInterfaceArea)^1.5_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %square log interface area
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'squareLogInterfaceArea_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %cube log interface area
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log).^3];
+                if n == 1
+                    dlmwrite('./data/features', 'cubeLogInterfaceArea_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^4 interface area
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log).^4];
+                if n == 1
+                    dlmwrite('./data/features', 'log^4InterfaceArea_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^1/2 interface area
+                dMat{n} = [dMat{n}, M4*abs(log(phi(:) + delta_log)).^.5];
+                if n == 1
+                    dlmwrite('./data/features', 'log^1/2InterfaceArea_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^1/3 interface area
+                dMat{n} = [dMat{n}, M4*abs(log(phi(:) + delta_log)).^(1/3)];
+                if n == 1
+                    dlmwrite('./data/features', 'log^1/3InterfaceArea_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^1/4 interface area
+                dMat{n} = [dMat{n}, M4*abs(log(phi(:) + delta_log)).^.25];
+                if n == 1
+                    dlmwrite('./data/features', 'log^1/4InterfaceArea_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %sqrt interface area
+                dMat{n} = [dMat{n}, M4*sqrt(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'sqrtInterfaceArea_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/3)
+                dMat{n} = [dMat{n}, M4*phi(:).^(1/3)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/3)_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/4)
+                dMat{n} = [dMat{n}, M4*phi(:).^(1/4)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/4)_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/5)
+                dMat{n} = [dMat{n}, M4*phi(:).^(1/5)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/5)_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %square interface area
+                dMat{n} = [dMat{n}, M4*phi(:).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'squareInterfaceArea_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                
+                %mean distance between disk edges
+                phi = diskDistance(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, 'mean',...
+                    'edge2edge');
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'meanDist_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log mean distance
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMeanDist_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %Hagen-Poiseuille?
+                %square log mean distance
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'squareLogMeanDist_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^3 mean distance
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log).^3];
+                if n == 1
+                    dlmwrite('./data/features', 'log^3MeanDist_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %mean distance between disk centers
+                phi = diskDistance(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, 'mean', 2);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'meanDistCenter_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %min distance between disk centers
+                phi = diskDistance(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, 'min', 2);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'minDistCenter_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log min distance
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMinDistCenter_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log min distance squared. Hagen-Poiseuille?
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'logMinDistCenterSq_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                % lin path
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, .25);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath25_4x4',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath25_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, .1);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath1_4x4',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath1_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, .05);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath05_4x4',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath05_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, .02);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath02_4x4',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath02_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                                
+                %e_v == porefrac for d == 0
+                [~, h_v, poreSizeDens, ~] =...
+                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, 0);
+
+                dMat{n} = [dMat{n}, M4*h_v(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'h_v0_4x4',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M4*poreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreSizeProbDens0_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %log
+                dMat{n} =...
+                    [dMat{n}, M4*log(h_v(:)+delta_log),...
+                    M4*log(poreSizeDens(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_h_v0_4x4',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_poreSizeProbDens0_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %mean chord length
+                phi = meanChordLength(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'meanChordLength_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log mean chord length
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMeanChordLength_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %exp mean chord length
+                dMat{n} = [dMat{n}, M4*exp(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'expMeanChordLength_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                %sqrt mean chord length
+                dMat{n} = [dMat{n}, M4*sqrt(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'sqrtMeanChordLength_4x4',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %% 8x8
+                %pore fraction
+                phi = volumeFractionCircExclusions(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreFraction8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log pore fraction
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logPoreFraction8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %sqrt pore fraction
+                dMat{n} = [dMat{n}, M8*sqrt(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'sqrtPoreFraction8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %pore fraction powers (Archie's law, DEM, see Torquato 18.24)
+                dMat{n} = [dMat{n}, M8*phi(:).^1.5];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^1.5_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                dMat{n} = [dMat{n}, M8*phi(:).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^2_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                dMat{n} = [dMat{n}, M8*phi(:).^2.5];
+                if n == 1
+                    dlmwrite('./data/features', 'PoreFraction^2.5_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %exp pore fraction
+                dMat{n} = [dMat{n}, M8*exp(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'expPoreFraction8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log self-consistent approximation (fully ins. spheres)
+                dMat{n} = [dMat{n}, M8*log(abs(2*phi(:) - 1) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_SCA8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %Maxwell approximation
+                dMat{n} = [dMat{n}, M8*(phi(:)./(2 - phi(:)))];
+                if n == 1
+                    dlmwrite('./data/features', 'maxwellApproximation8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log Maxwell approximation
+                dMat{n} = [dMat{n}, M8*log(phi(:)./(2 - phi(:)) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_maxwellApproximation8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %chord length density
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, .005);
+                %log
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens005_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, .0025);
+                %log
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens0025_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, .00125);
+                %log
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens00125_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, .000625);
+                %log
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens000625_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, .0003);
+                %log
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens0003_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = chordLengthDensity(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, 0);
+                %log
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logChordLengthDens0_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                
+                %interface area
+                phi = interfacePerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'interfaceArea_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log interface area
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logInterfaceArea_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log interface area^1.5
+                dMat{n} = [dMat{n}, M8*abs(log(phi(:) + delta_log)).^1.5];
+                if n == 1
+                    dlmwrite('./data/features', 'abs(logInterfaceArea)^1.5_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %square log interface area
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'squareLogInterfaceArea_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %cube log interface area
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log).^3];
+                if n == 1
+                    dlmwrite('./data/features', 'cubeLogInterfaceArea_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^4 interface area
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log).^4];
+                if n == 1
+                    dlmwrite('./data/features', 'log^4InterfaceArea_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^1/2 interface area
+                dMat{n} = [dMat{n}, M8*abs(log(phi(:) + delta_log)).^.5];
+                if n == 1
+                    dlmwrite('./data/features', 'log^1/2InterfaceArea_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^1/3 interface area
+                dMat{n} = [dMat{n}, M8*abs(log(phi(:) + delta_log)).^(1/3)];
+                if n == 1
+                    dlmwrite('./data/features', 'log^1/3InterfaceArea_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^1/4 interface area
+                dMat{n} = [dMat{n}, M8*abs(log(phi(:) + delta_log)).^.25];
+                if n == 1
+                    dlmwrite('./data/features', 'log^1/4InterfaceArea_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %sqrt interface area
+                dMat{n} = [dMat{n}, M8*sqrt(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'sqrtInterfaceArea_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/3)
+                dMat{n} = [dMat{n}, M8*phi(:).^(1/3)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/3)_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/4)
+                dMat{n} = [dMat{n}, M8*phi(:).^(1/4)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/4)_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %interface area ^(1/5)
+                dMat{n} = [dMat{n}, M8*phi(:).^(1/5)];
+                if n == 1
+                    dlmwrite('./data/features', 'InterfaceArea^(1/5)_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %square interface area
+                dMat{n} = [dMat{n}, M8*phi(:).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'squareInterfaceArea_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                
+                %mean distance between disk edges
+                phi = diskDistance(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, 'mean',...
+                    'edge2edge');
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'meanDist_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log mean distance
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMeanDist_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %Hagen-Poiseuille?
+                %square log mean distance
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'squareLogMeanDist_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log^3 mean distance
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log).^3];
+                if n == 1
+                    dlmwrite('./data/features', 'log^3MeanDist_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %mean distance between disk centers
+                phi = diskDistance(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, 'mean', 2);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'meanDistCenter_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %min distance between disk centers
+                phi = diskDistance(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, 'min', 2);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'minDistCenter_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log min distance
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMinDistCenter_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log min distance squared. Hagen-Poiseuille?
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log).^2];
+                if n == 1
+                    dlmwrite('./data/features', 'logMinDistCenterSq_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                % lin path
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, .25);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath25_8x8',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath25_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, .1);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath1_8x8',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath1_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, .05);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath05_8x8',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath05_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = matrixLinealPath(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, .02);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'linPath02_8x8',...
+                        'delimiter', '', '-append');
+                end
+                %log
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logLinPath02_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                                
+                %e_v == porefrac for d == 0
+                [~, h_v, poreSizeDens, ~] =...
+                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, 0);
+
+                dMat{n} = [dMat{n}, M8*h_v(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'h_v0_8x8',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M8*poreSizeDens(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'poreSizeProbDens0_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                %log
+                dMat{n} =...
+                    [dMat{n}, M8*log(h_v(:)+delta_log),...
+                    M8*log(poreSizeDens(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_h_v0_8x8',...
+                        'delimiter', '', '-append');
+                    dlmwrite('./data/features', 'log_poreSizeProbDens0_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %mean chord length
+                phi = meanChordLength(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', 'meanChordLength_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %log mean chord length
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'logMeanChordLength_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %exp mean chord length
+                dMat{n} = [dMat{n}, M8*exp(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'expMeanChordLength_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %sqrt mean chord length
+                dMat{n} = [dMat{n}, M8*sqrt(phi(:))];
+                if n == 1
+                    dlmwrite('./data/features', 'sqrtMeanChordLength_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                
+                
+%                 %sum of radii moments
+%                 phi = momentPerVolume(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .2);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', '0.2_moment',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log0.2_moment',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 phi = momentPerVolume(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .5);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', '0.5_moment',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_0.5_moment',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 phi = momentPerVolume(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, 1.0);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', '1.0_moment',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_1.0_moment',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %pore fraction
+%                 phi = volumeFractionCircExclusions(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'poreFraction',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log pore fraction
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logPoreFraction',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %sqrt pore fraction
+%                 dMat{n} = [dMat{n}, sqrt(phi(:))];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'sqrtPoreFraction',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %pore fraction powers (Archie's law, DEM, see Torquato 18.24)
+%                 dMat{n} = [dMat{n}, phi(:).^1.5];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'PoreFraction^1.5',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 dMat{n} = [dMat{n}, phi(:).^2];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'PoreFraction^2',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 dMat{n} = [dMat{n}, phi(:).^2.5];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'PoreFraction^2.5',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 dMat{n} = [dMat{n}, phi(:).^3];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'PoreFraction^3',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 dMat{n} = [dMat{n}, phi(:).^3.5];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'PoreFraction^3.5',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 dMat{n} = [dMat{n}, phi(:).^4];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'PoreFraction^4',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %exp pore fraction
+%                 dMat{n} = [dMat{n}, exp(phi(:))];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'expPoreFraction',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log self-consistent approximation (fully ins. spheres)
+%                 dMat{n} = [dMat{n}, log(abs(2*phi(:) - 1) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_SCA',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %Maxwell approximation
+%                 dMat{n} = [dMat{n}, phi(:)./(2 - phi(:))];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'maxwellApproximation',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log Maxwell approximation
+%                 dMat{n} = [dMat{n}, log(phi(:)./(2 - phi(:)) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_maxwellApproximation',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %interface area
+%                 phi = interfacePerVolume(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'interfaceArea',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log interface area
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logInterfaceArea',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log interface area^1.5
+%                 dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^1.5];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'abs(logInterfaceArea)^1.5',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %square log interface area
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'squareLogInterfaceArea',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %cube log interface area
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log).^3];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'cubeLogInterfaceArea',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log^4 interface area
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log).^4];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log^4InterfaceArea',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log^1/2 interface area
+%                 dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^.5];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log^1/2InterfaceArea',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log^1/3 interface area
+%                 dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^(1/3)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log^1/3InterfaceArea',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log^1/4 interface area
+%                 dMat{n} = [dMat{n}, abs(log(phi(:) + delta_log)).^.25];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log^1/4InterfaceArea',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %sqrt interface area
+%                 dMat{n} = [dMat{n}, sqrt(phi(:))];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'sqrtInterfaceArea',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %interface area ^(1/3)
+%                 dMat{n} = [dMat{n}, phi(:).^(1/3)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'InterfaceArea^(1/3)',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %interface area ^(1/4)
+%                 dMat{n} = [dMat{n}, phi(:).^(1/4)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'InterfaceArea^(1/4)',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %interface area ^(1/5)
+%                 dMat{n} = [dMat{n}, phi(:).^(1/5)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'InterfaceArea^(1/5)',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %square interface area
+%                 dMat{n} = [dMat{n}, phi(:).^2];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'squareInterfaceArea',...
+%                         'delimiter', '', '-append');
+%                 end
+                
+%                 %mean distance between disk edges
+%                 phi = diskDistance(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, 'mean',...
+%                     'edge2edge');
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'meanDist',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log mean distance
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logMeanDist',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %Hagen-Poiseuille?
+%                 %square log mean distance
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'squareLogMeanDist',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log^3 mean distance
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log).^3];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log^3MeanDist',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %mean distance between disk centers
+%                 phi = diskDistance(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, 'mean', 2);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'meanDistCenter',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %min distance between disk centers
+%                 phi = diskDistance(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, 'min', 2);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'minDistCenter',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log min distance
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logMinDistCenter',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log min distance squared. Hagen-Poiseuille?
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log).^2];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logMinDistCenterSq',...
+%                         'delimiter', '', '-append');
+%                 end
+                
+%                 %% lin path
+%                 phi = matrixLinealPath(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .25);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'linPath25',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logLinPath25',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 phi = matrixLinealPath(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .1);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'linPath1',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logLinPath1',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 phi = matrixLinealPath(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .05);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'linPath05',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logLinPath05',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 phi = matrixLinealPath(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .02);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'linPath02',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logLinPath02',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %chord length density
+%                 phi = chordLengthDensity(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .005);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'chordLengthDens005',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logChordLengthDens005',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 phi = chordLengthDensity(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .0025);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'chordLengthDens0025',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logChordLengthDens0025',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 phi = chordLengthDensity(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .00125);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'chordLengthDens00125',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logChordLengthDens00125',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 phi = chordLengthDensity(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .000625);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'chordLengthDens000625',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logChordLengthDens000625',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 phi = chordLengthDensity(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .0003);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'chordLengthDens0003',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logChordLengthDens0003',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 phi = chordLengthDensity(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, 0);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'chordLengthDens0',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logChordLengthDens0',...
+%                         'delimiter', '', '-append');
+%                 end
                 
                 %nearest surface functions
 %                 [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
@@ -1083,450 +2690,437 @@ classdef StokesData < handle
 %                         'delimiter', '', '-append');
 %                 end
 
-               %% h_v, e_v, P, F
-                [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
-                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .01);
-                dMat{n} = [dMat{n}, e_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'e_v01',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, h_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'h_v01',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, poreSizeDens(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'poreSizeProbDens01',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'cumPoreSizeProbDens01',...
-                        'delimiter', '', '-append');
-                end
-                
-                
-                %log
-                dMat{n} =...
-                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
-                    log(poreSizeDens(:) + delta_log),...
-                    log(cumPoreSizeDens(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_e_v01',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_h_v01',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_poreSizeProbDens01',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features','log_cumPoreSizeProbDens01',...
-                        'delimiter', '', '-append');
-                end
-                
-                
-                [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
-                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .005);
-                dMat{n} = [dMat{n}, e_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'e_v005',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, h_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'h_v005',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, poreSizeDens(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'poreSizeProbDens005',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'cumPoreSizeProbDens005',...
-                        'delimiter', '', '-append');
-                end
-                
-                
-                %log
-                dMat{n} =...
-                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
-                    log(poreSizeDens(:) + delta_log),...
-                    log(cumPoreSizeDens(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_e_v005',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_h_v005',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_poreSizeProbDens005',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_cumPoreSizeProbDens005',...
-                        'delimiter', '', '-append');
-                end
-                
-                
-                [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
-                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, .0025);
-                dMat{n} = [dMat{n}, e_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'e_v0025',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, h_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'h_v0025',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, poreSizeDens(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'poreSizeProbDens0025',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'cumPoreSizeProbDens0025',...
-                        'delimiter', '', '-append');
-                end
-                
-                
-                %log
-                dMat{n} =...
-                    [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
-                    log(poreSizeDens(:) + delta_log),...
-                    log(cumPoreSizeDens(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_e_v0025',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_h_v0025',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_poreSizeProbDens0025',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_cumPoreSizeProbDens0025',...
-                        'delimiter', '', '-append');
-                end
-                
-                
-                %e_v == porefrac for d == 0
-                [~, h_v, poreSizeDens, ~] =...
-                    voidNearestSurfaceExclusion(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, 0);
-
-                dMat{n} = [dMat{n}, h_v(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'h_v0',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, poreSizeDens(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'poreSizeProbDens0',...
-                        'delimiter', '', '-append');
-                end
-                
-%                 %equals to 1 for distance == 0
+%                %% h_v, e_v, P, F
+%                 [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
+%                     voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .01);
+%                 dMat{n} = [dMat{n}, e_v(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'e_v01',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, h_v(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'h_v01',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, poreSizeDens(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'poreSizeProbDens01',...
+%                         'delimiter', '', '-append');
+%                 end
 %                 dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
 %                 if n == 1
-%                     dlmwrite('./data/features', 'cumPoreSizeProbDens0',...
+%                     dlmwrite('./data/features', 'cumPoreSizeProbDens01',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %log
+%                 dMat{n} =...
+%                     [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
+%                     log(poreSizeDens(:) + delta_log),...
+%                     log(cumPoreSizeDens(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_e_v01',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_h_v01',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_poreSizeProbDens01',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features','log_cumPoreSizeProbDens01',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
+%                     voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .005);
+%                 dMat{n} = [dMat{n}, e_v(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'e_v005',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, h_v(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'h_v005',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, poreSizeDens(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'poreSizeProbDens005',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'cumPoreSizeProbDens005',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %log
+%                 dMat{n} =...
+%                     [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
+%                     log(poreSizeDens(:) + delta_log),...
+%                     log(cumPoreSizeDens(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_e_v005',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_h_v005',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_poreSizeProbDens005',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_cumPoreSizeProbDens005',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 [e_v, h_v, poreSizeDens, cumPoreSizeDens] =...
+%                     voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, .0025);
+%                 dMat{n} = [dMat{n}, e_v(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'e_v0025',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, h_v(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'h_v0025',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, poreSizeDens(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'poreSizeProbDens0025',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, cumPoreSizeDens(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'cumPoreSizeProbDens0025',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %log
+%                 dMat{n} =...
+%                     [dMat{n}, log(e_v(:) + delta_log), log(h_v(:)+delta_log),...
+%                     log(poreSizeDens(:) + delta_log),...
+%                     log(cumPoreSizeDens(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_e_v0025',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_h_v0025',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_poreSizeProbDens0025',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_cumPoreSizeProbDens0025',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %e_v == porefrac for d == 0
+%                 [~, h_v, poreSizeDens, ~] =...
+%                     voidNearestSurfaceExclusion(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, 0);
+% 
+%                 dMat{n} = [dMat{n}, h_v(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'h_v0',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, poreSizeDens(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'poreSizeProbDens0',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 %log
+%                 dMat{n} =...
+%                     [dMat{n}, log(h_v(:)+delta_log),...
+%                     log(poreSizeDens(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_h_v0',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_poreSizeProbDens0',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %% e_p, h_p
+%                 [e_p, h_p] = particleNearestSurfaceExclusion(...
+%                     mData{n}.diskCenters, mData{n}.diskRadii, gridRF, .01,.004);
+%                 dMat{n} = [dMat{n}, e_p(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'e_p01004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, h_p(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'h_p01004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log
+%                 dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
+%                     log(h_p(:)+delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_e_p01004',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_h_p01004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 [e_p, h_p] = particleNearestSurfaceExclusion(...
+%                     mData{n}.diskCenters, mData{n}.diskRadii,gridRF,.005,.004);
+%                 dMat{n} = [dMat{n}, e_p(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'e_p005004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, h_p(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'h_p005004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                               
+%                 %log
+%                 dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
+%                     log(h_p(:)+delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_e_p005004',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_h_p005004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 [e_p, h_p, opt_d, opt_h_p] = particleNearestSurfaceExclusion(...
+%                     mData{n}.diskCenters, mData{n}.diskRadii, gridRF, .0025, .004);
+%                 dMat{n} = [dMat{n}, e_p(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'e_p0025004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, h_p(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'h_p0025004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, opt_d(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'opt_d_h_p0025004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, opt_h_p(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'opt_h_p0025004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                               
+%                 %log
+%                 dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
+%                     log(h_p(:)+delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_e_p0025004',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_h_p0025004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 
+%                 [e_p, h_p] = particleNearestSurfaceExclusion(...
+%                     mData{n}.diskCenters, mData{n}.diskRadii, gridRF, ...
+%                     0,.004);
+%                 dMat{n} = [dMat{n}, e_p(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'e_p0_004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 dMat{n} = [dMat{n}, h_p(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'h_p0_004',...
+%                         'delimiter', '', '-append');
+%                 end
+%                               
+%                 %log
+%                 dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
+%                     log(h_p(:)+delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_e_p0_004',...
+%                         'delimiter', '', '-append');
+%                     dlmwrite('./data/features', 'log_h_p0_004',...
+%                         'delimiter', '', '-append');
+%                 end
+                
+%                 %mean chord length
+%                 phi = meanChordLength(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'meanChordLength',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log mean chord length
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logMeanChordLength',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %exp mean chord length
+%                 dMat{n} = [dMat{n}, exp(phi(:))];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'expMeanChordLength',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %sqrt mean chord length
+%                 dMat{n} = [dMat{n}, sqrt(phi(:))];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'sqrtMeanChordLength',...
+%                         'delimiter', '', '-append');
+%                 end
+                
+%                 %2-point corr
+%                 phi= twoPointCorrelation(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, true, .04);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', '2pointCorr04',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_2pointCorr04',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %2-point corr
+%                 phi= twoPointCorrelation(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, true, .02);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', '2pointCorr02',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_2pointCorr02',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %2-point corr
+%                 phi= twoPointCorrelation(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, true, .01);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', '2pointCorr01',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_2pointCorr01',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %sqrt
+%                 dMat{n} = [dMat{n}, sqrt(phi(:))];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'sqrt_2pointCorr01',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %2-point corr
+%                 phi= twoPointCorrelation(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, gridRF, true, .005);
+%                 dMat{n} = [dMat{n}, phi(:)];
+%                 if n == 1
+%                     dlmwrite('./data/features', '2pointCorr005',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %log
+%                 dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'log_2pointCorr005',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 %sqrt
+%                 dMat{n} = [dMat{n}, sqrt(phi(:))];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'sqrt_2pointCorr005',...
 %                         'delimiter', '', '-append');
 %                 end
                 
                 
-                %log
-                dMat{n} =...
-                    [dMat{n}, log(h_v(:)+delta_log),...
-                    log(poreSizeDens(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_h_v0',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_poreSizeProbDens0',...
-                        'delimiter', '', '-append');
-                end
-                
-                %% e_p, h_p
-                [e_p, h_p] = particleNearestSurfaceExclusion(...
-                    mData{n}.diskCenters, mData{n}.diskRadii, gridRF, .01,.004);
-                dMat{n} = [dMat{n}, e_p(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'e_p01004',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, h_p(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'h_p01004',...
-                        'delimiter', '', '-append');
-                end
-                
-                %log
-                dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
-                    log(h_p(:)+delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_e_p01004',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_h_p01004',...
-                        'delimiter', '', '-append');
-                end
-                
-                [e_p, h_p] = particleNearestSurfaceExclusion(...
-                    mData{n}.diskCenters, mData{n}.diskRadii,gridRF,.005,.004);
-                dMat{n} = [dMat{n}, e_p(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'e_p005004',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, h_p(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'h_p005004',...
-                        'delimiter', '', '-append');
-                end
-                              
-                %log
-                dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
-                    log(h_p(:)+delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_e_p005004',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_h_p005004',...
-                        'delimiter', '', '-append');
-                end
-                
-                
-                [e_p, h_p, opt_d, opt_h_p] = particleNearestSurfaceExclusion(...
-                    mData{n}.diskCenters, mData{n}.diskRadii, gridRF, .0025, .004);
-                dMat{n} = [dMat{n}, e_p(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'e_p0025004',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, h_p(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'h_p0025004',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, opt_d(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'opt_d_h_p0025004',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, opt_h_p(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'opt_h_p0025004',...
-                        'delimiter', '', '-append');
-                end
-                              
-                %log
-                dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
-                    log(h_p(:)+delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_e_p0025004',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_h_p0025004',...
-                        'delimiter', '', '-append');
-                end
-                
-                
-                [e_p, h_p] = particleNearestSurfaceExclusion(...
-                    mData{n}.diskCenters, mData{n}.diskRadii, gridRF, ...
-                    0,.004);
-                dMat{n} = [dMat{n}, e_p(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'e_p0_004',...
-                        'delimiter', '', '-append');
-                end
-                dMat{n} = [dMat{n}, h_p(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'h_p0_004',...
-                        'delimiter', '', '-append');
-                end
-                              
-                %log
-                dMat{n} = [dMat{n}, log(e_p(:) + delta_log),...
-                    log(h_p(:)+delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_e_p0_004',...
-                        'delimiter', '', '-append');
-                    dlmwrite('./data/features', 'log_h_p0_004',...
-                        'delimiter', '', '-append');
-                end
-                
-                %mean chord length
-                phi = meanChordLength(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', 'meanChordLength',...
-                        'delimiter', '', '-append');
-                end
-                
-                %log mean chord length
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'logMeanChordLength',...
-                        'delimiter', '', '-append');
-                end
-                
-                %exp mean chord length
-                dMat{n} = [dMat{n}, exp(phi(:))];
-                if n == 1
-                    dlmwrite('./data/features', 'expMeanChordLength',...
-                        'delimiter', '', '-append');
-                end
-                
-                %sqrt mean chord length
-                dMat{n} = [dMat{n}, sqrt(phi(:))];
-                if n == 1
-                    dlmwrite('./data/features', 'sqrtMeanChordLength',...
-                        'delimiter', '', '-append');
-                end
-                
-                %2-point corr
-                phi= twoPointCorrelation(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, true, .04);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', '2pointCorr04',...
-                        'delimiter', '', '-append');
-                end
-                
-                %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_2pointCorr04',...
-                        'delimiter', '', '-append');
-                end
-                
-                %2-point corr
-                phi= twoPointCorrelation(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, true, .02);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', '2pointCorr02',...
-                        'delimiter', '', '-append');
-                end
-                
-                %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_2pointCorr02',...
-                        'delimiter', '', '-append');
-                end
-                
-                %2-point corr
-                phi= twoPointCorrelation(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, true, .01);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', '2pointCorr01',...
-                        'delimiter', '', '-append');
-                end
-                
-                %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_2pointCorr01',...
-                        'delimiter', '', '-append');
-                end
-                
-                %sqrt
-                dMat{n} = [dMat{n}, sqrt(phi(:))];
-                if n == 1
-                    dlmwrite('./data/features', 'sqrt_2pointCorr01',...
-                        'delimiter', '', '-append');
-                end
-                
-                %2-point corr
-                phi= twoPointCorrelation(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, gridRF, true, .005);
-                dMat{n} = [dMat{n}, phi(:)];
-                if n == 1
-                    dlmwrite('./data/features', '2pointCorr005',...
-                        'delimiter', '', '-append');
-                end
-                %log
-                dMat{n} = [dMat{n}, log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'log_2pointCorr005',...
-                        'delimiter', '', '-append');
-                end
-                %sqrt
-                dMat{n} = [dMat{n}, sqrt(phi(:))];
-                if n == 1
-                    dlmwrite('./data/features', 'sqrt_2pointCorr005',...
-                        'delimiter', '', '-append');
-                end
-                
-                
-                %% Features on coarser grid
-                %should only be used with regular unit square grids, no split!!!
-                %log mean distance on other grid
-                coarserGrid = RectangularMesh((1/2)*ones(1, 2), .5*ones(1, 2));
-                M = coarserGrid.map2fine(gridRF.edges{1}.length*...
-                    ones(1, sqrt(gridRF.nCells)));
-                phi = diskDistance(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, coarserGrid, 'mean', 'edge2edge');
-                
-                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'logMeanDistCoarseGrid',...
-                        'delimiter', '', '-append');
-                end
-                
-                %chord length density
-                phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, coarserGrid, .00125);
-                %log
-                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features',...
-                        'logChordLengthDens00125CoarseGrid', 'delimiter',...
-                        '', '-append');
-                end
-                
-                phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, coarserGrid, .000625);
-                %log
-                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features',...
-                        'logChordLengthDens000625CoarseGrid', 'delimiter',...
-                        '', '-append');
-                end
-                
-                
-                fullDomain = RectangularMesh(1);
-                M = fullDomain.map2fine(gridRF.edges{1}.length*...
-                    ones(1, sqrt(gridRF.nCells)));
-                phi = diskDistance(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, fullDomain, 'mean', 'edge2edge');
-                
-                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features', 'logMeanDistFullDomain',...
-                        'delimiter', '', '-append');
-                end
-                
-                %chord length density
-                phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, fullDomain, .00125);
-                %log
-                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features',...
-                        'logChordLengthDens00125FullDomain', 'delimiter',...
-                        '', '-append');
-                end
-                
-                phi = chordLengthDensity(mData{n}.diskCenters,...
-                    mData{n}.diskRadii, fullDomain, .000625);
-                %log
-                dMat{n} = [dMat{n}, M*log(phi(:) + delta_log)];
-                if n == 1
-                    dlmwrite('./data/features',...
-                        'logChordLengthDens000625FullDomain', 'delimiter',...
-                        '', '-append');
-                end
+%                 %% Features on coarser grid
+%                 %should only be used with regular unit square grids, no split!!!
+%                 %log mean distance on other grid
+%                 phi = diskDistance(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, coarserGrid, 'mean', 'edge2edge');
+%                 
+%                 dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logMeanDistCoarseGrid',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %chord length density
+%                 phi = chordLengthDensity(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, coarserGrid, .00125);
+%                 %log
+%                 dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features',...
+%                         'logChordLengthDens00125CoarseGrid', 'delimiter',...
+%                         '', '-append');
+%                 end
+%                 
+%                 phi = chordLengthDensity(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, coarserGrid, .000625);
+%                 %log
+%                 dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features',...
+%                         'logChordLengthDens000625CoarseGrid', 'delimiter',...
+%                         '', '-append');
+%                 end
+%                 
+%                 
+%                 phi = diskDistance(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, grid1x1, 'mean', 'edge2edge');
+%                 
+%                 dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features', 'logMeanDistFullDomain',...
+%                         'delimiter', '', '-append');
+%                 end
+%                 
+%                 %chord length density
+%                 phi = chordLengthDensity(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, grid1x1, .00125);
+%                 %log
+%                 dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features',...
+%                         'logChordLengthDens00125FullDomain', 'delimiter',...
+%                         '', '-append');
+%                 end
+%                 
+%                 phi = chordLengthDensity(mData{n}.diskCenters,...
+%                     mData{n}.diskRadii, grid1x1, .000625);
+%                 %log
+%                 dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+%                 if n == 1
+%                     dlmwrite('./data/features',...
+%                         'logChordLengthDens000625FullDomain', 'delimiter',...
+%                         '', '-append');
+%                 end
             end
             self.designMatrix = dMat;
             disp('...feature functions evaluated.');

@@ -78,6 +78,7 @@ classdef StokesROM < handle
                 mu_theta = self.modelParams.theta_c;
                 
                 Phi_full = cell2mat(self.trainingData.designMatrix);
+                Phi_fullT = Phi_full';
                 if(numel(self.modelParams.VRVM_iter) >=...
                         self.modelParams.EM_iter + 1)
                     iter = ...
@@ -95,19 +96,27 @@ classdef StokesROM < handle
                 end
                 if isempty(self.trainingData.designMatrixSqSum)
                     self.trainingData.designMatrixSqSum =...
-                        spalloc(nElc, dim_theta^2, nElc*nFeatures^2);
+                        spalloc(dim_theta^2, nElc, nElc*nFeatures^2);
                     for k = 1:nElc
                         for n = 1:self.trainingData.nSamples
                             tmp = self.trainingData.designMatrix{n}(k, :)'*...
                                 self.trainingData.designMatrix{n}(k, :);
-                            self.trainingData.designMatrixSqSum(k, :) =...
-                                self.trainingData.designMatrixSqSum(k, :)...
-                                + tmp(:)';
+                            self.trainingData.designMatrixSqSum(:, k) =...
+                                self.trainingData.designMatrixSqSum(:, k)...
+                                + tmp(:);
                         end
                     end
+                    self.trainingData.designMatrixSqSum = ...
+                        self.trainingData.designMatrixSqSum';
                 end
                 cmpt = tic;
                 converged = false;
+                I = eye(nFeatures);
+                opts.SYM = true;
+                opts.POSDEF = true;
+                t1s = 0;
+                t2s = 0;
+                t3s = 0;
                 i = 0;
                 while ~converged
                     if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
@@ -155,7 +164,9 @@ classdef StokesROM < handle
                             diag(tau_c)*XMean(:, n);
                     end
                     
-                    tau_theta = tau_theta + Phi_full'*tau_c_long*Phi_full;
+%                     tau_theta = tau_theta + Phi_full'*tau_c_long*Phi_full;
+                    tau_theta = tau_theta + Phi_fullT*(tau_c_long*Phi_full);
+                    
                     
                     if(strcmp(self.modelParams.mode, 'local') && nElc > 4)
                         %solve block-diagonal tau_theta
@@ -167,13 +178,26 @@ classdef StokesROM < handle
 %                                 tau_theta(((k-1)*nFeatures+ 1):(k*nFeatures),...
 %                                 ((k - 1)*nFeatures + 1):(k*nFeatures))));
 %                         end
-                        %faster inversion based on cholesky decomp.
-                        for k = 1:nElc
-                            Sigma_theta(((k-1)*nFeatures + 1):(k*nFeatures),...
-                                ((k - 1)*nFeatures + 1):(k*nFeatures)) = ...
-                                invChol_mex(full(tau_theta(...
-                                ((k-1)*nFeatures+ 1):(k*nFeatures),...
-                                ((k - 1)*nFeatures + 1):(k*nFeatures))));
+                        if(nFeatures > 320)
+                            %faster inversion based on cholesky decomp.
+                            %faster for matrices > 320x320
+                            for k = 1:nElc
+                                Sigma_theta(((k-1)*nFeatures + 1):(k*nFeatures),...
+                                    ((k - 1)*nFeatures + 1):(k*nFeatures)) = ...
+                                    invChol_mex(full(tau_theta(...
+                                    ((k-1)*nFeatures+ 1):(k*nFeatures),...
+                                    ((k - 1)*nFeatures + 1):(k*nFeatures))));
+                            end
+                        else
+                            %Most efficient way to invert Sigma_theta
+                            %faster for matrices < 320x320
+                            for k = 1:nElc
+                                Sigma_theta(((k-1)*nFeatures + 1):(k*nFeatures),...
+                                    ((k - 1)*nFeatures + 1):(k*nFeatures)) = ...
+                                    linsolve(full(tau_theta(...
+                                    ((k-1)*nFeatures+ 1):(k*nFeatures),...
+                                    ((k - 1)*nFeatures + 1):(k*nFeatures))), I, opts);
+                            end
                         end
                     else
                         Sigma_theta = inv(tau_theta);
@@ -185,6 +209,9 @@ classdef StokesROM < handle
                         converged = true;
                     end
                 end
+                t1s
+                t2s
+                t3s
                 
                 %assign <S>, <Sigma_c>, <theta_c>
                 self.modelParams.sigma_cf.s0 = 1./tau_cf;
