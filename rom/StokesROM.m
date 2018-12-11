@@ -114,9 +114,6 @@ classdef StokesROM < handle
                 I = eye(nFeatures);
                 opts.SYM = true;
                 opts.POSDEF = true;
-                t1s = 0;
-                t2s = 0;
-                t3s = 0;
                 i = 0;
                 while ~converged
                     if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
@@ -209,9 +206,6 @@ classdef StokesROM < handle
                         converged = true;
                     end
                 end
-                t1s
-                t2s
-                t3s
                 
                 %assign <S>, <Sigma_c>, <theta_c>
                 self.modelParams.sigma_cf.s0 = 1./tau_cf;

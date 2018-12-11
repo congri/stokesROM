@@ -33,7 +33,7 @@ end
 n_mults = 2000;
 
 % Size of matrix to test.
-matdim = 320;
+matdim = 800;
 
 % Generate random symmetric matrix.
 if verLessThan('matlab', '7.12')
