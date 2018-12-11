@@ -17,6 +17,21 @@ classdef StokesROM < handle
             %Constructor
         end
         
+        %% M-step update functions
+        
+        function a = update_a(self)
+            if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
+                nElc = size(self.trainingData.designMatrix{1}, 1);
+                a = self.modelParams.VRVM_a + .5*nElc;
+            elseif strcmp(self.modelParams.prior_theta_c,'adaptiveGaussian')
+                dim_theta = numel(self.modelParams.theta_c);
+                a = self.modelParams.VRVM_a + .5*dim_theta;
+            else
+                a = self.modelParams.VRVM_a + .5;
+            end
+        end
+        
+        %% M-step
         function M_step(self, XMean, XSqMean, sqDist_p_cf)
             
             if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
@@ -26,15 +41,14 @@ classdef StokesROM < handle
                 nElc = size(self.trainingData.designMatrix{1}, 1);
                 
                 %Parameters that do not change when q(lambda_c) is fixed
-                if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
-                    dim_gamma = dim_theta/nElc;
-                    a = self.modelParams.VRVM_a + .5*nElc;
-                elseif strcmp(self.modelParams.prior_theta_c,'adaptiveGaussian')
-                    dim_gamma = 1;
-                    a = self.modelParams.VRVM_a + .5*dim_theta;
-                else
-                    a = self.modelParams.VRVM_a + .5;
-                end
+%                 if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
+%                     a = self.modelParams.VRVM_a + .5*nElc;
+%                 elseif strcmp(self.modelParams.prior_theta_c,'adaptiveGaussian')
+%                     a = self.modelParams.VRVM_a + .5*dim_theta;
+%                 else
+%                     a = self.modelParams.VRVM_a + .5;
+%                 end
+                a = self.update_a;
                 e = self.modelParams.VRVM_e + .5*self.trainingData.nSamples;
                 c = self.modelParams.VRVM_c + .5*self.trainingData.nSamples;
                 Ncells_gridS = numel(self.modelParams.fineGridX)*...
@@ -117,6 +131,7 @@ classdef StokesROM < handle
                 i = 0;
                 while ~converged
                     if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
+                        dim_gamma = dim_theta/nElc;
                         thetaSq_expect_sum = sum(reshape(...
                             mu_theta.^2 + diag(Sigma_theta), dim_gamma,nElc),2);
                         b = self.modelParams.VRVM_b + .5*thetaSq_expect_sum;
@@ -229,8 +244,9 @@ classdef StokesROM < handle
             self.modelParams.EM_iter_split = self.modelParams.EM_iter_split + 1;
         end
         
+        %% Old M-step functions
         function update_p_c(self, XMean, XSqMean)
-            %% Find optimal theta_c and Sigma_c self-consistently:
+            %Find optimal theta_c and Sigma_c self-consistently:
             %update theta_c, then Sigma_c, then theta_c and so on
             
             %short-hand notation

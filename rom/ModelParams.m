@@ -53,6 +53,7 @@ classdef ModelParams < matlab.mixin.Copyable
         mode = 'local'  %separate theta_c's per macro-cell
         %VRVM, sharedVRVM or adaptiveGaussian
         prior_theta_c = 'sharedVRVM'
+        diag_theta_c = true     %diagonal Gaussian for Q(theta_c)
         gamma   %Gaussian precision of prior on theta_c
         VRVM_a = eps
         VRVM_b = eps
