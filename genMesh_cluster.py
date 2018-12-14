@@ -7,6 +7,8 @@ from shutil import copyfile
 import scipy.io as sio
 import mshr
 import sys
+import mat4py
+import numpy as np
 
 
 # Global parameters
@@ -98,8 +100,8 @@ while mesh_name_iter < nMeshes:
 
     print('Loading microstructural data...')
     matfile = sio.loadmat(foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat')
-    diskCenters = matfile['diskCenters']
-    diskRadii = matfile['diskRadii']
+    diskCenters = np.array(matfile['diskCenters'])
+    diskRadii = np.array(matfile['diskRadii'])
     diskRadii = diskRadii.flatten()
     print('... microstructural data loaded.')
 
@@ -130,8 +132,18 @@ while mesh_name_iter < nMeshes:
     print('saving mesh to ./mesh' + str(mesh_name_iter) + '.mat ...')
     # is this more efficient with compression turned on?
     sys.stdout.flush()
-    sio.savemat(foldername + '/mesh' + str(mesh_name_iter) + '.mat',
-                {'x': mesh.coordinates(), 'cells': mesh.cells() + 1}, do_compression=True)
+    try:
+        x_temp = mesh.coordinates()
+        x_temp = x_temp.tolist()
+        cells_temp = mesh.cells() + 1
+        cells_temp = cells_temp.tolist()
+        mat4py.savemat(foldername + '/mesh' + str(mesh_name_iter) + '.mat',
+                    {'x': x_temp, 'cells': cells_temp})
+        print('saved using mat4py')
+    except:
+        sio.savemat(foldername + '/mesh' + str(mesh_name_iter) + '.mat',
+                    {'x': mesh.coordinates(), 'cells': mesh.cells() + 1}, do_compression=True)
+        print('saved using scipy.io')
     print('... ./mesh' + str(mesh_name_iter) + '.mat saved.')
     print('removing ' + './microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat ...')
     os.remove(foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat')
