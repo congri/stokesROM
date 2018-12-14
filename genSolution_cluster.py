@@ -187,8 +187,9 @@ for meshNumber in meshes:
     # load mesh from mat file
     # mesh_data = sio.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
     mesh_data = mat4py.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
-    x = mesh_data['x']
-    cells = mesh_data['cells']
+    x = np.array(mesh_data['x'])
+    cells = np.array(mesh_data['cells'])
+
     try:
         cells -= 1  # matlab to python indexing
     except:
@@ -288,8 +289,13 @@ for meshNumber in meshes:
         else:
             # sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
             #                            'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
-            mat4py.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
-                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates()})
+            u_temp = np.reshape(u.compute_vertex_values(), (2, -1))
+            u_temp = u_temp.tolist()
+            p_temp = p.compute_vertex_values()
+            p_temp = p_temp.tolist()
+            x_temp = mesh.coordinates()
+            x_temp = x_temp.tolist()
+            mat4py.savemat(solutionfile, {'u': u_temp, 'p': p_temp, 'x': x_temp})
         print('...solution saved. Total time: ', time.time() - t)
         sys.stdout.flush()
     except:
