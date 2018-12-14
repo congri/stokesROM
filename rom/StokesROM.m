@@ -18,99 +18,275 @@ classdef StokesROM < handle
         end
         
         %% M-step update functions
-        
-        function a = update_a(self)
+        function update_a(self)
             if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
                 nElc = size(self.trainingData.designMatrix{1}, 1);
-                a = self.modelParams.VRVM_a + .5*nElc;
+                self.modelParams.a = self.modelParams.VRVM_a + .5*nElc;
             elseif strcmp(self.modelParams.prior_theta_c,'adaptiveGaussian')
                 dim_theta = numel(self.modelParams.theta_c);
-                a = self.modelParams.VRVM_a + .5*dim_theta;
+                self.modelParams.a = self.modelParams.VRVM_a + .5*dim_theta;
             else
-                a = self.modelParams.VRVM_a + .5;
+                self.modelParams.a = self.modelParams.VRVM_a + .5;
             end
         end
         
-        %% M-step
-        function M_step(self, XMean, XSqMean, sqDist_p_cf)
-            
-            if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
-                    strcmp(self.modelParams.prior_theta_c, 'sharedVRVM') ||...
-                    strcmp(self.modelParams.prior_theta_c, 'adaptiveGaussian'))
-                dim_theta = numel(self.modelParams.theta_c);
-                nElc = size(self.trainingData.designMatrix{1}, 1);
-                
-                %Parameters that do not change when q(lambda_c) is fixed
-%                 if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
-%                     a = self.modelParams.VRVM_a + .5*nElc;
-%                 elseif strcmp(self.modelParams.prior_theta_c,'adaptiveGaussian')
-%                     a = self.modelParams.VRVM_a + .5*dim_theta;
-%                 else
-%                     a = self.modelParams.VRVM_a + .5;
-%                 end
-                a = self.update_a;
-                e = self.modelParams.VRVM_e + .5*self.trainingData.nSamples;
-                c = self.modelParams.VRVM_c + .5*self.trainingData.nSamples;
-                Ncells_gridS = numel(self.modelParams.fineGridX)*...
-                    numel(self.modelParams.fineGridY);
-                if any(self.modelParams.interpolationMode)
-                    sqDistSum = 0;
+        function update_b(self)
+            dim_theta = numel(self.modelParams.theta_c);
+            nElc = size(self.trainingData.designMatrix{1}, 1);
+            dim_gamma = dim_theta/nElc;
+            if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
+                thetaSq_expect_sum = sum(reshape(self.modelParams.theta_cSq,...
+                    dim_gamma, nElc), 2);
+                b = self.modelParams.VRVM_b + .5*thetaSq_expect_sum;
+                self.modelParams.b = repmat(b, nElc, 1);
+            elseif strcmp(self.modelParams.prior_theta_c, 'adaptiveGaussian')
+                b = self.modelParams.VRVM_b+ .5*sum(self.modelParams.theta_cSq);
+                self.modelParams.b = repmat(b, dim_theta, 1);
+            else
+                self.modelParams.b =...
+                    self.modelParams.VRVM_b + .5*self.modelParams.theta_cSq;
+            end
+        end
+        
+        function update_c(self)
+            self.modelParams.c =...
+                self.modelParams.VRVM_c + .5*self.trainingData.nSamples;
+        end
+        
+        function update_d(self, XMean, XSqMean)
+            %first term
+            d = self.modelParams.VRVM_d + .5*sum(XSqMean, 2);
+            PhiThetaMean_n_sq_sum = 0;
+            for n = 1:self.trainingData.nSamples
+                PhiThetaMean_n = self.trainingData.designMatrix{n}*...
+                    self.modelParams.theta_c;
+                PhiThetaMean_n_sq_sum = PhiThetaMean_n_sq_sum + ...
+                    PhiThetaMean_n.^2;
+                %second term
+%                 XMean_n = XMean(:, n)
+%                 pred = self.trainingData.designMatrix{n}*self.modelParams.theta_c
+                d = d - XMean(:, n).*PhiThetaMean_n;
+            end
+            %third term
+            %should be correct also for diag Sigma_theta_c
+            if self.modelParams.diag_theta_c
+                self.modelParams.d = d + .5*(PhiThetaMean_n_sq_sum + ...
+                    self.trainingData.designMatrixSqSum'*...
+                    self.modelParams.Sigma_theta_c);
+            else
+                self.modelParams.d = d + .5*(PhiThetaMean_n_sq_sum + ...
+                    self.trainingData.designMatrixSqSum*...
+                    self.modelParams.Sigma_theta_c(:));
+            end
+        end
+        
+        function update_e(self)
+            self.modelParams.e =...
+                self.modelParams.VRVM_e + .5*self.trainingData.nSamples;
+        end
+        
+        function update_f(self, sqDist_p_cf)
+            Ncells_gridS = numel(self.modelParams.fineGridX)*...
+                numel(self.modelParams.fineGridY);
+            if any(self.modelParams.interpolationMode)
+                sqDistSum = 0;
+                for n = 1:numel(self.trainingData.samples)
+                    sqDistSum = sqDistSum + sqDist_p_cf{n};
+                end
+            else
+                sqDistSum = zeros(Ncells_gridS, 1);
+                for j = 1:Ncells_gridS
                     for n = 1:numel(self.trainingData.samples)
-                        sqDistSum = sqDistSum + sqDist_p_cf{n};
+                        sqDistSum(j)= sqDistSum(j) + mean(sqDist_p_cf{n}(...
+                            j == self.trainingData.cellOfVertex{n}));
                     end
+                end
+            end
+            self.modelParams.f = self.modelParams.VRVM_f + .5*sqDistSum;
+        end
+        
+        function compute_theta_cSq(self)
+            %Expected value of (theta_{c, i})^2
+            if isvector(self.modelParams.Sigma_theta_c)
+                self.modelParams.theta_cSq = self.modelParams.theta_c.^2 +...
+                    self.modelParams.Sigma_theta_c;
+            else
+                self.modelParams.theta_cSq = self.modelParams.theta_c.^2 +...
+                    diag(self.modelParams.Sigma_theta_c);
+            end
+        end
+        
+        function compute_Sigma_theta_c(self, Phi_full, I, opts)
+            %short hand notation
+            nElc = size(self.trainingData.designMatrix{1}, 1);
+            dim_theta = numel(self.modelParams.theta_c);
+            nFeatures = dim_theta/nElc;
+            tau_c = 1./diag(self.modelParams.Sigma_c);
+            
+            if self.modelParams.diag_theta_c
+                tau_theta = self.trainingData.designMatrixSqSum*tau_c +...
+                    self.modelParams.gamma;
+                %is a vector here
+                self.modelParams.Sigma_theta_c = 1./tau_theta;
+            else
+                if strcmp(self.modelParams.mode, 'local')
+                    tau_theta = sparse(1:dim_theta, 1:dim_theta, ...
+                        self.modelParams.gamma, dim_theta, dim_theta,...
+                        dim_theta^2/nElc);
                 else
-                    sqDistSum = zeros(Ncells_gridS, 1);
-                    for j = 1:Ncells_gridS
-                        for n = 1:numel(self.trainingData.samples)
-                            sqDistSum(j)= sqDistSum(j) + mean(sqDist_p_cf{n}(...
-                                j == self.trainingData.cellOfVertex{n}));
+                    tau_theta = diag(self.modelParams.gamma);
+                end
+                
+                tau_c_long = sparse(1:(nElc*self.trainingData.nSamples), ...
+                    1:(nElc*self.trainingData.nSamples), ...
+                    repmat(tau_c, self.trainingData.nSamples, 1));
+                tau_theta = tau_theta + Phi_full'*(tau_c_long*Phi_full);
+                
+                
+                if(strcmp(self.modelParams.mode, 'local') && nElc > 4)
+                    %solve block-diagonal tau_theta
+                    %break-even at nElc == 4?
+                    %can even be done in parallel
+                    if(nFeatures > 320)
+                        %faster inversion based on cholesky decomp.
+                        %faster for matrices > 320x320
+                        for k = 1:nElc
+                            self.modelParams.Sigma_theta_c(...
+                                ((k-1)*nFeatures + 1):(k*nFeatures),...
+                                ((k - 1)*nFeatures + 1):(k*nFeatures)) = ...
+                                invChol_mex(full(tau_theta(...
+                                ((k-1)*nFeatures+ 1):(k*nFeatures),...
+                                ((k - 1)*nFeatures + 1):(k*nFeatures))));
+                        end
+                    else
+                        %Most efficient way to invert Sigma_theta
+                        %faster for matrices < 320x320
+                        for k = 1:nElc
+                            self.modelParams.Sigma_theta_c(...
+                                ((k-1)*nFeatures + 1):(k*nFeatures),...
+                                ((k - 1)*nFeatures + 1):(k*nFeatures)) = ...
+                                linsolve(full(tau_theta(...
+                                ((k-1)*nFeatures+ 1):(k*nFeatures),...
+                                ((k - 1)*nFeatures + 1):(k*nFeatures))),I,opts);
                         end
                     end
+                else
+                    self.modelParams.Sigma_theta_c = inv(tau_theta);
                 end
-                f = self.modelParams.VRVM_f + .5*sqDistSum;
-                tau_cf = e./f;  %p_cf precision
+            end
+        end
+        
+        function compute_theta_c(self, XMean, Phi_full)
+            nElc = size(self.trainingData.designMatrix{1}, 1);
+            tau_c = 1./diag(self.modelParams.Sigma_c);
+            sumPhiTau_cXMean = 0;
+            for n = 1:self.trainingData.nSamples
+                sumPhiTau_cXMean = sumPhiTau_cXMean + ...
+                    self.trainingData.designMatrix{n}'*...
+                    diag(tau_c)*XMean(:, n);
+            end
+            if self.modelParams.diag_theta_c
+                tau_c_long = sparse(1:(nElc*self.trainingData.nSamples), ...
+                    1:(nElc*self.trainingData.nSamples), ...
+                    repmat(tau_c, self.trainingData.nSamples, 1));
                 
-                %initialization
-                if(numel(self.modelParams.gamma) ~= dim_theta)
-                    warning('resizing theta precision parameter gamma')
-                    %set up initial value for gamma here for the time being
-                    if strcmp(self.modelParams.prior_theta_c,'adaptiveGaussian')
-                        self.modelParams.gamma = 1e0*ones(dim_theta, 1);
-                    else
-                        self.modelParams.gamma = 1e-4*ones(dim_theta, 1);
+                %'TRUE' version
+                dim_theta = numel(self.modelParams.theta_c);
+                nFeatures = dim_theta/nElc;
+                A = self.modelParams.Sigma_theta_c'.*...
+                    (Phi_full'*(tau_c_long*Phi_full));
+                A_diag = diag(A);
+%                 A = A';
+%                 A = self.modelParams.Sigma_theta_c.*A;
+%                 A_diag = self.modelParams.Sigma_theta_c.*A_diag;
+                sumPhiT_tau_cXMean_Sigma_plus_A_diag_theta = ...
+                    self.modelParams.Sigma_theta_c.*sumPhiTau_cXMean + ...
+                    A_diag.*self.modelParams.theta_c;
+                tc = self.modelParams.theta_c';
+
+%                 for j = 1:dim_theta
+%                     term2 = A(j, :)*tc;
+%                     tc(j) =...
+%                         sumPhiT_tau_cXMean_Sigma_plus_A_diag_theta(j) - term2;
+%                 end
+                
+                nCycles = 1;
+                for c = 1:nCycles
+                    for j = 1:dim_theta
+                        term2 = tc*A(:, j);
+                        tc(j) =...
+                            sumPhiT_tau_cXMean_Sigma_plus_A_diag_theta(j) - term2;
                     end
                 end
-                gam = self.modelParams.gamma;
-                nFeatures = dim_theta/nElc;
-                if isempty(self.modelParams.Sigma_theta_c)
-%                     Sigma_theta = inv(tau_theta);
-                    Sigma_theta = spalloc(dim_theta, dim_theta, nElc*nFeatures^2);
-                    Sigma_theta(1:(dim_theta + 1):end) = 1./gam;
-                else
-                    Sigma_theta = self.modelParams.Sigma_theta_c;
-                end
-                mu_theta = self.modelParams.theta_c;
                 
-                Phi_full = cell2mat(self.trainingData.designMatrix);
-                Phi_fullT = Phi_full';
-                if(numel(self.modelParams.VRVM_iter) >=...
-                        self.modelParams.EM_iter + 1)
-                    iter = ...
-                        self.modelParams.VRVM_iter(self.modelParams.EM_iter+ 1);
+                %Randomized updates
+%                 nIter = 10*dim_theta;
+%                 for iter = 1:nIter
+%                     j = randi(dim_theta);
+%                     term2 = A(j, :)*tc;
+%                     tc(j) =...
+%                         sumPhiT_tau_cXMean_Sigma_plus_A_diag_theta(j) - term2;
+%                 end
+
+%                 %should be correct in local mode
+%                 for j = 1:nFeatures
+%                     term2 = A(j:nElc:end, :)*tc;
+%                     tc(j:nElc:end) =...
+%                         sumPhiT_tau_cXMean_Sigma_plus_A_diag_theta(j:nElc:end)...
+%                         - term2;
+%                 end
+                self.modelParams.theta_c = tc';
+            else
+                self.modelParams.theta_c =...
+                    self.modelParams.Sigma_theta_c*sumPhiTau_cXMean;
+            end
+        end
+        
+        function initialize_Sigma_theta_c(self)
+            if isempty(self.modelParams.Sigma_theta_c)
+                dim_theta = numel(self.modelParams.theta_c);
+                nElc = size(self.trainingData.designMatrix{1}, 1);
+%                 Sigma_theta_c = spalloc(dim_theta, dim_theta, dim_theta^2/nElc);
+%                 Sigma_theta_c(1:(dim_theta + 1):end)= 1./self.modelParams.gamma;
+                if self.modelParams.diag_theta_c
+                    self.modelParams.Sigma_theta_c = 1./self.modelParams.gamma;
                 else
-                    iter = ...
-                        self.modelParams.VRVM_iter(end);
+                    self.modelParams.Sigma_theta_c = sparse(...
+                        1:dim_theta, 1:dim_theta, 1./self.modelParams.gamma,...
+                        dim_theta, dim_theta, dim_theta^2/nElc);
                 end
-                if(self.modelParams.epoch + 1 <=...
-                        numel(self.modelParams.VRVM_time))
-                    t_max = self.modelParams.VRVM_time(...
-                        self.modelParams.epoch + 1);
+            end
+        end
+        
+        function initialize_gamma(self)
+            dim_theta = numel(self.modelParams.theta_c);
+            if(numel(self.modelParams.gamma) ~= dim_theta)
+                warning('resizing theta precision parameter gamma')
+                %set up initial value for gamma here for the time being
+                if strcmp(self.modelParams.prior_theta_c,'adaptiveGaussian')
+                    self.modelParams.gamma = 1e0*ones(dim_theta, 1);
                 else
-                    t_max = self.modelParams.VRVM_time(end);
+                    self.modelParams.gamma = 1e0*ones(dim_theta, 1);
                 end
-                if isempty(self.trainingData.designMatrixSqSum)
+            end
+        end
+        
+        function get_designMatrixSqSum(self)
+            if isempty(self.trainingData.designMatrixSqSum)
+                dim_theta = numel(self.modelParams.theta_c);
+                nElc = size(self.trainingData.designMatrix{1}, 1);
+                if self.modelParams.diag_theta_c
+                    self.trainingData.designMatrixSqSum = 0;
+                    for n = 1:self.trainingData.nSamples
+                        self.trainingData.designMatrixSqSum = ...
+                            self.trainingData.designMatrixSqSum + ...
+                            self.trainingData.designMatrix{n}.^2;
+                    end
+                    self.trainingData.designMatrixSqSum = ...
+                        self.trainingData.designMatrixSqSum';
+                else
                     self.trainingData.designMatrixSqSum =...
-                        spalloc(dim_theta^2, nElc, nElc*nFeatures^2);
+                        spalloc(dim_theta^2, nElc, dim_theta^2/nElc);
                     for k = 1:nElc
                         for n = 1:self.trainingData.nSamples
                             tmp = self.trainingData.designMatrix{n}(k, :)'*...
@@ -123,116 +299,93 @@ classdef StokesROM < handle
                     self.trainingData.designMatrixSqSum = ...
                         self.trainingData.designMatrixSqSum';
                 end
-                cmpt = tic;
+            end
+        end
+        
+        %% M-step
+        function M_step(self, XMean, XSqMean, sqDist_p_cf)
+            
+            if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
+                    strcmp(self.modelParams.prior_theta_c, 'sharedVRVM') ||...
+                    strcmp(self.modelParams.prior_theta_c, 'adaptiveGaussian'))
+                dim_theta = numel(self.modelParams.theta_c);
+                nElc = size(self.trainingData.designMatrix{1}, 1);
+                nFeatures = dim_theta/nElc;
+                
+                
+                %Parameters that do not change during M-step iterations
+                self.update_a;
+                self.update_c;
+                self.update_e;
+                self.update_f(sqDist_p_cf);
+                
+                %p_cf precision
+                tau_cf = (self.modelParams.e)./(self.modelParams.f);
+
+                %Initialization
+                self.initialize_gamma;
+                self.initialize_Sigma_theta_c;
+                
+                %Precomputation stuff
+                if self.modelParams.diag_theta_c
+                    I = [];     opts = [];
+                else
+                    %For linsolve
+                    I = eye(nFeatures); opts.SYM = true; opts.POSDEF = true;
+                end
+                Phi_full = cell2mat(self.trainingData.designMatrix);
+                self.get_designMatrixSqSum;
+                
+                %Get M-step time
+                if(self.modelParams.epoch + 1 <=...
+                        numel(self.modelParams.VRVM_time))
+                    t_max = self.modelParams.VRVM_time(...
+                        self.modelParams.epoch + 1);
+                else
+                    t_max = self.modelParams.VRVM_time(end);
+                end
+                
+                if(self.modelParams.epoch + 1 <=...
+                        numel(self.modelParams.VRVM_iter))
+                    iter_max = self.modelParams.VRVM_iter(...
+                        self.modelParams.epoch + 1);
+                else
+                    iter_max = self.modelParams.VRVM_iter(end);
+                end
+                
+                %For 'convergence'
                 converged = false;
-                I = eye(nFeatures);
-                opts.SYM = true;
-                opts.POSDEF = true;
                 i = 0;
+                cmpt = tic;
                 while ~converged
-                    if strcmp(self.modelParams.prior_theta_c, 'sharedVRVM')
-                        dim_gamma = dim_theta/nElc;
-                        thetaSq_expect_sum = sum(reshape(...
-                            mu_theta.^2 + diag(Sigma_theta), dim_gamma,nElc),2);
-                        b = self.modelParams.VRVM_b + .5*thetaSq_expect_sum;
-                        b = repmat(b, nElc, 1);
-                    elseif strcmp(self.modelParams.prior_theta_c,...
-                            'adaptiveGaussian')
-                        b = self.modelParams.VRVM_b + .5*sum(mu_theta.^2 +...
-                            diag(Sigma_theta));
-                        b = repmat(b, dim_theta, 1);
-                    else
-                        b = self.modelParams.VRVM_b + .5*(mu_theta.^2 +...
-                            diag(Sigma_theta));
-                    end
-                    gam = a./b;
-                    d = self.modelParams.VRVM_d + .5*sum(XSqMean, 2);
-                    PhiThetaMean_n_sq_sum = 0;
-                    for n = 1:self.trainingData.nSamples
-                        PhiThetaMean_n = self.trainingData.designMatrix{n}*...
-                            mu_theta;
-                        PhiThetaMean_n_sq_sum = PhiThetaMean_n_sq_sum + ...
-                            PhiThetaMean_n.^2;
-                        d = d - XMean(:, n).*PhiThetaMean_n;
-                    end
-                    d = d + .5*(PhiThetaMean_n_sq_sum + ...
-                        self.trainingData.designMatrixSqSum*Sigma_theta(:));
+                    self.compute_theta_cSq;
+                    self.update_b;
                     
-                    tau_c = c./d;   %precision of p_c
-                    tau_c_long = sparse(1:(nElc*self.trainingData.nSamples), ...
-		                1:(nElc*self.trainingData.nSamples), ...
-		                repmat(tau_c, self.trainingData.nSamples, 1));
-                    if strcmp(self.modelParams.mode, 'local')
-                        tau_theta = sparse(1:dim_theta, 1:dim_theta, gam,...
-                            dim_theta, dim_theta, nElc*nFeatures^2);
-                    else
-                        tau_theta = diag(gam);
-                    end
-                    sumPhiTau_cXMean = 0;
+                    %precision of theta_c
+                    self.modelParams.gamma =...
+                        (self.modelParams.a)./(self.modelParams.b);
+%                     gamma = self.modelParams.gamma(1:10)
+%                     pause
+                    self.update_d(XMean, XSqMean);
                     
-                    for n = 1:self.trainingData.nSamples
-                        sumPhiTau_cXMean = sumPhiTau_cXMean + ...
-                            self.trainingData.designMatrix{n}'*...
-                            diag(tau_c)*XMean(:, n);
-                    end
+                    %precision of p_c
+                    self.modelParams.Sigma_c = sparse(...
+                        diag((self.modelParams.d)./(self.modelParams.c)));
+%                     Sigma_c = self.modelParams.Sigma_c
+%                     pause
                     
-%                     tau_theta = tau_theta + Phi_full'*tau_c_long*Phi_full;
-                    tau_theta = tau_theta + Phi_fullT*(tau_c_long*Phi_full);
+                    %Q(theta_c)
+                    self.compute_Sigma_theta_c(Phi_full, I, opts);
+                    self.compute_theta_c(XMean, Phi_full);
                     
-                    
-                    if(strcmp(self.modelParams.mode, 'local') && nElc > 4)
-                        %solve block-diagonal tau_theta
-                        %break-even at nElc == 4?
-                        %can even be done in parallel
-%                         for k = 1:nElc
-%                             Sigma_theta(((k-1)*nFeatures + 1):(k*nFeatures),...
-%                                 ((k - 1)*nFeatures + 1):(k*nFeatures)) = inv(full(...
-%                                 tau_theta(((k-1)*nFeatures+ 1):(k*nFeatures),...
-%                                 ((k - 1)*nFeatures + 1):(k*nFeatures))));
-%                         end
-                        if(nFeatures > 320)
-                            %faster inversion based on cholesky decomp.
-                            %faster for matrices > 320x320
-                            for k = 1:nElc
-                                Sigma_theta(((k-1)*nFeatures + 1):(k*nFeatures),...
-                                    ((k - 1)*nFeatures + 1):(k*nFeatures)) = ...
-                                    invChol_mex(full(tau_theta(...
-                                    ((k-1)*nFeatures+ 1):(k*nFeatures),...
-                                    ((k - 1)*nFeatures + 1):(k*nFeatures))));
-                            end
-                        else
-                            %Most efficient way to invert Sigma_theta
-                            %faster for matrices < 320x320
-                            for k = 1:nElc
-                                Sigma_theta(((k-1)*nFeatures + 1):(k*nFeatures),...
-                                    ((k - 1)*nFeatures + 1):(k*nFeatures)) = ...
-                                    linsolve(full(tau_theta(...
-                                    ((k-1)*nFeatures+ 1):(k*nFeatures),...
-                                    ((k - 1)*nFeatures + 1):(k*nFeatures))), I, opts);
-                            end
-                        end
-                    else
-                        Sigma_theta = inv(tau_theta);
-                    end
-                    mu_theta = Sigma_theta*sumPhiTau_cXMean;
                     i = i + 1;
                     t = toc(cmpt);
-                    if(t > t_max)
+                    if(t > t_max || i >= iter_max)
                         converged = true;
                     end
                 end
-                
-                %assign <S>, <Sigma_c>, <theta_c>
+                %assign <S>
                 self.modelParams.sigma_cf.s0 = 1./tau_cf;
-                
-                self.modelParams.Sigma_c = sparse(diag(1./tau_c));
-                self.modelParams.theta_c = mu_theta;
-                self.modelParams.Sigma_theta_c = Sigma_theta;
-                
-                self.modelParams.gamma = gam;
-                self.modelParams.a = a;    self.modelParams.b = b;
-                self.modelParams.c = c;    self.modelParams.d = d;
-                self.modelParams.e = e;    self.modelParams.f = f;
                 mean_s0 = mean(self.modelParams.sigma_cf.s0)
             else
                 %Update model parameters
@@ -675,7 +828,14 @@ classdef StokesROM < handle
 %             self.modelParams.Sigma_c(self.modelParams.Sigma_c > 1e-1) = ...
 %                 1e-1;
 %             pause
-            tau_theta_c = inv(self.modelParams.Sigma_theta_c);
+            dim_theta = numel(self.modelParams.theta_c);
+            if isvector(self.modelParams.Sigma_theta_c)
+                Sigma_theta_c = sparse(1:dim_theta, 1:dim_theta, ...
+                    self.modelParams.Sigma_theta_c);
+            else
+                Sigma_theta_c = self.modelParams.Sigma_c;
+            end
+            tau_theta_c = inv(Sigma_theta_c);
             Sigma_c_vec_inv = 1./diag(self.modelParams.Sigma_c);
             for n = 1:nTest
                 if(strcmp(self.modelParams.prior_theta_c, 'VRVM') || ...
@@ -702,8 +862,7 @@ classdef StokesROM < handle
                         Sigma_lambda_c = inv(precisionLambda_c);
                         
                         mu_lambda_c = (precisionLambda_c\Sigma_c_inv_Phi)*...
-                            (SigmaTilde/self.modelParams.Sigma_theta_c)*...
-                            self.modelParams.theta_c;
+                            (SigmaTilde/Sigma_theta_c)*self.modelParams.theta_c;
                     end
                 else
                     mu_lambda_c = testData.designMatrix{n}*...
@@ -1006,7 +1165,6 @@ classdef StokesROM < handle
             prior_theta_c = self.modelParams.prior_theta_c;
             designMatrix = self.trainingData.designMatrix;
             Sigma_c = self.modelParams.Sigma_c;
-            Sigma_theta_c = self.modelParams.Sigma_theta_c;
             theta_c = self.modelParams.theta_c;
             P = self.trainingData.P;
             cm = self.modelParams.coarseMesh;

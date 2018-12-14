@@ -6,6 +6,8 @@ import time
 import scipy.io as sio
 import os
 import socket
+import sys
+import mat4py
 
 # Test for PETSc or Epetra
 if not df.has_linear_algebra_backend("PETSc") and not df.has_linear_algebra_backend("Epetra"):
@@ -132,17 +134,33 @@ for meshNumber in meshes:
         os.makedirs(solutionfolder)
     solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
 
+    #to store 'computation_started.txt' on the local file system also
+    tmpfolder = '/tmp' + solutionfolder
+    if not os.path.exists(tmpfolder):
+        os.makedirs(tmpfolder)
+
     # create computation_started.txt if not existent
     if not os.path.isfile(solutionfolder + '/computation_started.txt'):
         started_file = open(solutionfolder + '/computation_started.txt', 'w')
         started_file.close()
 
+    if not os.path.isfile(tmpfolder + '/computation_started.txt'):
+        started_file_tmp = open(tmpfolder + '/computation_started.txt', 'w')
+        started_file_tmp.close()
+
     started_file = open(solutionfolder + '/computation_started.txt', 'r')
     started_computations = started_file.readlines()
     started_file.close()
+
+    started_file_tmp = open(tmpfolder + '/computation_started.txt', 'r')
+    started_computations_tmp = started_file_tmp.readlines()
+    started_file_tmp.close()
     print('started_computations == ', started_computations)
+    print('started_computations on this machine == ', started_computations_tmp)
     while ((not os.path.isfile(meshfile)) or os.path.isfile(solutionfile)
-           or ((str(meshNumber) + '\n') in started_computations)) and meshNumber < meshes[-1]:
+           or ((str(meshNumber) + '\n') in started_computations)
+           or ((str(meshNumber) + '\n') in started_computations_tmp)) and meshNumber < meshes[-1]:
+
         # print('Mesh ', str(meshNumber), ' does not exist or solution already computed. Passing to next mesh...')
         # print('mesh path == ', meshfile)
         # print('solution path == ', solutionfile)
@@ -152,6 +170,11 @@ for meshNumber in meshes:
         solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
 
     # write mesh number to file s.t. it is clear that solution is currently computed
+    with open(tmpfolder + '/computation_started.txt', 'a') as started_file_tmp:
+        started_file_tmp.write(str(meshNumber) + '\n')
+        started_file_tmp.flush()
+        os.system('sync')
+
     with open(solutionfolder + '/computation_started.txt', 'a') as started_file:
         started_file.write(str(meshNumber) + '\n')
         started_file.flush()
@@ -162,7 +185,8 @@ for meshNumber in meshes:
     # mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
 
     # load mesh from mat file
-    mesh_data = sio.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
+    # mesh_data = sio.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
+    mesh_data = mat4py.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
     x = mesh_data['x']
     cells = mesh_data['cells']
     try:
@@ -241,6 +265,9 @@ for meshNumber in meshes:
     t = time.time()
     U = df.Function(W)
 
+    #this should go fast up to here, so let's flush before solving the PDE
+    sys.stdout.flush()
+
     try:
         solver.solve(U.vector(), bb)
         elapsed_time = time.time() - t
@@ -249,17 +276,24 @@ for meshNumber in meshes:
 
         # Get sub-functions
         u, p = U.split()
-
+        print('Saving solution...')
+        sys.stdout.flush()
         if rand_bc:
             bc = np.array([a_x, a_y, a_xy])
-            sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
-                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates(), 'bc': bc},
-                        do_compression=True)
+            # sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+            #                            'p': p.compute_vertex_values(), 'x': mesh.coordinates(), 'bc': bc},
+            #             do_compression=True)
+            mat4py.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates(), 'bc': bc})
         else:
-            sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
-                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
-
+            # sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+            #                            'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
+            mat4py.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates()})
+        print('...solution saved. Total time: ', time.time() - t)
+        sys.stdout.flush()
     except:
         print('Solver failed to converge. Passing to next mesh...')
+        sys.stdout.flush()
 
 

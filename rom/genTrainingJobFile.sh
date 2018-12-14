@@ -28,13 +28,13 @@ GRADIENTSAMPLESEND=1
 #STOCHOPTTIME=120    
 
 NSTART=0
-NTRAIN=128
+NTRAIN=16
 NTESTSTART=128
 NTESTEND=1128
 
-MAXEMEPOCHS=500
+MAXEMEPOCHS=100
 
-NAMEBASE="new_features_8x8"
+NAMEBASE="more_features_diag_theta_2x2"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
 JOBNAME="${DATESTR}_nTrain=${NTRAIN}_${NAMEBASE}"
@@ -92,7 +92,7 @@ fi
 #construct job file string
 echo "#!/bin/bash" >> ./job_file.sh
 echo "#SBATCH --job-name=${JOBNAME}" >> ./job_file.sh
-echo "#SBATCH --partition batch_SNB,batch_SKL" >> ./job_file.sh
+echo "#SBATCH --partition batch_SKL" >> ./job_file.sh
 echo "#SBATCH --nodes 1-1" >> ./job_file.sh
 echo "#SBATCH --mincpus=${NCORES}" >> ./job_file.sh     #node is not shared with other jobs
 echo "#SBATCH --output=/home/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh

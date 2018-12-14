@@ -42,24 +42,24 @@ echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
 echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
 echo "#SBATCH --time=1000:00:00" >> ./job_file.sh
 
-echo "sed -i \"12s/.*/nMeshes = $NMESHES/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"13s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"19s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"23s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"27s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"33s/.*/cov_l = ${LENGTHSCALE}/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"34s/.*/sig_scale = ${SIGMOID}/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"35s/.*/sigmaGP_r = ${SIGMAGPR}/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"36s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"13s/.*/nMeshes = $NMESHES/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"14s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"20s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"24s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"28s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"34s/.*/cov_l = ${LENGTHSCALE}/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"35s/.*/sig_scale = ${SIGMOID}/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"36s/.*/sigmaGP_r = ${SIGMAGPR}/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"37s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genMesh_cluster.py" >> ./job_file.sh
 
 
 #Activate fenics environment and run python
 echo "source ~/.bashrc" >> ./job_file.sh
 echo "conda activate mshr_new" >> ./job_file.sh
 echo "ulimit -s 32000" >> ./job_file.sh
-echo "while true; do" >> ./job_file.sh
-echo "python -u ./genMesh_cluster.py" >> ./job_file.sh
-echo "done" >> ./job_file.sh
+#echo "while true; do" >> ./job_file.sh
+echo "python ./genMesh_cluster.py" >> ./job_file.sh
+#echo "done" >> ./job_file.sh
 echo "" >> ./job_file.sh
 
 

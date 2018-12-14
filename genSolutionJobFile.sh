@@ -47,20 +47,20 @@ echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
 echo "#SBATCH --time=1000:00:00" >> ./job_file.sh
 
 #Set parameters
-echo "sed -i \"24s/.*/meshes = np.arange(${NMESHESLO}, ${NMESHESUP})/\" ./genSolution_cluster.py" >> ./job_file.sh
-echo "sed -i \"33s/.*/nExclusionParams = (${NEXCLUSIONPARAM1}, ${NEXCLUSIONPARAM2})/\" ./genSolution_cluster.py" >> ./job_file.sh
-echo "sed -i \"42s/.*/cov_l = ${LENGTHSCALE}/\" ./genSolution_cluster.py" >> ./job_file.sh
-echo "sed -i \"43s/.*/sig_scale = ${SIGMOID}/\" ./genSolution_cluster.py" >> ./job_file.sh
-echo "sed -i \"44s/.*/sigmaGP_r = ${SIGMAGPR}/\" ./genSolution_cluster.py" >> ./job_file.sh
-echo "sed -i \"45s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genSolution_cluster.py" >> ./job_file.sh
-echo "sed -i \"49s/.*/margins = (${MARG_LO}, ${MARG_R}, ${MARG_U}, ${MARG_LE})/\" ./genSolution_cluster.py" >> ./job_file.sh
-echo "sed -i \"50s/.*/r_params = (${RPARAM1}, ${RPARAM2})/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"26s/.*/meshes = np.arange(${NMESHESLO}, ${NMESHESUP})/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"35s/.*/nExclusionParams = (${NEXCLUSIONPARAM1}, ${NEXCLUSIONPARAM2})/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"44s/.*/cov_l = ${LENGTHSCALE}/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"45s/.*/sig_scale = ${SIGMOID}/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"46s/.*/sigmaGP_r = ${SIGMAGPR}/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"47s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"51s/.*/margins = (${MARG_LO}, ${MARG_R}, ${MARG_U}, ${MARG_LE})/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"52s/.*/r_params = (${RPARAM1}, ${RPARAM2})/\" ./genSolution_cluster.py" >> ./job_file.sh
 
 #Activate fenics environment and run python
 echo "source ~/.bashrc" >> ./job_file.sh
 echo "conda activate fenics_new" >> ./job_file.sh
 #echo "while true; do" >> ./job_file.sh
-echo "python -u ./genSolution_cluster.py" >> ./job_file.sh
+echo "python ./genSolution_cluster.py" >> ./job_file.sh
 #echo "done" >> ./job_file.sh
 echo "" >> job_file.sh
 

@@ -2,9 +2,10 @@ classdef ModelParams < matlab.mixin.Copyable
     %Initialize, update, ... the ROM model params
     
     properties
-        %% Model parameters
+        %% Model parameters (or expected values thereof)
         %p_c
         theta_c
+        theta_cSq
         Sigma_c
         %posterior variance of theta_c, given a prior model
         Sigma_theta_c
@@ -64,11 +65,9 @@ classdef ModelParams < matlab.mixin.Copyable
         %iterations with fixed q(lambda_c)
         %should be more in the end because q(lambda_c) is not changing
         %but the gamma's and other params are still changing
-        VRVM_iter = [ones(1, 20), 10*ones(1, 20), 100*ones(1, 20),...
-            1000*ones(1, 20), 10000*ones(1, 20)]
-        VRVM_time = [30*ones(1, 4), 10*ones(1, 4), 15*ones(1, 4), ...
-            20*ones(1, 4), 30*ones(1, 4), 60*ones(1, 4),...
-            90*ones(1, 4), 120*ones(1, 4), 240]
+        VRVM_iter = [Inf]
+        VRVM_time = [1*ones(1, 5), 2*ones(1, 5), 3*ones(1, 5), ...
+            5*ones(1, 5), 10*ones(1, 10), 20:10:300]
         
         %current parameters of variational distributions
         a
@@ -113,7 +112,7 @@ classdef ModelParams < matlab.mixin.Copyable
             %   p_bc:       boundary pressure field
             
             %grid of random field
-            self.gridRF = RectangularMesh((1/4)*ones(1, 4));
+            self.gridRF = RectangularMesh((1/2)*ones(1, 2));
             self.cell_dictionary = 1:self.gridRF.nCells;
             
             %% Initialize coarse mesh object
@@ -532,16 +531,30 @@ classdef ModelParams < matlab.mixin.Copyable
             sum_logdet_lambda_c = sum(sum(log(Sigma_lambda_c)));
             
             try
-                logdet_Sigma_theta_ck = zeros(D_c, 1);
-                if(strcmp(self.mode, 'local'))
-                    for k = 1:D_c
-                        logdet_Sigma_theta_ck(k) = logdet(self.Sigma_theta_c(...
-                            ((k-1)*nFeatures + 1):(k*nFeatures),...
-                            ((k - 1)*nFeatures + 1):(k*nFeatures)), 'chol');
+                if self.diag_theta_c
+                    logdet_Sigma_theta_ck = zeros(D_c, 1);
+                    if(strcmp(self.mode, 'local'))
+                        for k = 1:D_c
+                            logdet_Sigma_theta_ck(k) = ...
+                                sum(log(self.Sigma_theta_c(...
+                                ((k-1)*nFeatures + 1):(k*nFeatures))));
+                        end
+                        logdet_Sigma_theta_c = sum(logdet_Sigma_theta_ck);
+                    else
+                        logdet_Sigma_theta_c = logdet(self.Sigma_theta_c, 'chol');
                     end
-                    logdet_Sigma_theta_c = sum(logdet_Sigma_theta_ck);
                 else
-                    logdet_Sigma_theta_c = logdet(self.Sigma_theta_c, 'chol');
+                    logdet_Sigma_theta_ck = zeros(D_c, 1);
+                    if(strcmp(self.mode, 'local'))
+                        for k = 1:D_c
+                            logdet_Sigma_theta_ck(k) = logdet(self.Sigma_theta_c(...
+                                ((k-1)*nFeatures + 1):(k*nFeatures),...
+                                ((k - 1)*nFeatures + 1):(k*nFeatures)), 'chol');
+                        end
+                        logdet_Sigma_theta_c = sum(logdet_Sigma_theta_ck);
+                    else
+                        logdet_Sigma_theta_c = logdet(self.Sigma_theta_c, 'chol');
+                    end
                 end
             catch
                 logdet_Sigma_theta_c = logdet(self.Sigma_theta_c);

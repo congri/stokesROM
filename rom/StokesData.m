@@ -915,6 +915,47 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
+                %Radii moments
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1, .2);
+                dMat{n} = [dMat{n}, M1*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '0.2_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log0.2_moment',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1, .5);
+                dMat{n} = [dMat{n}, M1*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '0.5_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_0.5_moment',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid1x1, 1.0);
+                dMat{n} = [dMat{n}, M1*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '1.0_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M1*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_1.0_moment',...
+                        'delimiter', '', '-append');
+                end
+                
+                
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %% 2x2
@@ -1329,6 +1370,46 @@ classdef StokesData < handle
                 dMat{n} = [dMat{n}, M2*sqrt(phi(:))];
                 if n == 1
                     dlmwrite('./data/features', 'sqrtMeanChordLength_2x2',...
+                        'delimiter', '', '-append');
+                end
+                
+                %Radii moments
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2, .2);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '0.2_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log0.2_moment',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2, .5);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '0.5_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_0.5_moment',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid2x2, 1.0);
+                dMat{n} = [dMat{n}, M2*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '1.0_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M2*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_1.0_moment',...
                         'delimiter', '', '-append');
                 end
                 
@@ -1749,6 +1830,45 @@ classdef StokesData < handle
                         'delimiter', '', '-append');
                 end
                 
+                %Radii moments
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, .2);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '0.2_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log0.2_moment',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, .5);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '0.5_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_0.5_moment',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid4x4, 1.0);
+                dMat{n} = [dMat{n}, M4*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '1.0_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M4*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_1.0_moment',...
+                        'delimiter', '', '-append');
+                end
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %% 8x8
@@ -2163,6 +2283,46 @@ classdef StokesData < handle
                 dMat{n} = [dMat{n}, M8*sqrt(phi(:))];
                 if n == 1
                     dlmwrite('./data/features', 'sqrtMeanChordLength_8x8',...
+                        'delimiter', '', '-append');
+                end
+                
+                %Radii moments
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, .2);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '0.2_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log0.2_moment',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, .5);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '0.5_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_0.5_moment',...
+                        'delimiter', '', '-append');
+                end
+                
+                phi = momentPerVolume(mData{n}.diskCenters,...
+                    mData{n}.diskRadii, grid8x8, 1.0);
+                dMat{n} = [dMat{n}, M8*phi(:)];
+                if n == 1
+                    dlmwrite('./data/features', '1.0_moment',...
+                        'delimiter', '', '-append');
+                end
+                dMat{n} = [dMat{n}, M8*log(phi(:) + delta_log)];
+                if n == 1
+                    dlmwrite('./data/features', 'log_1.0_moment',...
                         'delimiter', '', '-append');
                 end
                 

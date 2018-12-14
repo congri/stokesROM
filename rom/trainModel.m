@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 8;
+nTrain = 16;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -69,8 +69,8 @@ rom.trainingData.vtx2Cell(rom.modelParams);
 sw0_mu = 3e-4;
 sw0_sigma = 3e-5;
 sw_decay = .995; %decay factor per iteration
-VI_t = [10*ones(1, 4), 20*ones(1, 4), 40*ones(1, 4),...
-    80*ones(1, 4), 120*ones(1, 10)];
+VI_t = [60*ones(1, 1), 20*ones(1, 10), 30*ones(1, 10), 60*ones(1, 10),...
+    120*ones(1, 10), 240];
 split_schedule = [];
 if isempty(split_schedule)
     nSplits = 0;
