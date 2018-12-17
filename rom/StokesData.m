@@ -4,14 +4,14 @@ classdef StokesData < handle
     properties
         %Seldomly changed parameters are to bechanged here
         meshSize = 256
-        numberParams = [7.8, 0.2]   %[min, max] pos. number of circ. exclusions
+        numberParams = [8.35, 0.6]   %[min, max] pos. number of circ. exclusions
         numberDist = 'logn';
         margins = [0.003, 0.003, 0.003, 0.003]    %[l., u.] margin for imp. phase
-        r_params = [-5.23, .3]    %[lo., up.] bound on random blob radius
-        coordDist = 'GP'
+        r_params = [-5.53, .3]    %[lo., up.] bound on random blob radius
+        coordDist = 'engineered'
         coordDist_mu = '0.5_0.5'   %only for gauss
         coordDist_cov = 'squaredExponential'
-        radiiDist = 'lognGP'
+        radiiDist = 'logn'
         
         %for GP density distribution
         densityLengthScale = '0.08'
@@ -40,7 +40,7 @@ classdef StokesData < handle
         microstructData
         %Flow boundary conditions; C++ string, only for const. bc here!
         p_bc = '0.0';
-        u_bc = {'u_x=1.0-0.0x[1]', 'u_y=1.0-0.0x[0]'}
+        u_bc = {'u_x=1.0', 'u_y=0.0'}
         %coefficient distribution for randomized bc's
         a_x_m = []      %use fixed bc's if empty
         a_x_s = 1.0
@@ -80,7 +80,7 @@ classdef StokesData < handle
                         num2str(self.margins(2)), '_', ...
                         num2str(self.margins(3)), '_', ...
                         num2str(self.margins(4)), '/N~', self.numberDist, '/mu=',...
-                        sprintf('%.1f', self.numberParams(1)), '/sigma=', ...
+                        sprintf('%.2f', self.numberParams(1)), '/sigma=', ...
                         sprintf('%.1f', self.numberParams(2)), '/x~',...
                         self.coordDist, '/cov=', self.coordDist_cov, '/l=',...
                         self.densityLengthScale, '/sig_scale=',...

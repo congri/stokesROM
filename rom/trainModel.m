@@ -16,7 +16,7 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 16;
+nTrain = 8;
 % nStart = randi(1023 - nTrain); 
 nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
@@ -55,7 +55,7 @@ else
 end
 
 %do not remove! if no cell is splitted, pass empty array
-rom.modelParams.splitRFcells([]);
+rom.modelParams.splitRFcells([2]);
 
 %Parameters from previous runs are deleted here
 if exist('./data/', 'dir')
@@ -266,8 +266,8 @@ for split_iter = 1:(nSplits + 1)
             rom.trainingData.X_interp{1}, figElboTest);
         elbo = rom.modelParams.elbo
         
-%         if ~mod(rom.modelParams.EM_iter_split - 1, 5)
-        if false
+        if ~mod(rom.modelParams.EM_iter_split - 1, 5)
+%         if false
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S
             filename = './data/activeCells_S';

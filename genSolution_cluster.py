@@ -7,7 +7,6 @@ import scipy.io as sio
 import os
 import socket
 import sys
-import mat4py
 
 # Test for PETSc or Epetra
 if not df.has_linear_algebra_backend("PETSc") and not df.has_linear_algebra_backend("Epetra"):
@@ -130,6 +129,10 @@ for meshNumber in meshes:
     else:
         solutionfolder += '/u_x=' + u_x + '_u_y=' + u_y
 
+    # random timeout to avoid that different jobs evaluate solution to same mesh
+    timeout = 60*np.random.rand()
+    time.sleep(timeout)
+
     if not os.path.exists(solutionfolder):
         os.makedirs(solutionfolder)
     solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
@@ -185,11 +188,9 @@ for meshNumber in meshes:
     # mesh = df.Mesh(foldername + '/mesh' + str(meshNumber) + '.xml')
 
     # load mesh from mat file
-    # mesh_data = sio.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
-    mesh_data = mat4py.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
-    x = np.array(mesh_data['x'])
-    cells = np.array(mesh_data['cells'])
-
+    mesh_data = sio.loadmat(foldername + '/mesh' + str(meshNumber) + '.mat')
+    x = mesh_data['x']
+    cells = mesh_data['cells']
     try:
         cells -= 1  # matlab to python indexing
     except:
@@ -274,6 +275,7 @@ for meshNumber in meshes:
         elapsed_time = time.time() - t
         print('PDE solved. Time: ', elapsed_time)
         print('sample: ', meshNumber)
+        sys.stdout.flush()
 
         # Get sub-functions
         u, p = U.split()
@@ -281,21 +283,12 @@ for meshNumber in meshes:
         sys.stdout.flush()
         if rand_bc:
             bc = np.array([a_x, a_y, a_xy])
-            # sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
-            #                            'p': p.compute_vertex_values(), 'x': mesh.coordinates(), 'bc': bc},
-            #             do_compression=True)
-            mat4py.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
-                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates(), 'bc': bc})
+            sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates(), 'bc': bc},
+                        do_compression=True)
         else:
-            # sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
-            #                            'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
-            u_temp = np.reshape(u.compute_vertex_values(), (2, -1))
-            u_temp = u_temp.tolist()
-            p_temp = p.compute_vertex_values()
-            p_temp = p_temp.tolist()
-            x_temp = mesh.coordinates()
-            x_temp = x_temp.tolist()
-            mat4py.savemat(solutionfile, {'u': u_temp, 'p': p_temp, 'x': x_temp})
+            sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
         print('...solution saved. Total time: ', time.time() - t)
         sys.stdout.flush()
     except:

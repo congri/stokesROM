@@ -1172,6 +1172,14 @@ classdef StokesROM < handle
             diffLimits = self.modelParams.diffLimits;
             rf2fem = self.modelParams.rf2fem;
             
+            dim_theta = numel(self.modelParams.theta_c);
+            if isvector(self.modelParams.Sigma_theta_c)
+                Sigma_theta_c = sparse(1:dim_theta, 1:dim_theta, ...
+                    self.modelParams.Sigma_theta_c);
+            else
+                Sigma_theta_c = self.modelParams.Sigma_c;
+            end
+            
             tic;
             parfor n = 1:nSamples
                 if(strcmp(prior_theta_c, 'VRVM') || ...

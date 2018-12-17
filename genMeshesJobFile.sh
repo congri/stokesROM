@@ -42,15 +42,15 @@ echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
 echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
 echo "#SBATCH --time=1000:00:00" >> ./job_file.sh
 
-echo "sed -i \"15s/.*/nMeshes = $NMESHES/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"16s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"22s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"26s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"30s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"36s/.*/cov_l = ${LENGTHSCALE}/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"37s/.*/sig_scale = ${SIGMOID}/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"38s/.*/sigmaGP_r = ${SIGMAGPR}/\" ./genMesh_cluster.py" >> ./job_file.sh
-echo "sed -i \"39s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"13s/.*/nMeshes = $NMESHES/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"14s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"20s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"24s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"28s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"34s/.*/cov_l = ${LENGTHSCALE}/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"35s/.*/sig_scale = ${SIGMOID}/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"36s/.*/sigmaGP_r = ${SIGMAGPR}/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"37s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genMesh_cluster.py" >> ./job_file.sh
 
 
 #Activate fenics environment and run python
