@@ -374,7 +374,31 @@ classdef StokesData < handle
             meanDataVar = mean(dataVar);
         end
         
-        function input2bitmap(self, gridX, gridY)
+        function input2bitmap(self, resolution)
+            if nargin < 2
+                resolution = 256;
+            end
+            
+            if isempty(self.microstructData)
+                self.readData('m');
+            end
+            
+            %loop over cirlces
+            [xx, yy] = meshgrid(linspace(0, 1, resolution));
+            for n = 1:self.nSamples
+                r2 = self.microstructData{n}.diskRadii.^2;
+                self.input_bitmap{n} = false(resolution);
+                
+                for nCircle = 1:numel(self.microstructData{n}.diskRadii)
+                    self.input_bitmap{n} = self.input_bitmap{n} | ...
+                        ((xx - self.microstructData{n}.diskCenters(nCircle, 1)).^2 +...
+                        (yy - self.microstructData{n}.diskCenters(nCircle, 2)).^2 <= r2(nCircle));
+                end
+            end
+        end
+        
+        %depreceated
+        function input2bitmap_old(self, gridX, gridY)
             %Converts input microstructures to bitmap images
             %Feed in grid vectors for vertex coordinates, not elements!
             %first index in input_bitmap is x-index!
@@ -482,15 +506,14 @@ classdef StokesData < handle
             delta_log = 1;
 
             grid1x1 = RectangularMesh(1);
-            M1 = grid1x1.map2fine(gridRF.edges{1}.length*ones(1, sqrt(gridRF.nCells)));
+            M1 = grid1x1.map2fine(gridRF)
             grid2x2 = RectangularMesh((1/2)*ones(1, 2), (1/2)*ones(1, 2));
-            M2 = grid2x2.map2fine(gridRF.edges{1}.length*ones(1, sqrt(gridRF.nCells)));
+            M2 = grid2x2.map2fine(gridRF)
             grid4x4 = RectangularMesh((1/4)*ones(1, 4), (1/4)*ones(1, 4));
-            M4 = grid4x4.map2fine(gridRF.edges{1}.length*ones(1, sqrt(gridRF.nCells)));
+            M4 = grid4x4.map2fine(gridRF)
             grid8x8 = RectangularMesh((1/8)*ones(1, 8), (1/8)*ones(1, 8));
-            M8 = grid8x8.map2fine(gridRF.edges{1}.length*ones(1, sqrt(gridRF.nCells)));
-            
-            
+            M8 = grid8x8.map2fine(gridRF)
+                        
             parPoolInit(self.nSamples);
             parfor n = 1:numel(self.samples)
                 %constant 1

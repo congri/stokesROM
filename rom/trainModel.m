@@ -55,7 +55,7 @@ else
 end
 
 %do not remove! if no cell is splitted, pass empty array
-rom.modelParams.splitRFcells([2]);
+rom.modelParams.splitRFcells([2 3]);
 
 %Parameters from previous runs are deleted here
 if exist('./data/', 'dir')

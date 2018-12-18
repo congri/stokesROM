@@ -3,10 +3,11 @@ essential parts are kept to hopefully avoid segfaults'''
 
 import dolfin as df
 import os
-from shutil import copyfile
+import shutil
 import scipy.io as sio
 import mshr
 import sys
+import time
 
 
 # Global parameters
@@ -84,20 +85,30 @@ if not os.path.exists(foldername):
 '''first copy 'microstructureInformation_nomesh' to 'microstructureInformation', to give signal that mesh is
 generated, so that no other job is taking the same microstructure to generate a mesh'''
 mesh_name_iter = 0
+meshfile = foldername + '/mesh' + str(mesh_name_iter) + '.mat'
+nomeshInfoFile = foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat'
 while mesh_name_iter < nMeshes:
+    # create computation_started.txt if not existent
+    if not os.path.isfile(foldername + '/computation_started.txt'):
+        started_file = open(foldername + '/computation_started.txt', 'w')
+        started_file.close()
 
-    while os.path.isfile(foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat')\
-            and mesh_name_iter < nMeshes:
+    started_file = open(foldername + '/computation_started.txt', 'r')
+    started_computations = started_file.readlines()
+    started_file.close()
+    print('started_computations == ', started_computations)
+
+    # while os.path.isfile(foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat')\
+    #         and mesh_name_iter < nMeshes:
+    while ((not os.path.isfile(nomeshInfoFile)) or os.path.isfile(meshfile)
+           or ((str(mesh_name_iter) + '\n') in started_computations)):
         mesh_name_iter += 1
+    meshfile = foldername + '/mesh' + str(mesh_name_iter) + '.mat'
+    nomeshInfoFile = foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat'
     print('Generating mesh number ', mesh_name_iter)
 
-    # copy microstructureInformation file, this is the signal that a job is already generating a mesh
-    copyfile(foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat',
-             foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat')
-    os.system('sync')   #to copy asap
-
     print('Loading microstructural data...')
-    matfile = sio.loadmat(foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat')
+    matfile = sio.loadmat(nomeshInfoFile)
     diskCenters = matfile['diskCenters']
     diskRadii = matfile['diskRadii']
     diskRadii = diskRadii.flatten()
@@ -126,16 +137,39 @@ while mesh_name_iter < nMeshes:
     # mesh_file << mesh
     # print('... ./mesh', str(mesh_name_iter), '.xml saved.')
 
-    # save vertex coordinates and cell connectivity to mat file for easy read-in to matlab
-    print('saving mesh to ./mesh' + str(mesh_name_iter) + '.mat ...')
-    # is this more efficient with compression turned on?
+    # save to local directory first
+    print('Saving mesh on local device...')
     sys.stdout.flush()
-    sio.savemat(foldername + '/mesh' + str(mesh_name_iter) + '.mat',
-                {'x': mesh.coordinates(), 'cells': mesh.cells() + 1}, do_compression=True)
-    print('... ./mesh' + str(mesh_name_iter) + '.mat saved.')
-    print('removing ' + './microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat ...')
-    os.remove(foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat')
-    print('... ./microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat removed.')
+    t0 = time.time()
+    tmp_meshfile = '/tmp' + meshfile
+    sio.savemat(tmp_meshfile, {'x': mesh.coordinates(), 'cells': mesh.cells() + 1}, do_compression=True)
+    t1 = time.time()
+    print('...done. Time: ', t1 - t0)
+    print('Move file to NFS...')
+    sys.stdout.flush()
+    t2 = time.time()
+    shutil.move(tmp_meshfile, meshfile)
+    t3 = time.time()
+    print('...file moved. Time:', t3 - t2)
+    sys.stdout.flush()
+    filesize = os.path.getsize(tmp_meshfile)/1000
+    print('File size == ', filesize, 'kB   --> ', filesize/(t3 - t2), 'kB/s')
+    sys.stdout.flush()
+
+    # # save vertex coordinates and cell connectivity to mat file for easy read-in to matlab
+    # print('saving mesh to ./mesh' + str(mesh_name_iter) + '.mat ...')
+    # # is this more efficient with compression turned on?
+    # sys.stdout.flush()
+    # sio.savemat(foldername + '/mesh' + str(mesh_name_iter) + '.mat',
+    #             {'x': mesh.coordinates(), 'cells': mesh.cells() + 1}, do_compression=True)
+    # print('... ./mesh' + str(mesh_name_iter) + '.mat saved.')
+    # sys.stdout.flush()
+    # move microstructureInformation file, this is the signal that a job is already generating a mesh
+    shutil.move(foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat',
+             foldername + '/microstructureInformation' + str(mesh_name_iter) + '.mat')
+    # print('removing ' + './microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat ...')
+    # os.remove(foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat')
+    print('... ./microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat renamed.')
     sys.stdout.flush()
 
 

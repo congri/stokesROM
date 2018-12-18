@@ -25,7 +25,7 @@ mode = 'mesh'   # 'solution' or 'mesh'
 
 N_max = 10000
 
-for n in range(7000, N_max + 1):
+for n in range(0, N_max + 1):
     try:
         if mode == 'mesh':
             filename = path + '/mesh' + str(n) + '.mat'

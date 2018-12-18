@@ -1,5 +1,5 @@
 function [distQuantity] = diskDistance(diskCenters, diskRadii,...
-    gridRF, property, p_norm)
+    gridRF, property, p_norm, potParam)
 %Computes average/min/max/std distance of disks in a macro-cell
 
 distQuantity = zeros(gridRF.nCells, 1);
@@ -52,6 +52,10 @@ for cll = gridRF.cells
             distQuantity(n) = std(distances);
         elseif strcmp(property, 'var')
             distQuantity(n) = var(distances);
+        elseif strcmp(property, 'squareWellPot')
+            distQuantity(n) = squareWellPotential(distances, potParam);
+        elseif strcmp(property, 'lennardJones')
+            distQuantity(n) = lennardJonesPotential(distances, potParam);
         else
             error('Unknown distance property')
         end

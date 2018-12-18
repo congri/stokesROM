@@ -50,6 +50,8 @@ radiiDistribution = 'lognGP'
 margins = (0.003, 0.003, 0.003, 0.003)
 r_params = (-5.23, .3)
 
+import shutil
+
 # Flow boundary condition for velocity on domain boundary
 rand_bc = False
 if not rand_bc:
@@ -147,22 +149,21 @@ for meshNumber in meshes:
         started_file = open(solutionfolder + '/computation_started.txt', 'w')
         started_file.close()
 
-    if not os.path.isfile(tmpfolder + '/computation_started.txt'):
-        started_file_tmp = open(tmpfolder + '/computation_started.txt', 'w')
-        started_file_tmp.close()
+    # if not os.path.isfile(tmpfolder + '/computation_started.txt'):
+    #     started_file_tmp = open(tmpfolder + '/computation_started.txt', 'w')
+    #     started_file_tmp.close()
 
     started_file = open(solutionfolder + '/computation_started.txt', 'r')
     started_computations = started_file.readlines()
     started_file.close()
 
-    started_file_tmp = open(tmpfolder + '/computation_started.txt', 'r')
-    started_computations_tmp = started_file_tmp.readlines()
-    started_file_tmp.close()
+    # started_file_tmp = open(tmpfolder + '/computation_started.txt', 'r')
+    # started_computations_tmp = started_file_tmp.readlines()
+    # started_file_tmp.close()
     print('started_computations == ', started_computations)
-    print('started_computations on this machine == ', started_computations_tmp)
+    # print('started_computations on this machine == ', started_computations_tmp)
     while ((not os.path.isfile(meshfile)) or os.path.isfile(solutionfile)
-           or ((str(meshNumber) + '\n') in started_computations)
-           or ((str(meshNumber) + '\n') in started_computations_tmp)) and meshNumber < meshes[-1]:
+           or ((str(meshNumber) + '\n') in started_computations)):
 
         # print('Mesh ', str(meshNumber), ' does not exist or solution already computed. Passing to next mesh...')
         # print('mesh path == ', meshfile)
@@ -172,11 +173,11 @@ for meshNumber in meshes:
         meshfile = foldername + '/mesh' + str(meshNumber) + '.mat'
         solutionfile = solutionfolder + '/solution' + str(meshNumber) + '.mat'
 
-    # write mesh number to file s.t. it is clear that solution is currently computed
-    with open(tmpfolder + '/computation_started.txt', 'a') as started_file_tmp:
-        started_file_tmp.write(str(meshNumber) + '\n')
-        started_file_tmp.flush()
-        os.system('sync')
+    # # write mesh number to file s.t. it is clear that solution is currently computed
+    # with open(tmpfolder + '/computation_started.txt', 'a') as started_file_tmp:
+    #     started_file_tmp.write(str(meshNumber) + '\n')
+    #     started_file_tmp.flush()
+    #     os.system('sync')
 
     with open(solutionfolder + '/computation_started.txt', 'a') as started_file:
         started_file.write(str(meshNumber) + '\n')
@@ -287,8 +288,25 @@ for meshNumber in meshes:
                                        'p': p.compute_vertex_values(), 'x': mesh.coordinates(), 'bc': bc},
                         do_compression=True)
         else:
-            sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
-                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
+            # save to local directory first
+            print('Saving solution on local device...')
+            t0 = time.time()
+            tmp_solutionfile = '/tmp' + solutionfile
+            sio.savemat(tmp_solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+                                           'p': p.compute_vertex_values(), 'x': mesh.coordinates()},
+                        do_compression=True)
+            t1 = time.time()
+            print('...done. Time: ', t1 - t0)
+            print('Move file to NFS...')
+            t2 = time.time()
+            shutil.move(tmp_solutionfile, solutionfile)
+            t3 = time.time()
+            print('...file moved. Time:', t3 - t2)
+            filesize = os.path.getsize(tmp_solutionfile)/1000
+            print('File size == ', filesize, 'kB   --> ', filesize/((t3 - t2)), 'kB/s')
+
+            # sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+            #                            'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
         print('...solution saved. Total time: ', time.time() - t)
         sys.stdout.flush()
     except:

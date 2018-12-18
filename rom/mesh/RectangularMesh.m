@@ -129,8 +129,61 @@ classdef RectangularMesh < Mesh
             self.nEdges = self.nEdges - 4;
             self.nCells = self.nCells - 1;
         end
+                
+        function map = map2fine(self, toMesh)
+            %Computes map from rectangular mesh to finer regular rectangular
+            %mesh given by grid vectors gridX, gridY
+            %For use to map from random field discretization to PDE discret.
+
+            %Loop through fine (FEM) cells specified by grid vectors and check
+            %which coarse cell they are in
+            map = zeros(toMesh.nCells, self.nCells);
+            n = 1;
+            for cll = self.cells
+                if isvalid(cll{1})
+                    m = 1;  %toMesh cell index
+                    for to_cll = toMesh.cells
+                        if isvalid(to_cll{1})
+                            isin = cll{1}.inside(to_cll{1}.centroid);
+                            if isin
+                                %FEM cell m is in random fiend cell n
+                                map(m, n) = 1;
+                            end
+                            m = m + 1;
+                        end
+                    end
+                    n = n + 1;
+                end
+            end
+        end
         
-        function map = map2fine(self, gridX, gridY)
+        function [ind, nrow, ncol] = indexIndicator(self, resolution)
+            %gives boolean indices for pixels in cell. ONLY FOR SQUARE DOMAIN!
+            
+            if nargin < 2
+                resolution = 256;
+            end
+            
+            x = linspace(0, 1, resolution + 1);
+            x = .5*(x(2:end) + x(1:(end - 1)));
+            [xx, yy] = meshgrid(x);
+            
+            m = 1;
+            for cll = self.cells
+                if isvalid(cll{1})
+                    ind{m} = reshape(cll{1}.inside([xx(:), yy(:)]), ...
+                        resolution, resolution);
+                    if nargout > 1
+                        ncol(m) = max(sum(ind{m}, 2));
+                        nrow(m) = max(sum(ind{m}, 1));
+                    end
+                    m = m + 1;
+                end
+            end
+        end
+        
+                %% depreceated
+        function map = map2fine_old(self, gridX, gridY)
             %Computes map from rectangular mesh to finer regular rectangular 
             %mesh given by grid vectors gridX, gridY
             %For use to map from random field discretization to PDE discret.

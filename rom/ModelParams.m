@@ -40,6 +40,9 @@ classdef ModelParams < matlab.mixin.Copyable
         
         %Surrogate FEM mesh
         coarseMesh
+        %Mesh object identical to FEM mesh for computation of map2fine
+        %(is ugly and should be merged with coarseMesh object)
+        coarseMesh_geometry
         
         %Mapping from random field to FEM discretization
         rf2fem
@@ -119,6 +122,8 @@ classdef ModelParams < matlab.mixin.Copyable
             %Coarse mesh object
             self.coarseMesh = MeshFEM(self.coarseGridX, self.coarseGridY);
             self.coarseMesh.compute_grad = true;
+            self.coarseMesh_geometry = RectangularMesh(self.coarseGridX,...
+                self.coarseGridY);
             
             %% Set up coarse model bc's
             %Convert flow bc string to handle functions
@@ -270,8 +275,12 @@ classdef ModelParams < matlab.mixin.Copyable
                     %cll_dict = self.cell_dictionary
                 end
             end
-            self.rf2fem = self.gridRF.map2fine(self.coarseGridX,...
+            rf2fem_old = self.gridRF.map2fine_old(self.coarseGridX,...
                 self.coarseGridY);
+            self.rf2fem = self.gridRF.map2fine(self.coarseMesh_geometry);
+            diff = rf2fem_old - self.rf2fem
+            diff_sum = sum(sum(abs(diff)))
+            pause
         end
         
         %depreceated
