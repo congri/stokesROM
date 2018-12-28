@@ -16,9 +16,9 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 8;
+nTrain = 16;
 % nStart = randi(1023 - nTrain); 
-nStart = 0;
+nStart = 143;
 samples = nStart:(nTrain - 1 + nStart);
 loadParams = false;     %load parameters from previous run?
 
@@ -55,7 +55,7 @@ else
 end
 
 %do not remove! if no cell is splitted, pass empty array
-rom.modelParams.splitRFcells([2 3]);
+rom.modelParams.splitRFcells([]);
 
 %Parameters from previous runs are deleted here
 if exist('./data/', 'dir')
@@ -69,8 +69,7 @@ rom.trainingData.vtx2Cell(rom.modelParams);
 sw0_mu = 3e-4;
 sw0_sigma = 3e-5;
 sw_decay = .995; %decay factor per iteration
-VI_t = [60*ones(1, 1), 20*ones(1, 10), 30*ones(1, 10), 60*ones(1, 10),...
-    120*ones(1, 10), 240];
+VI_t = [60*ones(1, 1), 20*ones(1, 10), 60];
 split_schedule = [];
 if isempty(split_schedule)
     nSplits = 0;
@@ -139,6 +138,8 @@ for split_iter = 1:(nSplits + 1)
     ppool = parPoolInit(nTrain);
     pend = 0;
     rom.modelParams.EM_iter_split = 0;
+    %reset epoch, important for splitting
+    rom.modelParams.epoch = 0;
     while ~converged
         
         %% Setting up a handle to the distribution q_n - this transfers less 
@@ -266,8 +267,8 @@ for split_iter = 1:(nSplits + 1)
             rom.trainingData.X_interp{1}, figElboTest);
         elbo = rom.modelParams.elbo
         
-        if ~mod(rom.modelParams.EM_iter_split - 1, 5)
-%         if false
+%         if ~mod(rom.modelParams.EM_iter_split - 1, 5)
+        if false
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S
             filename = './data/activeCells_S';
@@ -311,7 +312,10 @@ for split_iter = 1:(nSplits + 1)
         rom.modelParams.write2file('cell_score_full');
         rom.modelParams.write2file('sigma_cf_score');
         rom.modelParams.write2file('inv_sigma_cf_score');
-        if ~mod(rom.modelParams.EM_iter, 5)
+        if rom.modelParams.epoch > rom.modelParams.max_EM_epochs
+            converged = true;
+        end
+        if(~mod(rom.modelParams.EM_iter, 5) || converged)
             tic
             modelParams = copy(rom.modelParams);
             modelParams.pParams = [];
@@ -325,17 +329,17 @@ for split_iter = 1:(nSplits + 1)
         end
         save('./data/XMean', 'XMean');
         save('./data/XSqMean', 'XSqMean');
-        
-        if rom.modelParams.epoch > rom.modelParams.max_EM_epochs
-            converged = true;
-        end
+        XMeanVec = XMean(:)';
+        save('./data/XMeanVec', 'XMeanVec', '-ascii', '-append');
+        XSqMeanVec = XSqMean(:)';
+        save('./data/XSqMeanVec', 'XSqMeanVec', '-ascii', '-append');
         epoch = rom.modelParams.epoch
     end
     
     if split_iter < (nSplits + 1)
         disp('splitting cell...')
-        refinement_objective = 'inv_sigma_cf';
-        if strcmp(refinement_objective, 'full_elbo_score')
+        refinement_objective = 'sigma_cf';
+        if strcmp(refinement_objective, 'active_cells_S')
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S;
             filename = './data/activeCells_S';
@@ -384,6 +388,8 @@ for split_iter = 1:(nSplits + 1)
             rom.modelParams.splitRFcells([split_schedule(split_iter)]);
             disp('...cell splitted.')
         end
+        %needs to be recomputed
+        rom.trainingData.designMatrixSqSum = [];
     end
 end
 

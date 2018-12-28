@@ -18,6 +18,9 @@ LENGTHSCALE=0.08
 LENGTHSCALER=0.05
 SIGMOID=1.2
 
+COORDDIST='GP'
+RADIIDIST='lognGP'
+
 CORES=1
 
 #Set up file paths
@@ -40,7 +43,7 @@ cd $JOBDIR
 echo "#!/bin/bash" >> ./job_file.sh
 echo "#SBATCH --job-name=${JOBNAME}" >> ./job_file.sh
 echo "#SBATCH --partition batch_SNB,batch_SKL" >> ./job_file.sh
-echo "#SBATCH --output=/home/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
+echo "#SBATCH --output=/home_eth/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
 echo "#SBATCH --mincpus=${CORES}" >> ./job_file.sh
 echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
 echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
@@ -49,15 +52,17 @@ echo "#SBATCH --time=1000:00:00" >> ./job_file.sh
 #Set parameters
 echo "sed -i \"25s/.*/meshes = np.arange(${NMESHESLO}, ${NMESHESUP})/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"34s/.*/nExclusionParams = (${NEXCLUSIONPARAM1}, ${NEXCLUSIONPARAM2})/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"35s/.*/coordinateDistribution = '${COORDDIST}'/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"43s/.*/cov_l = ${LENGTHSCALE}/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"44s/.*/sig_scale = ${SIGMOID}/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"45s/.*/sigmaGP_r = ${SIGMAGPR}/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"46s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"48s/.*/radiiDistribution = '${RADIIDIST}'/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"50s/.*/margins = (${MARG_LO}, ${MARG_R}, ${MARG_U}, ${MARG_LE})/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"51s/.*/r_params = (${RPARAM1}, ${RPARAM2})/\" ./genSolution_cluster.py" >> ./job_file.sh
 
 #Activate fenics environment and run python
-echo "source ~/.bashrc" >> ./job_file.sh
+echo "source /home_eth/constantin/.bashrc" >> ./job_file.sh
 echo "conda activate fenics_new" >> ./job_file.sh
 #echo "while true; do" >> ./job_file.sh
 echo "python ./genSolution_cluster.py" >> ./job_file.sh

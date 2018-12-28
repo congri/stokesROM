@@ -124,7 +124,7 @@ classdef StokesROM < handle
             tau_c = 1./diag(self.modelParams.Sigma_c);
             
             if self.modelParams.diag_theta_c
-                tau_theta = self.trainingData.designMatrixSqSum*tau_c +...
+                tau_theta = self.trainingData.*tau_c +...
                     self.modelParams.gamma;
                 %is a vector here
                 self.modelParams.Sigma_theta_c = 1./tau_theta;
@@ -833,7 +833,7 @@ classdef StokesROM < handle
                 Sigma_theta_c = sparse(1:dim_theta, 1:dim_theta, ...
                     self.modelParams.Sigma_theta_c);
             else
-                Sigma_theta_c = self.modelParams.Sigma_c;
+                Sigma_theta_c = self.modelParams.Sigma_theta_c;
             end
             tau_theta_c = inv(Sigma_theta_c);
             Sigma_c_vec_inv = 1./diag(self.modelParams.Sigma_c);
@@ -1140,7 +1140,7 @@ classdef StokesROM < handle
                 self.modelParams = modelParams;     clear modelParams;
             end
             
-            MCsamples = 2000;
+            MCsamples = 10000;
             d_log_p_cf_sqMean{1} = 0;
             d_log_p_cf_sqMean =...
                 repmat(d_log_p_cf_sqMean, 1, self.trainingData.nSamples);
@@ -1177,9 +1177,11 @@ classdef StokesROM < handle
                 Sigma_theta_c = sparse(1:dim_theta, 1:dim_theta, ...
                     self.modelParams.Sigma_theta_c);
             else
-                Sigma_theta_c = self.modelParams.Sigma_c;
+                Sigma_theta_c = self.modelParams.Sigma_theta_c;
             end
             
+            varmu = self.modelParams.variational_mu;
+            varsig = self.modelParams.variational_sigma;
             tic;
             parfor n = 1:nSamples
                 if(strcmp(prior_theta_c, 'VRVM') || ...
@@ -1204,9 +1206,7 @@ classdef StokesROM < handle
 %                     lambda_c_sample = mvnrnd(mu_lambda_c, Sigma_lambda_c)';
                     lambda_c_sample = normrnd(mu_lambda_c,...
                         sqrt(diag(Sigma_lambda_c)));
-%                     lambda_c_sample = normrnd(...
-%                         self.modelParams.variational_mu{n}, ...
-%                         self.modelParams.variational_sigma{n})';
+%                     lambda_c_sample = normrnd(varmu{n}, varsig{n})';
                     [~, d_log_p_cf] = log_p_cf(P{n},cm, lambda_c_sample,...
                         W_cf_n, S_cf_n, diffTransform, diffLimits, rf2fem,...
                         true);

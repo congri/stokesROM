@@ -1,8 +1,8 @@
-NMESHES=16000
+NMESHES=2501
 NELEMENTS=256
-NEX1=7.8    #number of exclusion parameters
-NEX2=0.2
-RPARAMSLO=-5.23
+NEX1=8.35    #number of exclusion parameters
+NEX2=0.6
+RPARAMSLO=-5.53
 RPARAMSHI=0.3
 MARGIN_LO=0.003
 MARGIN_R=0.003
@@ -12,14 +12,15 @@ SIGMAGPR=0.4
 LENGTHSCALE=0.08
 LENGTHSCALER=0.05
 SIGMOID=1.2
-
+COORDINATEDIST='engineered'
+RADIIDIST='logn'
 
 CORES=1
 
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 #Set up file paths
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
-JOBNAME="genMesh_nEl=${NELEMENTS}N1=${NEX1}N2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}r=${RPARAMSLO}_${RPARAMSHI}"
+JOBNAME="genMesh_coordinatedist=${COORDINATEDIST}_nEl=${NELEMENTS}N1=${NEX1}N2=${NEX2}margins=${MARGIN_LO}_${MARGIN_R}_${MARGIN_U}_${MARGIN_LE}_radiidist=${RADIIDIST}_r=${RPARAMSLO}_${RPARAMSHI}"
 JOBDIR="/home/constantin/python/jobs/${JOBNAME}_${DATESTR}"
 JOBSCRIPT="${JOBDIR}/genMesh_cluster.py"
 
@@ -35,8 +36,8 @@ cd $JOBDIR
 echo "#!/bin/bash" >> ./job_file.sh
 echo "#SBATCH --job-name=${JOBNAME}" >> ./job_file.sh
 echo "#SBATCH --partition batch_SNB,batch_SKL" >> ./job_file.sh
-echo "#SBATCH --output=/home/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
-echo "#SBATCH --error=/home/constantin/OEfiles/${JOBNAME}.%j.err" >> ./job_file.sh
+echo "#SBATCH --output=/home_eth/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
+echo "#SBATCH --error=/home_eth/constantin/OEfiles/${JOBNAME}.%j.err" >> ./job_file.sh
 echo "#SBATCH --mincpus=${CORES}" >> ./job_file.sh
 echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
 echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
@@ -45,7 +46,9 @@ echo "#SBATCH --time=1000:00:00" >> ./job_file.sh
 echo "sed -i \"14s/.*/nMeshes = $NMESHES/\" ./genMesh_cluster.py" >> ./job_file.sh
 echo "sed -i \"15s/.*/nElements = $NELEMENTS  # PDE discretization/\" ./genMesh_cluster.py" >> ./job_file.sh
 echo "sed -i \"21s/.*/nExclusionParams = ($NEX1, $NEX2)/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"22s/.*/coordinateDist = '${COORDINATEDIST}'/\" ./genMesh_cluster.py" >> ./job_file.sh
 echo "sed -i \"25s/.*/margins = ($MARGIN_LO, $MARGIN_R, $MARGIN_U, $MARGIN_LE)/\" ./genMesh_cluster.py" >> ./job_file.sh
+echo "sed -i \"28s/.*/radiiDist = '${RADIIDIST}'/\" ./genMesh_cluster.py" >> ./job_file.sh
 echo "sed -i \"29s/.*/r_params = ($RPARAMSLO, $RPARAMSHI)/\" ./genMesh_cluster.py" >> ./job_file.sh
 echo "sed -i \"35s/.*/cov_l = ${LENGTHSCALE}/\" ./genMesh_cluster.py" >> ./job_file.sh
 echo "sed -i \"36s/.*/sig_scale = ${SIGMOID}/\" ./genMesh_cluster.py" >> ./job_file.sh

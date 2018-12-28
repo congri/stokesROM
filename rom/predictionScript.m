@@ -9,9 +9,9 @@ addpath('./comp')
 if ~exist('rom', 'var')
     rom = StokesROM;
 end
-testSamples = 16:116;
+testSamples = 16:32;
 
 testData = StokesData(testSamples);
-[m,v,~, meanSqDist, ~, mll, R, ~] = rom.predict(testData, 'local');
+[~,~,~, meanSqDist, ~, mll, R, ~] = rom.predict(testData, 'local');
 
 save('./prediction.mat', 'meanSqDist', 'mll', 'R');

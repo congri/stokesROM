@@ -1,5 +1,5 @@
 '''This is a script to generate and save meshes on the cluster. It is copied from generateMeshes.py, but only
-essential parts are kept to hopefully avoid segfaults'''
+essential parts are kept'''
 
 import dolfin as df
 import os
@@ -13,7 +13,7 @@ import time
 # Global parameters
 nMeshes = 10000
 nElements = 256  # PDE discretization
-foldername1 = '/home/constantin/python/data/stokesEquation/meshSize=' + str(nElements)
+foldername1 = '/home_eth/constantin/python/data/stokesEquation/meshSize=' + str(nElements)
 
 
 # Parameters only for 'circles' mode
@@ -103,8 +103,11 @@ while mesh_name_iter < nMeshes:
     while ((not os.path.isfile(nomeshInfoFile)) or os.path.isfile(meshfile)
            or ((str(mesh_name_iter) + '\n') in started_computations)):
         mesh_name_iter += 1
-    meshfile = foldername + '/mesh' + str(mesh_name_iter) + '.mat'
-    nomeshInfoFile = foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat'
+        meshfile = foldername + '/mesh' + str(mesh_name_iter) + '.mat'
+        nomeshInfoFile = foldername + '/microstructureInformation_nomesh' + str(mesh_name_iter) + '.mat'
+
+    with open(foldername + '/computation_started.txt', 'a') as started_file:
+        started_file.write(str(mesh_name_iter) + '\n')
     print('Generating mesh number ', mesh_name_iter)
 
     print('Loading microstructural data...')
@@ -138,22 +141,12 @@ while mesh_name_iter < nMeshes:
     # print('... ./mesh', str(mesh_name_iter), '.xml saved.')
 
     # save to local directory first
-    print('Saving mesh on local device...')
+    print('Saving mesh to NFS...')
     sys.stdout.flush()
     t0 = time.time()
-    tmp_meshfile = '/tmp' + meshfile
-    sio.savemat(tmp_meshfile, {'x': mesh.coordinates(), 'cells': mesh.cells() + 1}, do_compression=True)
+    sio.savemat(meshfile, {'x': mesh.coordinates(), 'cells': mesh.cells() + 1}, do_compression=True)
     t1 = time.time()
     print('...done. Time: ', t1 - t0)
-    print('Move file to NFS...')
-    sys.stdout.flush()
-    t2 = time.time()
-    shutil.move(tmp_meshfile, meshfile)
-    t3 = time.time()
-    print('...file moved. Time:', t3 - t2)
-    sys.stdout.flush()
-    filesize = os.path.getsize(tmp_meshfile)/1000
-    print('File size == ', filesize, 'kB   --> ', filesize/(t3 - t2), 'kB/s')
     sys.stdout.flush()
 
     # # save vertex coordinates and cell connectivity to mat file for easy read-in to matlab

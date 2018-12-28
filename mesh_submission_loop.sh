@@ -1,5 +1,5 @@
 #!/bin/bash
-NITER=4
+NITER=96
 
 for i in `seq 1 $NITER`;
 do

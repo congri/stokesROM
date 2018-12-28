@@ -2,7 +2,7 @@ BCX="u_x=1.0-0.0x[1]"
 BCY="u_y=1.0-0.0x[0]"
 
 N1=7.8			#usually lognormal mu for number of exclusions
-N2=0.2		#usually lognormal sigma for number of exclusions
+N2=0.2		    #usually lognormal sigma for number of exclusions
 R1=-5.23		#usually lognormal mu for radii distribution
 R2=0.3			#usually lognormal sigma for radii distribution
 
@@ -27,64 +27,65 @@ GRADIENTSAMPLESEND=1
 #define that in matlab file!
 #STOCHOPTTIME=120    
 
-NSTART=0
-NTRAIN=16
-NTESTSTART=128
-NTESTEND=1128
+NSTART=384
+NTRAIN=128
+NTESTSTART=512
+NTESTEND=1660
 
-MAXEMEPOCHS=100
+MAXEMEPOCHS=200
 
-NAMEBASE="more_features_diag_theta_2x2"
+NAMEBASE="data_vs_error_8x8"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
-JOBNAME="${DATESTR}_nTrain=${NTRAIN}_${NAMEBASE}"
-JOBDIR="/home/constantin/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~${COORDDIST}/"
+JOBNAME="${DATESTR}_nTrain=${NTRAIN}_nStart=${NSTART}_${NAMEBASE}"
+JOBDIR_BASE="constantin/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~${COORDDIST}/"
 
 #location
 if [ "$COORDDIST" = "GP" ]; then
-    JOBDIR="${JOBDIR}cov=${X1}/l=${LENGTHSCALE}/sig_scale=${SIGMOID}"
+    JOBDIR_BASE="${JOBDIR_BASE}cov=${X1}/l=${LENGTHSCALE}/sig_scale=${SIGMOID}"
 elif [ "$COORDDIST" = "tiles" ]; then
-    JOBDIR="${JOBDIR}"
+    JOBDIR_BASE="${JOBDIR_BASE}"
 elif [ "$COORDDIST" = "gauss" ]; then
-    JOBDIR="${JOBDIR}mu=${X1}/cov=${LENGTHSCALE}"
+    JOBDIR_BASE="${JOBDIR_BASE}mu=${X1}/cov=${LENGTHSCALE}"
 elif [ "$COORDDIST" = "engineered" ]; then
-    JOBDIR="${JOBDIR}"
+    JOBDIR_BASE="${JOBDIR_BASE}"
 fi
 
 #radii
 if [ "$RADIIDIST" = "lognGP" ]; then
-    JOBDIR="${JOBDIR}/r~lognGP/mu=${R1}/sigma=${R2}/sigmaGP_r=${SIGMAGPR}/l=${LENGTHSCALER}"
+    JOBDIR_BASE="${JOBDIR_BASE}/r~lognGP/mu=${R1}/sigma=${R2}/sigmaGP_r=${SIGMAGPR}/l=${LENGTHSCALER}"
 else
-    JOBDIR="${JOBDIR}/r~logn/mu=${R1}/sigma=${R2}"
+    JOBDIR_BASE="${JOBDIR_BASE}/r~logn/mu=${R1}/sigma=${R2}"
 fi
 
 #boundary conditions
-JOBDIR="${JOBDIR}/p_bc=0.0/${BCX}_${BCY}"
-
-JOBDIR="${JOBDIR}/$JOBNAME"
+JOBDIR_BASE="${JOBDIR_BASE}/p_bc=0.0/${BCX}_${BCY}"
+JOBDIR_BASE="${JOBDIR_BASE}/$JOBNAME"
+JOBDIR_MASTER="/home/${JOBDIR_BASE}"
+JOBDIR_ETH="/home_eth/${JOBDIR_BASE}"
 
 #Create job directory and copy source code
-mkdir -p "${JOBDIR}"
-cp -r "$PROJECTDIR/featureFunctions" $JOBDIR
-cp -r "$PROJECTDIR/mesh" $JOBDIR
-cp -r "$PROJECTDIR/aux" $JOBDIR
-cp -r "$PROJECTDIR/comp" $JOBDIR
-cp -r "$PROJECTDIR/FEM" $JOBDIR
-cp -r "$PROJECTDIR/rom" $JOBDIR
-cp -r "$PROJECTDIR/VI" $JOBDIR
-cp "$PROJECTDIR/ModelParams.m" $JOBDIR
-cp "$PROJECTDIR/predictionScript.m" $JOBDIR
-cp "$PROJECTDIR/StokesData.m" $JOBDIR
-cp "$PROJECTDIR/StokesROM.m" $JOBDIR
-cp "$PROJECTDIR/trainModel.m" $JOBDIR
+mkdir -p "${JOBDIR_MASTER}"
+cp -r "$PROJECTDIR/featureFunctions" $JOBDIR_MASTER
+cp -r "$PROJECTDIR/mesh" $JOBDIR_MASTER
+cp -r "$PROJECTDIR/aux" $JOBDIR_MASTER
+cp -r "$PROJECTDIR/comp" $JOBDIR_MASTER
+cp -r "$PROJECTDIR/FEM" $JOBDIR_MASTER
+cp -r "$PROJECTDIR/rom" $JOBDIR_MASTER
+cp -r "$PROJECTDIR/VI" $JOBDIR_MASTER
+cp "$PROJECTDIR/ModelParams.m" $JOBDIR_MASTER
+cp "$PROJECTDIR/predictionScript.m" $JOBDIR_MASTER
+cp "$PROJECTDIR/StokesData.m" $JOBDIR_MASTER
+cp "$PROJECTDIR/StokesROM.m" $JOBDIR_MASTER
+cp "$PROJECTDIR/trainModel.m" $JOBDIR_MASTER
 
 
 #Change directory to job directory; completely independent from project directory
-cd "$JOBDIR"
+cd "$JOBDIR_MASTER"
 echo "Current directory:"
 echo $PWD
 
-NCORES=24
+NCORES=8
 if [ $NTRAIN -lt $NCORES ]; then
     NCORES=$NTRAIN
 fi
@@ -92,17 +93,17 @@ fi
 #construct job file string
 echo "#!/bin/bash" >> ./job_file.sh
 echo "#SBATCH --job-name=${JOBNAME}" >> ./job_file.sh
-echo "#SBATCH --partition batch_SKL" >> ./job_file.sh
+echo "#SBATCH --partition batch_SKL,batch_SNB" >> ./job_file.sh
 echo "#SBATCH --nodes 1-1" >> ./job_file.sh
 echo "#SBATCH --mincpus=${NCORES}" >> ./job_file.sh     #node is not shared with other jobs
-echo "#SBATCH --output=/home/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
+echo "#SBATCH --output=/home_eth/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
 echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
 echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
 echo "#SBATCH --time=240:00:00" >> ./job_file.sh
 
 echo "" >> ./job_file.sh
 echo "#Switch to job directory" >> ./job_file.sh
-echo "cd \"$JOBDIR\"" >> ./job_file.sh
+echo "cd \"$JOBDIR_ETH\"" >> ./job_file.sh
 echo "" >> ./job_file.sh
 echo "#Set parameters" >> ./job_file.sh
 echo "sed -i \"19s/.*/nTrain = ${NTRAIN};/\" ./trainModel.m" >> ./job_file.sh
@@ -127,7 +128,7 @@ echo "sed -i \"21s/.*/nSamplesEnd = ${GRADIENTSAMPLESEND};/\" ./VI/efficientStoc
 echo "sed -i \"99s/.*/        max_EM_epochs = ${MAXEMEPOCHS}/\" ./ModelParams.m" >> ./job_file.sh
 echo "sed -i \"12s/.*/testSamples = ${NTESTSTART}:${NTESTEND};/\" ./predictionScript.m" >> ./job_file.sh
 echo "#Run Matlab" >> ./job_file.sh
-echo "/home/programs/matlab/bin/matlab -nodesktop -nodisplay -nosplash -r \" trainModel ; quit ; \"" >> ./job_file.sh
+echo "/home_eth/programs/matlab/bin/matlab -nodesktop -nodisplay -nosplash -r \" trainModel ; quit ; \"" >> ./job_file.sh
 
 
 chmod +x job_file.sh

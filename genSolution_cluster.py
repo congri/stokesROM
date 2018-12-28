@@ -55,8 +55,8 @@ import shutil
 # Flow boundary condition for velocity on domain boundary
 rand_bc = False
 if not rand_bc:
-    u_x = '1.0-0.0*x[1]'
-    u_y = '1.0-0.0*x[0]'
+    u_x = '1.0'
+    u_y = '-1.0'
 
     flowField = df.Expression((u_x, u_y), degree=2)
     u_x = u_x.replace('*', '')
@@ -65,7 +65,7 @@ if not rand_bc:
 if socket.gethostname() == 'workstation1-room0436':
     foldername = '/home/constantin/cluster'
 else:
-    foldername = '/home/constantin'
+    foldername = '/home_eth/constantin'
 
 foldername += '/python/data/stokesEquation/meshSize=' + str(nElements)
 
@@ -289,24 +289,25 @@ for meshNumber in meshes:
                         do_compression=True)
         else:
             # save to local directory first
-            print('Saving solution on local device...')
-            t0 = time.time()
-            tmp_solutionfile = '/tmp' + solutionfile
-            sio.savemat(tmp_solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
-                                           'p': p.compute_vertex_values(), 'x': mesh.coordinates()},
-                        do_compression=True)
-            t1 = time.time()
-            print('...done. Time: ', t1 - t0)
-            print('Move file to NFS...')
-            t2 = time.time()
-            shutil.move(tmp_solutionfile, solutionfile)
-            t3 = time.time()
-            print('...file moved. Time:', t3 - t2)
-            filesize = os.path.getsize(tmp_solutionfile)/1000
-            print('File size == ', filesize, 'kB   --> ', filesize/((t3 - t2)), 'kB/s')
+            # print('Saving solution on local device...')
+            # t0 = time.time()
+            # tmp_solutionfile = '/tmp' + solutionfile
+            # sio.savemat(tmp_solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+            #                                'p': p.compute_vertex_values(), 'x': mesh.coordinates()},
+            #             do_compression=True)
+            # t1 = time.time()
+            # print('...done. Time: ', t1 - t0)
+            # print('Move file to NFS...')
+            # t2 = time.time()
+            # shutil.move(tmp_solutionfile, solutionfile)
+            # t3 = time.time()
+            # print('...file moved. Time:', t3 - t2)
+            # filesize = os.path.getsize(tmp_solutionfile)/1000
+            # print('File size == ', filesize, 'kB   --> ', filesize/((t3 - t2)), 'kB/s')
 
-            # sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
-            #                            'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
+            # print('Saving solution...')
+            sio.savemat(solutionfile, {'u': np.reshape(u.compute_vertex_values(), (2, -1)),
+                                       'p': p.compute_vertex_values(), 'x': mesh.coordinates()}, do_compression=True)
         print('...solution saved. Total time: ', time.time() - t)
         sys.stdout.flush()
     except:

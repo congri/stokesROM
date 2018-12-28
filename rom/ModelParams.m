@@ -57,7 +57,7 @@ classdef ModelParams < matlab.mixin.Copyable
         mode = 'local'  %separate theta_c's per macro-cell
         %VRVM, sharedVRVM or adaptiveGaussian
         prior_theta_c = 'sharedVRVM'
-        diag_theta_c = true     %diagonal Gaussian for Q(theta_c)
+        diag_theta_c = false     %diagonal Gaussian for Q(theta_c)
         gamma   %Gaussian precision of prior on theta_c
         VRVM_a = eps
         VRVM_b = eps
@@ -69,8 +69,8 @@ classdef ModelParams < matlab.mixin.Copyable
         %should be more in the end because q(lambda_c) is not changing
         %but the gamma's and other params are still changing
         VRVM_iter = [Inf]
-        VRVM_time = [1*ones(1, 5), 2*ones(1, 5), 3*ones(1, 5), ...
-            5*ones(1, 5), 10*ones(1, 10), 20:10:300]
+        VRVM_time = [5*ones(1, 5), 10*ones(1, 5), 20*ones(1, 5), ...
+            30*ones(1, 5), 60*ones(1, 10), 120:10:300]
         
         %current parameters of variational distributions
         a
@@ -96,7 +96,7 @@ classdef ModelParams < matlab.mixin.Copyable
         EM_iter       = 0    %current total number of iterations
         EM_iter_split = 0    %current number of iterations after last split
         epoch = 0            %current epoch
-        max_EM_epochs = 500   %maximum number of epochs
+        max_EM_epochs = 50   %maximum number of epochs
         
         %% Settings
         computeElbo = true
@@ -115,7 +115,7 @@ classdef ModelParams < matlab.mixin.Copyable
             %   p_bc:       boundary pressure field
             
             %grid of random field
-            self.gridRF = RectangularMesh((1/2)*ones(1, 2));
+            self.gridRF = RectangularMesh((1/8)*ones(1, 8));
             self.cell_dictionary = 1:self.gridRF.nCells;
             
             %% Initialize coarse mesh object
@@ -275,12 +275,12 @@ classdef ModelParams < matlab.mixin.Copyable
                     %cll_dict = self.cell_dictionary
                 end
             end
-            rf2fem_old = self.gridRF.map2fine_old(self.coarseGridX,...
-                self.coarseGridY);
+%             rf2fem_old = self.gridRF.map2fine_old(self.coarseGridX,...
+%                 self.coarseGridY);
             self.rf2fem = self.gridRF.map2fine(self.coarseMesh_geometry);
-            diff = rf2fem_old - self.rf2fem
-            diff_sum = sum(sum(abs(diff)))
-            pause
+%             diff = rf2fem_old - self.rf2fem
+%             diff_sum = sum(sum(abs(diff)))
+%             pause
         end
         
         %depreceated
@@ -514,7 +514,7 @@ classdef ModelParams < matlab.mixin.Copyable
             %   N:                   number of training samples
             %   XMean, XSqMean:      first and second moments of transformed
             %                        lambda_c
-            
+            disp('computing elbo... ')
             assert(~isempty(self.interpolationMode),...
                 'Elbo only implemented with fixed dim(U_f)')
             %ONLY VALID IF QoI IS PRESSURE ONLY
@@ -557,7 +557,7 @@ classdef ModelParams < matlab.mixin.Copyable
                     if(strcmp(self.mode, 'local'))
                         for k = 1:D_c
                             logdet_Sigma_theta_ck(k) = logdet(self.Sigma_theta_c(...
-                                ((k-1)*nFeatures + 1):(k*nFeatures),...
+                                ((k - 1)*nFeatures + 1):(k*nFeatures),...
                                 ((k - 1)*nFeatures + 1):(k*nFeatures)), 'chol');
                         end
                         logdet_Sigma_theta_c = sum(logdet_Sigma_theta_ck);
@@ -577,13 +577,25 @@ classdef ModelParams < matlab.mixin.Copyable
                 self.c*sum(log(self.d)) + D_gamma*(aa*log(bb) +...
                 gammaln(self.a) - gammaln(aa)) - ...
                 self.a*sum(log(self.b(1:D_gamma))) + ...
-                .5*logdet_Sigma_theta_c + .5*D_theta_c;
+                .5*logdet_Sigma_theta_c + .5*D_theta_c ...
+                -sum(psi(aa + .5) - log(self.b));
 
             self.set_summation_matrix(X_vtx);
+%             self.cell_score = .5*sum(log(Sigma_lambda_c), 2) - ...
+%                 self.c*log(self.d) + .5*logdet_Sigma_theta_ck;
+            %include contribution from gamma's also
+            sigma_lambda_c = .5*sum(log(Sigma_lambda_c), 2)
+            minus_c_log_d = - self.c*log(self.d)
+            sigma_theta_c = .5*logdet_Sigma_theta_ck
+                
             self.cell_score = .5*sum(log(Sigma_lambda_c), 2) - ...
-                self.c*log(self.d) + .5*logdet_Sigma_theta_ck;
-            f_contribution = - self.e*log(self.f);
+                self.c*log(self.d);
+%             self.cell_score = -.5*sum(log(Sigma_lambda_c), 2);
+            if strcmp(self.prior_theta_c, 'sharedVRVM')
+                self.cell_score = self.cell_score + .5*logdet_Sigma_theta_ck;
+            end
             
+            f_contribution = - self.e*log(self.f);
             self.cell_score_full = self.cell_score +...
                 self.sum_in_macrocell*f_contribution;
             
