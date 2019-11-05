@@ -3,22 +3,24 @@
 clear;
 rng('shuffle');
 
-mode = 'GP_GPR';    %engineered, GP or GP_GPR (Gaussian process also on radii)
+mode = 'tiles';    %engineered, GP or GP_GPR (Gaussian process also on radii)
 
 lengthScale = .08;
 lengthScale_r = .05;
-sigmaGP_r = .4;
+sigmaGP_r = .01;
 covarianceFunction = 'squaredExponential';
 sigmoid_scale = 1.2;         %sigmoid warping length scale param
 nBochnerSamples = 5000;
 nExclusionParams = [7.8, .2];
-margins = [.003, .003, .003, .003];
-rParams = [-5.23, .5];
+margins = [-1, .003, -1, .003];
+rParams = [-5.53, .2];
 max_trials = 100;
-nMeshes = 0:3;
+nMeshes = 0:2;
 t_max = 3600;                 %in seconds
 plt = false;
 resolution = 1024;
+sav = true;
+origin_rejection = .03; %false if no origin rejection
 
 if(strcmp((java.net.InetAddress.getLocalHost.getHostName), ...
         'workstation1-room0436') || ...
@@ -27,8 +29,8 @@ if(strcmp((java.net.InetAddress.getLocalHost.getHostName), ...
     addpath('~/cluster/matlab/projects/rom/genConductivity');
     savepath = '~/cluster/';
 else
-    addpath('~/matlab/projects/rom/genConductivity');
-    savepath = '~/';
+    addpath('/home_eth/constantin/matlab/projects/rom/genConductivity');
+    savepath = '/home_eth/constantin/';
 end
 if false
 %     f = figure;
@@ -73,6 +75,9 @@ elseif strcmp(mode, 'tiles')
 else
     error('unknown mode');
 end
+if origin_rejection
+    savepath = strcat(savepath, '/origin_rejection=', num2str(origin_rejection));
+end
 savepath
 
 if ~exist(savepath, 'dir')
@@ -91,7 +96,7 @@ for n = nMeshes
         rejectionFun = @(x) engineeredRejectionFun(x);
     elseif strcmp(mode, 'tiles')
         rejections = get_rejections(8);
-        rejectionFun = @(x) tilesRejectionFun(x, rejections);
+        rejectionFun = @(x) tilesRejectionFun(x, rejections, origin_rejection);
     else
         error('unknown mode')
     end
@@ -139,7 +144,7 @@ for n = nMeshes
                 onBoundary = false;
                 if(((diskCenter(2) - diskRadius) < margins(1) &&...
                         margins(1) >= 0) || ...
-                        (((diskCenter(1) + diskRadius) > 1- margins(2))...
+                        (((diskCenter(1) + diskRadius) > 1 - margins(2))...
                         && margins(2) >= 0) ||...
                         (((diskCenter(2) + diskRadius) > 1 - margins(3))...
                         && margins(3) >= 0) ||...
@@ -164,9 +169,11 @@ for n = nMeshes
     end
     
     %% save microstructure data
-    save(strcat(savepath, '/microstructureInformation_nomesh', num2str(n)),...
-        'diskCenters', 'diskRadii');
-    disp('microstructure saved.')
+    if sav
+        save(strcat(savepath, '/microstructureInformation_nomesh', num2str(n)),...
+            'diskCenters', 'diskRadii');
+        disp('microstructure saved.')
+    end
     
     %% Plotting
     if(plt && feature('ShowFigureWindows'))      
@@ -196,8 +203,7 @@ function [r] = engineeredRejectionFun(x)
 end
 
 
-function [r] = tilesRejectionFun(x, rejections)
-    %[.0 .0]-[.25 .25] cell is empty
+function [r] = tilesRejectionFun(x, rejections, origin_rejection)
     N = sqrt(numel(rejections));
     [xx, yy] = meshgrid(linspace(0, 1, N + 1));
     xxl = xx(1:N, 1:N);
@@ -209,6 +215,9 @@ function [r] = tilesRejectionFun(x, rejections)
 
     cell = find((x(1) >= l(:, 1)).*(x(2) >= l(:, 2)).*(x(1) < u(:, 1)).*(x(2) < u(:, 2)));
     r = rejections(cell);
+    if norm(x) < origin_rejection
+        r = 0;
+    end
 end
 
 

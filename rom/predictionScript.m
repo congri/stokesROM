@@ -12,6 +12,6 @@ end
 testSamples = 16:32;
 
 testData = StokesData(testSamples);
-[~,~,~, meanSqDist, ~, mll, R, ~] = rom.predict(testData, 'local');
+[~,predVar,~, meanSqDist, ~, mll, R, ~] = rom.predict(testData, 'local');
 
 save('./prediction.mat', 'meanSqDist', 'mll', 'R');

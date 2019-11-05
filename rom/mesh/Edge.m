@@ -18,15 +18,17 @@ classdef Edge < handle
             self.cells{end + 1} = cell;
         end
         
-        function [l] = plot(self, fig)
-            if nargin > 1
+        function [l] = plot(self, n, fig)
+            if nargin > 2
                 figure(fig)
             end
             
             hold on;
             c1 = self.vertices{1}.coordinates;
             c2 = self.vertices{2}.coordinates;
-            l= line([c1(1) c2(1)], [c1(2) c2(2)]);
+            center = .5*(c1 + c2);
+            l = line([c1(1) c2(1)], [c1(2) c2(2)], 'color', 'r');
+            text(center(1), center(2), num2str(n), 'color', 'r');
         end
     end
 end

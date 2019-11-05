@@ -7,7 +7,7 @@ classdef StokesData < handle
         numberParams = [7.8, 0.2]   %[min, max] pos. number of circ. exclusions
         numberDist = 'logn';
         margins = [0.003, 0.003, 0.003, 0.003]    %[l., u.] margin for imp. phase
-        r_params = [-5.23, .3]    %[lo., up.] bound on random blob radius
+        r_params = [-5.23, 0.3]    %[lo., up.] bound on random blob radius
         coordDist = 'GP'
         coordDist_mu = '0.5_0.5'   %only for gauss
         coordDist_cov = 'squaredExponential'
@@ -19,6 +19,7 @@ classdef StokesData < handle
         %for GP on radii
         sigmaGP_r = 0.4
         l_r = 0.05
+        origin_rejection = false
         samples
         nSamples
         %base name of file path
@@ -135,7 +136,11 @@ classdef StokesData < handle
                         sprintf('%.2f', self.r_params(1)), '/sigma=',...
                         num2str(self.r_params(2)), '/'));
                 end
-
+                
+                if self.origin_rejection
+                    self.pathname=strcat(self.pathname,'origin_rejection=',...
+                        num2str(self.origin_rejection), '/');
+                end
             end
         end
         
@@ -452,7 +457,7 @@ classdef StokesData < handle
         function countVertices(self)
             self.N_vertices_tot = 0;
             if isempty(self.P)
-                self = self.readData('p');
+                self.readData('p');
             end
             for cellIndex = 1:numel(self.P)
                 self.N_vertices_tot = self.N_vertices_tot +...
@@ -2873,7 +2878,12 @@ classdef StokesData < handle
             addpath('./mesh')
             addpath('./FEM')
             
-            self.readData('xp');
+            if isempty(self.X)
+                self.readData('x');
+            end
+            if isempty(self.P)
+                self.readData('p');
+            end
 
             temp_params = ModelParams(self.u_bc, self.p_bc);
             %128 should be fine

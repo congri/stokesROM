@@ -1,5 +1,5 @@
 function [img_handle, fig_handle] =...
-    plotMicrostruct(diskCenters, diskRadii, resolution)
+    plotMicrostruct(diskCenters, diskRadii, resolution, ax)
 %Plots a microstructure of polydisperse spherical exclusions based on
 %disk centers and radii
 if nargin < 3
@@ -46,12 +46,14 @@ for n = 1:numel(diskRadii)
         <= r2(n));
 end
 
-fig_handle = figure;
-img_handle = imagesc(img);
+if nargin < 4
+    fig_handle = figure;
+    ax = gca;
+end
+img_handle = imagesc(~img);
 grid off;
 xticks([]);
 yticks([]);
-ax = gca;
 colormap(ax, gray);
 ax.YDir = 'normal';
 axis square;

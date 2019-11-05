@@ -23,7 +23,7 @@ coordinateDist = 'GP'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 # negative margin means no margin
 margins = [0.003, 0.003, 0.003, 0.003]
-origin_margin = .005
+origin_margin = .03
 substractCorners = False     # Substracts circles from domain corners s.t. flow cannot pass
 radiiDist = 'lognGP'
 r_params = [-5.53, 0.3]
@@ -78,6 +78,8 @@ if radiiDist == 'lognGP':
                   '/sigmaGP_r=' + str(sigmaGP_r) + '/l=' + str(lengthScale_r)
 else:
     foldername += '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1])
+if origin_margin:
+    foldername += '/origin_rejection=' + str(origin_margin)
 if not os.path.exists(foldername):
     os.makedirs(foldername)
 

@@ -17,6 +17,7 @@ SIGMAGPR=0.4
 LENGTHSCALE=0.08
 LENGTHSCALER=0.05
 SIGMOID=1.2
+ORIGINREJECTION=0
 
 COORDDIST='GP'
 RADIIDIST='lognGP'
@@ -27,7 +28,7 @@ CORES=1
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation"
 # Set JOBNAME by hand for every job!
-JOBNAME="solv_GPR_N1=${NEXCLUSIONPARAM1}_N2=${NEXCLUSIONPARAM2}_l=${LENGTHSCALE}_s=${SIGMOID}_R1=${RPARAM1}_R2=${RPARAM2}_SGPR=${SIGMAGPR}_lr=${LENGTHSCALER}_${DATESTR}"
+JOBNAME="solv_r~${RADIIDIST}_x~${COORDDIST}_N1=${NEXCLUSIONPARAM1}_N2=${NEXCLUSIONPARAM2}_l=${LENGTHSCALE}_s=${SIGMOID}_R1=${RPARAM1}_R2=${RPARAM2}_SGPR=${SIGMAGPR}_lr=${LENGTHSCALER}_${DATESTR}"
 JOBDIR="/home/constantin/python/jobs/$JOBNAME"
 JOBSCRIPT="${JOBDIR}/genSolution_cluster.py"
 
@@ -60,6 +61,7 @@ echo "sed -i \"46s/.*/lengthScale_r = ${LENGTHSCALER}/\" ./genSolution_cluster.p
 echo "sed -i \"48s/.*/radiiDistribution = '${RADIIDIST}'/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"50s/.*/margins = (${MARG_LO}, ${MARG_R}, ${MARG_U}, ${MARG_LE})/\" ./genSolution_cluster.py" >> ./job_file.sh
 echo "sed -i \"51s/.*/r_params = (${RPARAM1}, ${RPARAM2})/\" ./genSolution_cluster.py" >> ./job_file.sh
+echo "sed -i \"52s/.*/origin_margin = ${ORIGINREJECTION}/\" ./genSolution_cluster.py" >> ./job_file.sh
 
 #Activate fenics environment and run python
 echo "source /home_eth/constantin/.bashrc" >> ./job_file.sh

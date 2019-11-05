@@ -4,14 +4,17 @@ function [Out] = heat2d(mesh, conductivity)
 
 %Global stiffness matrix
 % Out.globalStiffness = get_glob_stiff2(mesh, Out.diffusionStiffness);
-Out.globalStiffness = ...
-    get_glob_stiff3(mesh.d_glob_stiff_assemble, conductivity, mesh.nEq);
+Out.globalStiffness = get_glob_stiff3(mesh.d_glob_stiff_assemble, conductivity, mesh.nEq);
 
 %Global force vector
 % Out.globalForce = get_glob_force(mesh, conductivity);
 
 %Finally solving the equation system
 Out.naturalTemperatures = Out.globalStiffness\get_glob_force(mesh,conductivity);
+% K = full(Out.globalStiffness);
+% f = get_glob_force(mesh,conductivity);
+% save('/home/constantin/cluster/python/projects/stokesEquation/rom/stiffness', 'K');
+% save('/home/constantin/cluster/python/projects/stokesEquation/rom/force', 'f');
 
 %Temperature field
 %Out.u = zeros(mesh.nNodes, 1);

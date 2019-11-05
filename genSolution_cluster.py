@@ -49,14 +49,15 @@ radiiDistribution = 'lognGP'
 # to avoid circles on boundaries. Min. distance of circle centers to (lo., r., u., le.) boundary
 margins = (0.003, 0.003, 0.003, 0.003)
 r_params = (-5.23, .3)
+origin_margin = 0.03
 
 import shutil
 
 # Flow boundary condition for velocity on domain boundary
 rand_bc = False
 if not rand_bc:
-    u_x = '1.0'
-    u_y = '-1.0'
+    u_x = '0.0-1.1*x[1]'
+    u_y = '0.0-1.1*x[0]'
 
     flowField = df.Expression((u_x, u_y), degree=2)
     u_x = u_x.replace('*', '')
@@ -96,6 +97,9 @@ if porousMedium == 'nonOverlappingCircles':
                       '/sigmaGP_r=' + str(sigmaGP_r) + '/l=' + str(lengthScale_r)
     else:
         foldername += '/mu=' + str(r_params[0]) + '/sigma=' + str(r_params[1])
+    if origin_margin:
+        foldername += '/origin_rejection=' + str(origin_margin)
+
 
 # Set external boundaries of domain
 class DomainBoundary(df.SubDomain):
@@ -132,7 +136,7 @@ for meshNumber in meshes:
         solutionfolder += '/u_x=' + u_x + '_u_y=' + u_y
 
     # random timeout to avoid that different jobs evaluate solution to same mesh
-    timeout = 60*np.random.rand()
+    timeout = 5*np.random.rand()
     time.sleep(timeout)
 
     if not os.path.exists(solutionfolder):
@@ -162,8 +166,8 @@ for meshNumber in meshes:
     # started_file_tmp.close()
     print('started_computations == ', started_computations)
     # print('started_computations on this machine == ', started_computations_tmp)
-    while ((not os.path.isfile(meshfile)) or os.path.isfile(solutionfile)
-           or ((str(meshNumber) + '\n') in started_computations)):
+    while (((not os.path.isfile(meshfile)) or os.path.isfile(solutionfile)
+           or ((str(meshNumber) + '\n') in started_computations)) and meshNumber in meshes):
 
         # print('Mesh ', str(meshNumber), ' does not exist or solution already computed. Passing to next mesh...')
         # print('mesh path == ', meshfile)

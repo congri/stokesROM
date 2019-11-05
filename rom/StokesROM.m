@@ -1140,7 +1140,7 @@ classdef StokesROM < handle
                 self.modelParams = modelParams;     clear modelParams;
             end
             
-            MCsamples = 10000;
+            MCsamples = 1000;
             d_log_p_cf_sqMean{1} = 0;
             d_log_p_cf_sqMean =...
                 repmat(d_log_p_cf_sqMean, 1, self.trainingData.nSamples);
@@ -1183,6 +1183,7 @@ classdef StokesROM < handle
             varmu = self.modelParams.variational_mu;
             varsig = self.modelParams.variational_sigma;
             tic;
+            d_reallambda = false;
             parfor n = 1:nSamples
                 if(strcmp(prior_theta_c, 'VRVM') || ...
                         strcmp(prior_theta_c, 'sharedVRVM'))
@@ -1210,9 +1211,13 @@ classdef StokesROM < handle
                     [~, d_log_p_cf] = log_p_cf(P{n},cm, lambda_c_sample,...
                         W_cf_n, S_cf_n, diffTransform, diffLimits, rf2fem,...
                         true);
-
+                    if d_reallambda
+                        d_log_p_cf = d_log_p_cf./exp(lambda_c_sample);
+                    end
+%                     d_log_p_cf_sqMean{n} = ((j - 1)/j)*d_log_p_cf_sqMean{n} +...
+%                         (1/j)*d_log_p_cf.^2;
                     d_log_p_cf_sqMean{n} = ((j - 1)/j)*d_log_p_cf_sqMean{n} +...
-                        (1/j)*d_log_p_cf.^2;
+                        (1/j)*abs(d_log_p_cf);
                 end
             end
             t_activeCells = toc

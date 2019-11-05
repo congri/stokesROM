@@ -9,6 +9,8 @@ addpath('./comp')
 addpath('./FEM')
 addpath('rom')
 addpath('./VI')
+%No badly conditioned warnings -- turn on if desired
+warning('off', 'MATLAB:nearlySingularMatrix');
 
 %random number seed based on time
 rng('shuffle');
@@ -16,9 +18,9 @@ rng('shuffle');
 
 %% Initialization
 %Which data samples for training?
-nTrain = 16;
+nTrain = 8;
 % nStart = randi(1023 - nTrain); 
-nStart = 143;
+nStart = 0;
 samples = nStart:(nTrain - 1 + nStart);
 loadParams = false;     %load parameters from previous run?
 
@@ -66,10 +68,11 @@ mkdir('./data/');
 rom.trainingData.shiftData(interp, 'p'); %shifts p to 0 at origin
 rom.trainingData.vtx2Cell(rom.modelParams);
 
-sw0_mu = 3e-4;
-sw0_sigma = 3e-5;
+sw0_mu = 6e-4;
+sw0_sigma = 6e-5;
 sw_decay = .995; %decay factor per iteration
-VI_t = [60*ones(1, 1), 20*ones(1, 10), 60];
+VI_t = [60*ones(1, 1), 20*ones(1, 10), 30];
+
 split_schedule = [];
 if isempty(split_schedule)
     nSplits = 0;
@@ -267,12 +270,12 @@ for split_iter = 1:(nSplits + 1)
             rom.trainingData.X_interp{1}, figElboTest);
         elbo = rom.modelParams.elbo
         
-%         if ~mod(rom.modelParams.EM_iter_split - 1, 5)
-        if false
-            rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
-            activeCells_S = rom.modelParams.active_cells_S
-            filename = './data/activeCells_S';
-            save(filename, 'activeCells_S', '-ascii', '-append');
+        if(~mod(rom.modelParams.EM_iter_split - 1, 3) && nSplits)
+%         if false
+%             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
+%             activeCells_S = rom.modelParams.active_cells_S
+%             filename = './data/activeCells_S';
+%             save(filename, 'activeCells_S', '-ascii', '-append');
             rom.modelParams.active_cells = rom.findMeshRefinement(false)';
             activeCells = rom.modelParams.active_cells
             filename = './data/activeCells';
@@ -312,10 +315,11 @@ for split_iter = 1:(nSplits + 1)
         rom.modelParams.write2file('cell_score_full');
         rom.modelParams.write2file('sigma_cf_score');
         rom.modelParams.write2file('inv_sigma_cf_score');
-        if rom.modelParams.epoch > rom.modelParams.max_EM_epochs
+        if rom.modelParams.epoch > rom.modelParams.max_EM_epochs(...
+                min([split_iter, numel(rom.modelParams.max_EM_epochs)]))
             converged = true;
         end
-        if(~mod(rom.modelParams.EM_iter, 5) || converged)
+        if(~mod(rom.modelParams.EM_iter, 1) || converged)
             tic
             modelParams = copy(rom.modelParams);
             modelParams.pParams = [];
@@ -338,7 +342,7 @@ for split_iter = 1:(nSplits + 1)
     
     if split_iter < (nSplits + 1)
         disp('splitting cell...')
-        refinement_objective = 'sigma_cf';
+        refinement_objective = 'active_cells';
         if strcmp(refinement_objective, 'active_cells_S')
             rom.modelParams.active_cells_S = rom.findMeshRefinement(true)';
             activeCells_S = rom.modelParams.active_cells_S;

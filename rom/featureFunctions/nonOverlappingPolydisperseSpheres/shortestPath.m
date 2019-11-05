@@ -44,7 +44,7 @@ if(dir == 'x')
             end
         end
         if ~isfinite(shortestPath)
-            shortestPath = size(left, 1);
+            shortestPath = pi*size(left, 1);
         end
     end
 elseif(dir == 'y')
@@ -79,7 +79,7 @@ elseif(dir == 'y')
             end
         end
         if ~isfinite(shortestPath)
-            shortestPath = size(top, 2);
+            shortestPath = pi*size(top, 2);
         end
     end
 else

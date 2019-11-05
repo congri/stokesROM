@@ -1,6 +1,6 @@
 function [E, E2, E3] = mcInference(functionHandle, variationalDist, varDistParams)
 %Samples expected value of function in function handle under variational dist.
-inferenceSamples = 100;
+inferenceSamples = 2000;
 if strcmp(variationalDist, 'diagonalGauss')
     %individual samples are rows of 'samples'
     %sigma is std

@@ -12,11 +12,11 @@ sp1.Position(2) = -.01;
 sp1.Position(4) = .9;
 sp1.Position(3) = .95;
 fig.Position(4) = .22;
-refinement_mode = 'cell_score';
+refinement_mode = 'activeCells';
 filename = strcat(refinement_mode, '_refine');
 seconds_per_frame = .05;
-iter_increment = 10;
-plot_split_only = true;
+iter_increment = 1;
+plot_split_only = false;
 if plot_split_only
     seconds_per_frame = 2;
     filename = strcat(filename, '_split_only');
@@ -33,6 +33,7 @@ else
 end
 coarseGridX = (1/16)*ones(1, 16);
 coarseGridY = (1/16)*ones(1, 16);
+gridFEM = RectangularMesh(coarseGridX);
 load('./data/modelParams.mat');
 
 %% Find first rf2fem
@@ -46,7 +47,7 @@ else
     error('What initial mesh size?')
 end
 cell_dictionary = 1:gridRF.nCells;
-rf2fem = gridRF.map2fine(coarseGridX, coarseGridY);
+rf2fem = gridRF.map2fine(gridFEM);
 %% Plot first frame
 next_score = score(1, :);
 next_score = next_score(next_score ~= 0);
@@ -108,7 +109,7 @@ for iter = 2:iter_increment:size(score, 1)
             splt_cll = modelParams.splitted_cells(curr_split);
         end
         gridRF.split_cell(gridRF.cells{splt_cll});
-        rf2fem = gridRF.map2fine(coarseGridX, coarseGridY);
+        rf2fem = gridRF.map2fine(gridFEM);
         
         %Update cell index dictionary
         cell_dictionary(splt_cll) = nan;

@@ -254,12 +254,11 @@ classdef MeshFEM
             self = setId(self);
             self = getEquations(self);
             self.Equations = double(self.Equations);
-            self.kIndex = sub2ind([4 4 self.nEl], self.LocalNode(:,1),...
-                self.LocalNode(:,2), self.LocalNode(:,3));
+            self.kIndex = sub2ind([4 4 self.nEl], self.LocalNode(:, 1), self.LocalNode(:, 2), self.LocalNode(:, 3));
         end
 
         function self = setBvec(self)
-            self.nEq = max(self.nodalCoordinates(3,:));
+            self.nEq = max(self.nodalCoordinates(3, :));
             %Gauss points
             xi1 = -1/sqrt(3);
             xi2 = 1/sqrt(3);
@@ -267,14 +266,13 @@ classdef MeshFEM
             self.Bvec = zeros(8, 4, self.nEl);
             for e = 1:self.nEl
                 for i = 1:4
-                    self.essentialBoundary(i, e) =...
-                        ~isnan(self.essentialTemperatures(self.globalNodeNumber(e, i)));
+                    self.essentialBoundary(i, e) = ~isnan(self.essentialTemperatures(self.globalNodeNumber(e, i)));
                 end
                 %short hand notation
-                x1 = self.lc(e,1,1);
-                x2 = self.lc(e,2,1);
-                y1 = self.lc(e,1,2);
-                y4 = self.lc(e,4,2);
+                x1 = self.lc(e, 1, 1);
+                x2 = self.lc(e, 2, 1);
+                y1 = self.lc(e, 1, 2);
+                y4 = self.lc(e, 4, 2);
                 
                 %Coordinate transformation
                 xI = 0.5*(x1 + x2) + 0.5*xi1*(x2 - x1);
@@ -289,7 +287,7 @@ classdef MeshFEM
                 B3 = [yI-y4 y4-yI yI-y1 y1-yI; xII-x2 x1-xII xII-x1 x2-xII];
                 B4 = [yII-y4 y4-yII yII-y1 y1-yII; xI-x2 x1-xI xI-x1 x2-xI];
                 
-                %Note:in Gauss quadrature, the differential transforms as dx = (l_x/2) d xi. Hence
+                %Note: in Gauss quadrature, the differential transforms as dx = (l_x/2) d xi. Hence
                 %we take the additional factor of sqrt(A)/2 onto B
                 self.Bvec(:, :, e) = (1/(2*sqrt(self.AEl(e))))*[B1; B2; B3; B4];
             end
@@ -598,8 +596,7 @@ classdef MeshFEM
             
             self.d_loc_stiff = zeros(4, 4, self.nEl);
             for e = 1:self.nEl
-                self.d_loc_stiff(:, :, e) =...
-                    self.Bvec(:, :, e)'*self.Bvec(:, :, e);
+                self.d_loc_stiff(:, :, e) = self.Bvec(:, :, e)'*self.Bvec(:, :, e);
             end
         end
         

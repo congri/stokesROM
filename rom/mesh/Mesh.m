@@ -65,7 +65,7 @@ classdef Mesh < handle
             for n = 1:numel(self.vertices)
                 hold on;
                 if isvalid(self.vertices{n})
-                    pv(n) = self.vertices{n}.plot(fig);
+                    pv(n) = self.vertices{n}.plot(n, fig);
                 end
             end
             
@@ -74,7 +74,7 @@ classdef Mesh < handle
             for n = 1:numel(self.edges)
                 hold on;
                 if isvalid(self.edges{n})
-                    pe(n) = self.edges{n}.plot(fig);
+                    pe(n) = self.edges{n}.plot(n, fig);
                 end
             end
             
@@ -87,6 +87,9 @@ classdef Mesh < handle
                     pc(n) = text(c(1), c(2), num2str(n));
                 end
             end
+            
+            xlabel('x');
+            ylabel('y');
         end
     end
 end

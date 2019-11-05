@@ -16,6 +16,7 @@ SIGMAGPR=0.4
 LENGTHSCALE=0.08
 LENGTHSCALER=0.05
 SIGMOID=1.2
+ORIGINREJECTION=0
 
 #parameters of spatial distribution of exclusion centers
 COORDDIST="GP"
@@ -27,17 +28,17 @@ GRADIENTSAMPLESEND=1
 #define that in matlab file!
 #STOCHOPTTIME=120    
 
-NSTART=384
-NTRAIN=128
+NSTART=0
+NTRAIN=32
 NTESTSTART=512
 NTESTEND=1660
 
-MAXEMEPOCHS=200
+MAXEMEPOCHS="1000"
 
-NAMEBASE="data_vs_error_8x8"
+NAMEBASE="error_vs_data8x8"
 DATESTR=`date +%m-%d-%H-%M-%N`	#datestring for jobfolder name
 PROJECTDIR="/home/constantin/python/projects/stokesEquation/rom"
-JOBNAME="${DATESTR}_nTrain=${NTRAIN}_nStart=${NSTART}_${NAMEBASE}"
+JOBNAME="${DATESTR}_nTrain=${NTRAIN}_nStart=${NSTART}_bc=${BCX}_${BCY}_${NAMEBASE}_epochs=${MAXEMEPOCHS}"
 JOBDIR_BASE="constantin/python/data/stokesEquation/meshSize=256/nonOverlappingDisks/margins=${MARG1}_${MARG2}_${MARG3}_${MARG4}/N~logn/mu=${N1}/sigma=${N2}/x~${COORDDIST}/"
 
 #location
@@ -56,6 +57,10 @@ if [ "$RADIIDIST" = "lognGP" ]; then
     JOBDIR_BASE="${JOBDIR_BASE}/r~lognGP/mu=${R1}/sigma=${R2}/sigmaGP_r=${SIGMAGPR}/l=${LENGTHSCALER}"
 else
     JOBDIR_BASE="${JOBDIR_BASE}/r~logn/mu=${R1}/sigma=${R2}"
+fi
+
+if [ "${ORIGINREJECTION}" -gt "0" ]; then
+    JOBDIR_BASE="${JOBDIR_BASE}/origin_rejection=${ORIGINREJECTION}"
 fi
 
 #boundary conditions
@@ -97,6 +102,7 @@ echo "#SBATCH --partition batch_SKL,batch_SNB" >> ./job_file.sh
 echo "#SBATCH --nodes 1-1" >> ./job_file.sh
 echo "#SBATCH --mincpus=${NCORES}" >> ./job_file.sh     #node is not shared with other jobs
 echo "#SBATCH --output=/home_eth/constantin/OEfiles/${JOBNAME}.%j.out" >> ./job_file.sh
+echo "#SBATCH --error=/home_eth/constantin/OEfiles/${JOBNAME}.%j.err" >> ./job_file.sh
 echo "#SBATCH --mail-type=ALL" >> ./job_file.sh
 echo "#SBATCH --mail-user=mailscluster@gmail.com " >> ./job_file.sh
 echo "#SBATCH --time=240:00:00" >> ./job_file.sh
@@ -115,6 +121,7 @@ echo "sed -i \"11s/.*/        coordDist = '${COORDDIST}'/\" ./StokesData.m" >> .
 echo "sed -i \"14s/.*/        radiiDist = '${RADIIDIST}'/\" ./StokesData.m" >> ./job_file.sh
 echo "sed -i \"20s/.*/        sigmaGP_r = ${SIGMAGPR}/\" ./StokesData.m" >> ./job_file.sh
 echo "sed -i \"21s/.*/        l_r = ${LENGTHSCALER}/\" ./StokesData.m" >> ./job_file.sh
+echo "sed -i \"22s/.*/        origin_rejection = ${ORIGINREJECTION}/\" ./StokesData.m" >> ./job_file.sh
 if [ "$COORDDIST" = "GP" ]; then
 echo "sed -i \"17s/.*/        densityLengthScale = '${LENGTHSCALE}'/\" ./StokesData.m" >> ./job_file.sh
 echo "sed -i \"18s/.*/        sigmoidScale = '${SIGMOID}'/\" ./StokesData.m" >> ./job_file.sh
@@ -122,7 +129,7 @@ elif [ "$COORDDIST" = "gauss" ]; then
 echo "sed -i \"12s/.*/        coordDist_mu = '${X1}'/\" ./StokesData.m" >> ./job_file.sh
 echo "sed -i \"13s/.*/        coordDist_cov = '${LENGTHSCALE}'/\" ./StokesData.m" >> ./job_file.sh
 fi
-echo "sed -i \"43s/.*/        u_bc = {'${BCX}', '${BCY}'}/\" ./StokesData.m" >> ./job_file.sh
+echo "sed -i \"44s/.*/        u_bc = {'${BCX}', '${BCY}'}/\" ./StokesData.m" >> ./job_file.sh
 echo "sed -i \"20s/.*/nSamplesStart = ${GRADIENTSAMPLESSTART};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
 echo "sed -i \"21s/.*/nSamplesEnd = ${GRADIENTSAMPLESEND};/\" ./VI/efficientStochOpt.m" >> ./job_file.sh
 echo "sed -i \"99s/.*/        max_EM_epochs = ${MAXEMEPOCHS}/\" ./ModelParams.m" >> ./job_file.sh

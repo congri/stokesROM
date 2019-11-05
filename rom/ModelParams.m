@@ -69,8 +69,8 @@ classdef ModelParams < matlab.mixin.Copyable
         %should be more in the end because q(lambda_c) is not changing
         %but the gamma's and other params are still changing
         VRVM_iter = [Inf]
-        VRVM_time = [5*ones(1, 5), 10*ones(1, 5), 20*ones(1, 5), ...
-            30*ones(1, 5), 60*ones(1, 10), 120:10:300]
+        VRVM_time = [.5*ones(1, 300), 1*ones(1, 30), 2*ones(1, 30), ...
+            3]
         
         %current parameters of variational distributions
         a
@@ -96,7 +96,7 @@ classdef ModelParams < matlab.mixin.Copyable
         EM_iter       = 0    %current total number of iterations
         EM_iter_split = 0    %current number of iterations after last split
         epoch = 0            %current epoch
-        max_EM_epochs = 50   %maximum number of epochs
+        max_EM_epochs = 200   %maximum number of epochs
         
         %% Settings
         computeElbo = true
@@ -577,17 +577,13 @@ classdef ModelParams < matlab.mixin.Copyable
                 self.c*sum(log(self.d)) + D_gamma*(aa*log(bb) +...
                 gammaln(self.a) - gammaln(aa)) - ...
                 self.a*sum(log(self.b(1:D_gamma))) + ...
-                .5*logdet_Sigma_theta_c + .5*D_theta_c ...
-                -sum(psi(aa + .5) - log(self.b));
+                .5*logdet_Sigma_theta_c + .5*D_theta_c; ...
+%                 -sum(psi(aa + .5) - log(self.b));
 
             self.set_summation_matrix(X_vtx);
 %             self.cell_score = .5*sum(log(Sigma_lambda_c), 2) - ...
 %                 self.c*log(self.d) + .5*logdet_Sigma_theta_ck;
-            %include contribution from gamma's also
-            sigma_lambda_c = .5*sum(log(Sigma_lambda_c), 2)
-            minus_c_log_d = - self.c*log(self.d)
-            sigma_theta_c = .5*logdet_Sigma_theta_ck
-                
+
             self.cell_score = .5*sum(log(Sigma_lambda_c), 2) - ...
                 self.c*log(self.d);
 %             self.cell_score = -.5*sum(log(Sigma_lambda_c), 2);
@@ -684,6 +680,8 @@ classdef ModelParams < matlab.mixin.Copyable
 %             half_log_det_sigma_theta_ck = .5*logdet_Sigma_theta_ck(:)';
 %             filename = './data/05log_det_sigma_theta_ck';
 %             save(filename, 'half_log_det_sigma_theta_ck', '-ascii', '-append');
+
+
 %             drawnow;
             
         end
